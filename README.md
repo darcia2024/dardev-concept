@@ -4,6 +4,13 @@ Sistem Manajemen Membership Digital, Kasir POS & Loyalitas 5-Tier berbasis Web P
 
 ---
 
+## 🌐 Live Production Deployment (Vercel)
+
+* **Slide Presentasi Scope & Blueprint:** [https://dardev-concept.vercel.app](https://dardev-concept.vercel.app)
+* **Live Demo Mobile Web App (PWA):** [https://dardev-concept.vercel.app/app.html](https://dardev-concept.vercel.app/app.html)
+
+---
+
 ## 🎯 Ringkasan Eksekutif & Sasaran
 
 1. **Digital Loyalty Card & QR Scanner:** Menggantikan kartu fisik kertas dengan kartu digital di smartphone pelanggan.
