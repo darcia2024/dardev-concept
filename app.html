@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Barber Membership &mdash; Mobile Web App</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --surface-base: #000000;
+      --surface-raised: #0c0e12;
+      --surface-card: #13161c;
+      --surface-card-elevated: #1a1d26;
+      --surface-pill: #222632;
+      
+      --border-faint: rgba(255, 255, 255, 0.06);
+      --border-subtle: rgba(255, 255, 255, 0.12);
+      --border-medium: rgba(255, 255, 255, 0.22);
+      
+      --text-main: #ffffff;
+      --text-muted: #9ba1ad;
+      --text-dim: #5c6270;
+      
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-num: 'Space Grotesk', monospace;
+      
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      background-color: #050608;
+      color: var(--text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* Screen Wrapper: Responsive on Desktop, 100% Native on Mobile */
+    .app-screen {
+      width: 100%;
+      max-width: 440px;
+      margin: 0 auto;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background-color: var(--surface-base);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+    }
+
+    @media (min-width: 480px) {
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px 0;
+        background: radial-gradient(circle at 50% 10%, #151822 0%, #030405 90%);
+      }
+      .app-screen {
+        height: 880px;
+        border-radius: 40px;
+        border: 1px solid var(--border-subtle);
+      }
+    }
+
+    /* Top Floating Utility Bar (for switching to Slides on Desktop) */
+    .desktop-top-bar {
+      position: fixed;
+      top: 16px;
+      left: 20px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(18, 20, 26, 0.88);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(12px);
+      z-index: 9999;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .desktop-top-bar a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    @media (min-width: 800px) {
+      .desktop-top-bar {
+        display: flex;
+      }
+    }
+
+    /* Native App Header */
+    .native-header {
+      padding: calc(var(--safe-top) + 14px) 18px 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-faint);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      flex-shrink: 0;
+    }
+
+    .user-profile-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #000000;
+      font-weight: 800;
+      font-family: var(--font-num);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(255, 255, 255, 0.15);
+    }
+
+    .header-text-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .header-greeting {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+
+    .header-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    .header-actions-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-faint);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s ease;
+    }
+
+    .header-btn:active {
+      transform: scale(0.92);
+      background: var(--surface-card-elevated);
+    }
+
+    .header-notif-dot {
+      position: absolute;
+      top: 7px;
+      right: 8px;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Main Scroll Body */
+    .native-viewport {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px 16px calc(var(--safe-bottom) + 88px) 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 18px;
+      animation: tabFadeIn 0.2s ease forwards;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* DIGITAL MEMBER CARD (Premium Brushed Monochrome) */
+    .luxury-card-wrapper {
+      width: 100%;
+      border-radius: 22px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.04) 60%, rgba(255,255,255,0.2) 100%);
+      box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.8);
+    }
+
+    .luxury-card {
+      background: linear-gradient(145deg, #161920 0%, #0a0c10 100%);
+      border-radius: 21px;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .luxury-card-mesh {
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 160px;
+      height: 160px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%);
+      pointer-events: none;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 2;
+    }
+
+    .card-brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .brand-cube {
+      width: 20px;
+      height: 20px;
+      background: #ffffff;
+      color: #000000;
+      border-radius: 5px;
+      font-weight: 800;
+      font-size: 10px;
+      font-family: var(--font-num);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-name-txt {
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .tier-chip {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-family: var(--font-num);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+
+    .card-center {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 2;
+    }
+
+    .points-tag {
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .points-main-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .points-huge-num {
+      font-family: var(--font-num);
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+    }
+
+    .points-pts-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .points-rupiah-sub {
+      font-size: 11.5px;
+      color: var(--text-dim);
+    }
+
+    .card-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 12px;
+      z-index: 2;
+    }
+
+    .card-id-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .card-id-caption {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+    }
+
+    .card-id-code {
+      font-family: var(--font-num);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .card-btn-qr {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #ffffff;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .card-btn-qr:active {
+      transform: scale(0.94);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Tier Progress Card */
+    .tier-milestone-box {
+      background: var(--surface-card);
+      border: 1px solid var(--border-faint);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .tier-milestone-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tier-target-txt {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .tier-target-desc {
+      font-size: 10.5px;
+      color: var(--text-muted);
+    }
+
+    .tier-pct-tag {
+      font-family: var(--font-num);
+      font-size: 10.5px;
+      font-weight: 700;
+      background: var(--surface-pill);
+      padding: 2px 7px;
+      border-radius: 5px;
+      color: #ffffff;
+    }
+
+    .tier-bar-track {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .tier-bar-fill {
+      height: 100%;
+      width: 62%;
+      background: #ffffff;
+      border-radius: 999px;
+    }
+
+    /* Quick Action 3-Grid */
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+    }
+
+    .quick-card-btn {
+      background: var(--surface-card);
+      border: 1px solid var(--border-faint);
+      border-radius: 15px;
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .quick-card-btn:active {
+      transform: scale(0.95);
+      background: var(--surface-card-elevated);
+    }
+
+    .quick-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-faint);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+    }
+
+    .quick-card-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-main);
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* Section Headings */
+    .block-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2px;
+    }
+
+    .block-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    .block-link {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    /* Timeline History Cards */
+    .history-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-faint);
+      border-radius: 15px;
+      padding: 13px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .history-date-square {
+      width: 38px;
+      height: 38px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-faint);
+      border-radius: 9px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-num);
+    }
+
+    .history-d-num {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .history-m-txt {
+      font-size: 8.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .history-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .history-serv-name {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .history-capster-txt {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .history-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 1px;
+    }
+
+    .history-pts-gain {
+      font-family: var(--font-num);
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .history-nominal {
+      font-size: 10.5px;
+      color: var(--text-dim);
+    }
+
+    /* REWARD SCREEN */
+    .filter-scroll-row {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+
+    .filter-scroll-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .pill-filter-item {
+      padding: 5px 12px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-faint);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .pill-filter-item.active {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    .voucher-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-faint);
+      border-radius: 16px;
+      padding: 14px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .voucher-left {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .voucher-type-tag {
+      font-family: var(--font-num);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .voucher-title-txt {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.25;
+    }
+
+    .voucher-pts-cost {
+      font-family: var(--font-num);
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-top: 2px;
+    }
+
+    .btn-action-redeem {
+      background: #ffffff;
+      color: #000000;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.15s ease;
+    }
+
+    .btn-action-redeem:active {
+      transform: scale(0.94);
+      background: #e2e4e8;
+    }
+
+    /* PRODUCT CATALOG SCREEN */
+    .search-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-faint);
+      border-radius: 13px;
+      padding: 9px 12px;
+    }
+
+    .search-input-field {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #ffffff;
+      font-size: 12.5px;
+      font-family: var(--font-body);
+      width: 100%;
+    }
+
+    .search-input-field::placeholder {
+      color: var(--text-dim);
+    }
+
+    .product-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .product-box {
+      background: var(--surface-card);
+      border: 1px solid var(--border-faint);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .product-thumb-placeholder {
+      width: 100%;
+      height: 96px;
+      background: var(--surface-raised);
+      border-radius: 11px;
+      border: 1px solid var(--border-faint);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-family: var(--font-num);
+      font-size: 9.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .product-name-txt {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+
+    .product-gauge-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 9.5px;
+      color: var(--text-muted);
+    }
+
+    .gauge-item {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .product-price-txt {
+      font-family: var(--font-num);
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    /* STORE / OUTLET SCREEN */
+    .outlet-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-faint);
+      border-radius: 16px;
+      padding: 14px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .outlet-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .outlet-name-txt {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .outlet-distance-badge {
+      font-family: var(--font-num);
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--surface-pill);
+      padding: 2px 7px;
+      border-radius: 999px;
+      color: #fff;
+    }
+
+    .outlet-addr-txt {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .outlet-bottom-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-faint);
+      padding-top: 8px;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .btn-route-action {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      color: #ffffff;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* NATIVE BOTTOM NAVIGATION BAR */
+    .native-tabbar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(var(--safe-bottom) + 68px);
+      padding: 0 8px var(--safe-bottom) 8px;
+      background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-faint);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 50;
+    }
+
+    .tabbar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: color 0.15s ease;
+    }
+
+    .tabbar-item.active {
+      color: #ffffff;
+    }
+
+    .tabbar-item.active .tabbar-svg {
+      stroke: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .tabbar-label {
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .tabbar-qr-center-btn {
+      margin-top: -16px;
+      background: #ffffff;
+      color: #000000;
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+      border: 2px solid #000000;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .tabbar-qr-center-btn:active {
+      transform: scale(0.9);
+    }
+
+    /* FULLSCREEN QR & NFC SHEET */
+    .qr-sheet-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.96);
+      backdrop-filter: blur(24px);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      padding: calc(var(--safe-top) + 20px) 18px 24px 18px;
+      overflow-y: auto;
+      animation: sheetSlideUp 0.25s ease forwards;
+    }
+
+    .qr-sheet-modal.open {
+      display: flex;
+    }
+
+    @keyframes sheetSlideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .qr-sheet-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .qr-sheet-title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .btn-sheet-close {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-faint);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .qr-white-card {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      color: #000000;
+      text-align: center;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.6);
+    }
+
+    .qr-member-name {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .qr-tier-pill {
+      background: #000000;
+      color: #ffffff;
+      font-family: var(--font-num);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+
+    .qr-svg-wrapper {
+      width: 170px;
+      height: 170px;
+      padding: 6px;
+      background: #ffffff;
+      border: 2px solid #000000;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-code-string {
+      font-family: var(--font-num);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .btn-nfc-tap-action {
+      margin-top: 12px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      color: #ffffff;
+      padding: 12px 18px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .btn-nfc-tap-action:active {
+      transform: scale(0.96);
+      background: var(--surface-card-elevated);
+    }
+
+    /* TOAST ALERT */
+    .toast-popup {
+      position: absolute;
+      top: 50px;
+      left: 16px;
+      right: 16px;
+      background: #ffffff;
+      color: #000000;
+      padding: 11px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.5);
+      z-index: 200;
+      animation: toastIn 0.25s ease forwards;
+    }
+
+    .toast-popup.show {
+      display: flex;
+    }
+
+    @keyframes toastIn {
+      from { transform: translateY(-16px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* POS DEMO TRIGGER (Desktop floating tool) */
+    .pos-float-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #ffffff;
+      color: #000000;
+      padding: 9px 16px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+      z-index: 9999;
+    }
+
+    @media (min-width: 800px) {
+      .pos-float-btn {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Desktop Utilities -->
+  <div class="desktop-top-bar">
+    <span>Mobile Web App Simulator</span>
+    <span style="opacity: 0.3;">|</span>
+    <a href="index.html">&larr; Kembali ke Slide Presentasi</a>
+  </div>
+
+  <button class="pos-float-btn" id="btnPosSimulator">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+    <span>Simulasi Kasir (+5.000 Poin)</span>
+  </button>
+
+  <!-- Mobile Viewport Container -->
+  <div class="app-screen">
+    
+    <!-- Top Native Header -->
+    <header class="native-header">
+      <div class="user-profile-header">
+        <div class="user-avatar-badge" id="userAvatarBadge">HH</div>
+        <div class="header-text-group">
+          <span class="header-greeting">Selamat Datang,</span>
+          <span class="header-name" id="userNameTxt">Hilmy Hafizh</span>
+        </div>
+      </div>
+      <div class="header-actions-group">
+        <button class="header-btn" id="btnHeaderNfc" title="Tap Kartu NFC">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span class="header-notif-dot"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Toast Notification -->
+    <div class="toast-popup" id="toastBox">
+      <span id="toastTxt">Poin berhasil diperbarui!</span>
+    </div>
+
+    <!-- Scroll Viewport -->
+    <main class="native-viewport" id="mainViewport">
+
+      <!-- TAB 1: HOME -->
+      <section class="tab-content active" id="viewHome">
+        
+        <!-- Digital Luxury Member Card -->
+        <div class="luxury-card-wrapper">
+          <div class="luxury-card">
+            <div class="luxury-card-mesh"></div>
+            
+            <div class="card-top">
+              <div class="card-brand-logo">
+                <div class="brand-cube">B</div>
+                <span class="brand-name-txt">Barber Loyalty</span>
+              </div>
+              <div class="tier-chip" id="mainTierChip">Gold Member</div>
+            </div>
+
+            <div class="card-center">
+              <span class="points-tag">Total Saldo Poin</span>
+              <div class="points-main-row">
+                <span class="points-huge-num" id="mainPointsNum">12.500</span>
+                <span class="points-pts-label">PTS</span>
+              </div>
+              <span class="points-rupiah-sub" id="mainPointsWorth">Setara potongan diskon Rp12.500</span>
+            </div>
+
+            <div class="card-bottom">
+              <div class="card-id-col">
+                <span class="card-id-caption">Member ID</span>
+                <span class="card-id-code">BARBER-8849-01</span>
+              </div>
+              <button class="card-btn-qr" id="btnCardOpenQr">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                <span>Buka QR</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tier Level Progress Box -->
+        <div class="tier-milestone-box">
+          <div class="tier-milestone-top">
+            <div>
+              <div class="tier-target-txt">Target: Platinum Member</div>
+              <div class="tier-target-desc">Kumpulkan 87.500 PTS lagi untuk auto-upgrade</div>
+            </div>
+            <span class="tier-pct-tag">62%</span>
+          </div>
+          <div class="tier-bar-track">
+            <div class="tier-bar-fill"></div>
+          </div>
+        </div>
+
+        <!-- 3 Quick Action Buttons -->
+        <div class="quick-grid">
+          <div class="quick-card-btn" id="btnQuickReward">
+            <div class="quick-icon-wrap">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
+            <span class="quick-card-title">Tukar<br>Poin</span>
+          </div>
+
+          <div class="quick-card-btn" id="btnQuickCapster">
+            <div class="quick-icon-wrap">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <span class="quick-card-title">Profil<br>Capster</span>
+          </div>
+
+          <div class="quick-card-btn" id="btnQuickNfc">
+            <div class="quick-icon-wrap">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20"/><path d="M20 12v8H4v-8"/><rect x="8" y="3" width="8" height="6" rx="1"/></svg>
+            </div>
+            <span class="quick-card-title">Smart<br>NFC</span>
+          </div>
+        </div>
+
+        <!-- Recent Haircuts Section -->
+        <div class="block-head">
+          <span class="block-title">Riwayat Kunjungan Cukur</span>
+          <span class="block-link">Lihat Semua</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <div class="history-card">
+            <div class="history-left">
+              <div class="history-date-square">
+                <span class="history-d-num">18</span>
+                <span class="history-m-txt">Agu</span>
+              </div>
+              <div class="history-details">
+                <span class="history-serv-name">Gentlemen Haircut + Wash</span>
+                <span class="history-capster-txt">Capster: Reno &bull; Senopati</span>
+              </div>
+            </div>
+            <div class="history-right">
+              <span class="history-pts-gain">+5.000 PTS</span>
+              <span class="history-nominal">Rp50.000</span>
+            </div>
+          </div>
+
+          <div class="history-card">
+            <div class="history-left">
+              <div class="history-date-square">
+                <span class="history-d-num">02</span>
+                <span class="history-m-txt">Jul</span>
+              </div>
+              <div class="history-details">
+                <span class="history-serv-name">Classic Fade + Hot Towel</span>
+                <span class="history-capster-txt">Capster: Bayu &bull; Bintaro</span>
+              </div>
+            </div>
+            <div class="history-right">
+              <span class="history-pts-gain">+7.500 PTS</span>
+              <span class="history-nominal">Rp75.000</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- TAB 2: REWARD -->
+      <section class="tab-content" id="viewReward">
+        <div class="block-head">
+          <span class="block-title">Katalog Penukaran Poin</span>
+          <span class="block-link">Info Level</span>
+        </div>
+
+        <div class="filter-scroll-row">
+          <div class="pill-filter-item active">Semua Reward</div>
+          <div class="pill-filter-item">Diskon Cukur</div>
+          <div class="pill-filter-item">Produk Gratis</div>
+          <div class="pill-filter-item">Treatment</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="voucher-card">
+            <div class="voucher-left">
+              <span class="voucher-type-tag">VOUCHER POTONGAN</span>
+              <span class="voucher-title-txt">Diskon Potong Rambut Rp10.000</span>
+              <span class="voucher-pts-cost">10.000 PTS</span>
+            </div>
+            <button class="btn-action-redeem" onclick="handleRedeem('Diskon Rp10.000', 10000)">Tukar</button>
+          </div>
+
+          <div class="voucher-card">
+            <div class="voucher-left">
+              <span class="voucher-type-tag">VOUCHER POTONGAN</span>
+              <span class="voucher-title-txt">Diskon Potong Rambut Rp25.000</span>
+              <span class="voucher-pts-cost">25.000 PTS</span>
+            </div>
+            <button class="btn-action-redeem" onclick="handleRedeem('Diskon Rp25.000', 25000)">Tukar</button>
+          </div>
+
+          <div class="voucher-card">
+            <div class="voucher-left">
+              <span class="voucher-type-tag">FREE PRODUCT</span>
+              <span class="voucher-title-txt">Gratis Hair Tonic Refresh 100ml</span>
+              <span class="voucher-pts-cost">40.000 PTS</span>
+            </div>
+            <button class="btn-action-redeem" onclick="handleRedeem('Hair Tonic Refresh', 40000)">Tukar</button>
+          </div>
+
+          <div class="voucher-card">
+            <div class="voucher-left">
+              <span class="voucher-type-tag">TREATMENT</span>
+              <span class="voucher-title-txt">Gratis Hot Towel & Face Massage</span>
+              <span class="voucher-pts-cost">15.000 PTS</span>
+            </div>
+            <button class="btn-action-redeem" onclick="handleRedeem('Hot Towel Massage', 15000)">Tukar</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: PRODUCT -->
+      <section class="tab-content" id="viewProduct">
+        <div class="search-bar-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="search-input-field" placeholder="Cari pomade, tonic, clay..." id="productSearchInput">
+        </div>
+
+        <div class="filter-scroll-row">
+          <div class="pill-filter-item active">Semua</div>
+          <div class="pill-filter-item">Pomade & Clay</div>
+          <div class="pill-filter-item">Hair Care</div>
+          <div class="pill-filter-item">Beard Care</div>
+        </div>
+
+        <div class="product-grid-2">
+          <div class="product-box">
+            <div class="product-thumb-placeholder">MATTE CLAY</div>
+            <span class="product-name-txt">High Hold Matte Clay 100g</span>
+            <div class="product-gauge-col">
+              <div class="gauge-item"><span>Hold</span><span>5 / 5</span></div>
+              <div class="gauge-item"><span>Shine</span><span>1 / 5</span></div>
+            </div>
+            <span class="product-price-txt">Rp120.000</span>
+          </div>
+
+          <div class="product-box">
+            <div class="product-thumb-placeholder">POMADE</div>
+            <span class="product-name-txt">Waterbased Classic Pomade</span>
+            <div class="product-gauge-col">
+              <div class="gauge-item"><span>Hold</span><span>4 / 5</span></div>
+              <div class="gauge-item"><span>Shine</span><span>4 / 5</span></div>
+            </div>
+            <span class="product-price-txt">Rp110.000</span>
+          </div>
+
+          <div class="product-box">
+            <div class="product-thumb-placeholder">HAIR TONIC</div>
+            <span class="product-name-txt">Cooling Menthol Scalp Tonic</span>
+            <div class="product-gauge-col">
+              <div class="gauge-item"><span>Aroma</span><span>Peppermint</span></div>
+              <div class="gauge-item"><span>Efek</span><span>Cooling</span></div>
+            </div>
+            <span class="product-price-txt">Rp85.000</span>
+          </div>
+
+          <div class="product-box">
+            <div class="product-thumb-placeholder">BEARD OIL</div>
+            <span class="product-name-txt">Organic Cedarwood Beard Oil</span>
+            <div class="product-gauge-col">
+              <div class="gauge-item"><span>Nutrisi</span><span>Argan Oil</span></div>
+              <div class="gauge-item"><span>Isi</span><span>30 ml</span></div>
+            </div>
+            <span class="product-price-txt">Rp95.000</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: STORE -->
+      <section class="tab-content" id="viewStore">
+        <div class="block-head">
+          <span class="block-title">Daftar Cabang Barbershop</span>
+          <span class="block-link">Peta GPS</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="outlet-card">
+            <div class="outlet-top-row">
+              <div>
+                <div class="outlet-name-txt">Outlet Senopati (Flagship)</div>
+                <div style="font-size: 10.5px; color: #a1a1aa; margin-top: 1px;">Buka &bull; 10:00 &ndash; 21:00 WIB</div>
+              </div>
+              <span class="outlet-distance-badge">0.8 km</span>
+            </div>
+            <p class="outlet-addr-txt">Jl. Senopati No. 42, Kebayoran Baru, Jakarta Selatan</p>
+            <div class="outlet-bottom-row">
+              <span>Capster: Reno, Dani, Arif</span>
+              <button class="btn-route-action" onclick="triggerToast('Membuka rute Google Maps...')">Rute</button>
+            </div>
+          </div>
+
+          <div class="outlet-card">
+            <div class="outlet-top-row">
+              <div>
+                <div class="outlet-name-txt">Outlet Bintaro Sektor 9</div>
+                <div style="font-size: 10.5px; color: #a1a1aa; margin-top: 1px;">Buka &bull; 09:00 &ndash; 21:00 WIB</div>
+              </div>
+              <span class="outlet-distance-badge">3.2 km</span>
+            </div>
+            <p class="outlet-addr-txt">Ruko Kebayoran Arcade 2 Blok B2 No. 8, Tangerang Selatan</p>
+            <div class="outlet-bottom-row">
+              <span>Capster: Bayu, Ridwan</span>
+              <button class="btn-route-action" onclick="triggerToast('Membuka rute Google Maps...')">Rute</button>
+            </div>
+          </div>
+
+          <div class="outlet-card">
+            <div class="outlet-top-row">
+              <div>
+                <div class="outlet-name-txt">Outlet Kemang Raya</div>
+                <div style="font-size: 10.5px; color: #a1a1aa; margin-top: 1px;">Buka &bull; 10:00 &ndash; 22:00 WIB</div>
+              </div>
+              <span class="outlet-distance-badge">5.1 km</span>
+            </div>
+            <p class="outlet-addr-txt">Jl. Kemang Raya No. 18A, Mampang Prapatan, Jakarta Selatan</p>
+            <div class="outlet-bottom-row">
+              <span>Capster: Farhan, Yoga</span>
+              <button class="btn-route-action" onclick="triggerToast('Membuka rute Google Maps...')">Rute</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Native Tab Bar -->
+    <nav class="native-tabbar">
+      <div class="tabbar-item active" data-target="viewHome">
+        <svg class="tabbar-svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="tabbar-label">Home</span>
+      </div>
+
+      <div class="tabbar-item" data-target="viewReward">
+        <svg class="tabbar-svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+        <span class="tabbar-label">Reward</span>
+      </div>
+
+      <div class="tabbar-qr-center-btn" id="btnCenterQrTrigger" title="Buka QR Member">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      </div>
+
+      <div class="tabbar-item" data-target="viewProduct">
+        <svg class="tabbar-svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span class="tabbar-label">Product</span>
+      </div>
+
+      <div class="tabbar-item" data-target="viewStore">
+        <svg class="tabbar-svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span class="tabbar-label">Store</span>
+      </div>
+    </nav>
+
+    <!-- Fullscreen QR / NFC Modal Sheet -->
+    <div class="qr-sheet-modal" id="qrSheetModal">
+      <div class="qr-sheet-head">
+        <span class="qr-sheet-title">Kartu Identitas Digital Member</span>
+        <button class="btn-sheet-close" id="btnCloseQrSheet">&times;</button>
+      </div>
+
+      <div class="qr-white-card">
+        <span class="qr-tier-pill">Gold Member</span>
+        <div class="qr-member-name">Hilmy Hafizh</div>
+
+        <!-- High-res Clean Vector QR -->
+        <div class="qr-svg-wrapper">
+          <svg width="156" height="156" viewBox="0 0 100 100" fill="#000000">
+            <rect x="5" y="5" width="30" height="30" fill="none" stroke="#000" stroke-width="5"/>
+            <rect x="12" y="12" width="16" height="16"/>
+            <rect x="65" y="5" width="30" height="30" fill="none" stroke="#000" stroke-width="5"/>
+            <rect x="72" y="12" width="16" height="16"/>
+            <rect x="5" y="65" width="30" height="30" fill="none" stroke="#000" stroke-width="5"/>
+            <rect x="12" y="72" width="16" height="16"/>
+            <rect x="42" y="10" width="8" height="8"/>
+            <rect x="52" y="20" width="6" height="6"/>
+            <rect x="42" y="30" width="16" height="6"/>
+            <rect x="10" y="42" width="8" height="16"/>
+            <rect x="25" y="48" width="10" height="6"/>
+            <rect x="42" y="42" width="16" height="16"/>
+            <rect x="65" y="42" width="8" height="8"/>
+            <rect x="80" y="48" width="12" height="6"/>
+            <rect x="42" y="65" width="8" height="18"/>
+            <rect x="55" y="72" width="10" height="8"/>
+            <rect x="72" y="65" width="18" height="6"/>
+            <rect x="80" y="80" width="12" height="12"/>
+          </svg>
+        </div>
+
+        <div class="qr-code-string">BARBER-8849-01</div>
+        <p style="font-size: 11px; color: #71717a; line-height: 1.4;">
+          Pindai kode QR ini di meja kasir saat melakukan pembayaran.
+        </p>
+      </div>
+
+      <button class="btn-nfc-tap-action" id="btnNfcSimulatorAction">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20"/><path d="M20 12v8H4v-8"/><rect x="8" y="3" width="8" height="6" rx="1"/></svg>
+        <span>Simulasi Tap ke Kartu NFC Kasir</span>
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    // State
+    let currentPoints = 12500;
+    const pointsNumEl = document.getElementById('mainPointsNum');
+    const pointsWorthEl = document.getElementById('mainPointsWorth');
+    const toastBox = document.getElementById('toastBox');
+    const toastTxt = document.getElementById('toastTxt');
+
+    function syncPoints() {
+      pointsNumEl.textContent = currentPoints.toLocaleString('id-ID');
+      pointsWorthEl.textContent = `Setara potongan diskon Rp${currentPoints.toLocaleString('id-ID')}`;
+    }
+
+    function triggerToast(text) {
+      toastTxt.textContent = text;
+      toastBox.classList.add('show');
+      setTimeout(() => {
+        toastBox.classList.remove('show');
+      }, 2800);
+    }
+
+    // Tab Switching
+    const tabbarItems = document.querySelectorAll('.tabbar-item');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const mainViewport = document.getElementById('mainViewport');
+
+    tabbarItems.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetId = tab.getAttribute('data-target');
+        if (!targetId) return;
+
+        tabbarItems.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+
+        tab.classList.add('active');
+        const targetScreen = document.getElementById(targetId);
+        if (targetScreen) {
+          targetScreen.classList.add('active');
+          mainViewport.scrollTop = 0;
+        }
+      });
+    });
+
+    // QR Sheet Controls
+    const qrSheetModal = document.getElementById('qrSheetModal');
+    const btnCenterQrTrigger = document.getElementById('btnCenterQrTrigger');
+    const btnCardOpenQr = document.getElementById('btnCardOpenQr');
+    const btnCloseQrSheet = document.getElementById('btnCloseQrSheet');
+
+    function toggleSheet(open) {
+      if (open) {
+        qrSheetModal.classList.add('open');
+      } else {
+        qrSheetModal.classList.remove('open');
+      }
+    }
+
+    btnCenterQrTrigger.addEventListener('click', () => toggleSheet(true));
+    btnCardOpenQr.addEventListener('click', () => toggleSheet(true));
+    btnCloseQrSheet.addEventListener('click', () => toggleSheet(false));
+
+    // Quick Action Triggers
+    document.getElementById('btnQuickReward').addEventListener('click', () => {
+      document.querySelector('[data-target="viewReward"]').click();
+    });
+    document.getElementById('btnQuickCapster').addEventListener('click', () => {
+      document.querySelector('[data-target="viewStore"]').click();
+    });
+    document.getElementById('btnQuickNfc').addEventListener('click', () => {
+      toggleSheet(true);
+    });
+    document.getElementById('btnHeaderNfc').addEventListener('click', () => {
+      toggleSheet(true);
+    });
+
+    // NFC Tap Simulation (Cashier-Held Card)
+    document.getElementById('btnNfcSimulatorAction').addEventListener('click', () => {
+      toggleSheet(false);
+      triggerToast('Tap Kartu NFC Kasir Sukses! Form buka otomatis (Nama & No WA).');
+    });
+
+    // Redeem Logic
+    window.handleRedeem = function(rewardName, pointCost) {
+      if (currentPoints >= pointCost) {
+        currentPoints -= pointCost;
+        syncPoints();
+        triggerToast(`Berhasil menukar ${rewardName}! Sisa poin: ${currentPoints.toLocaleString('id-ID')}`);
+      } else {
+        triggerToast(`Poin tidak mencukupi! Butuh ${pointCost.toLocaleString('id-ID')} PTS.`);
+      }
+    };
+
+    // POS Cashier Checkout Simulator
+    document.getElementById('btnPosSimulator').addEventListener('click', () => {
+      const added = 5000;
+      currentPoints += added;
+      syncPoints();
+      triggerToast(`Transaksi Cukur Rp50.000 Selesai! +${added.toLocaleString('id-ID')} PTS Ditambahkan.`);
+    });
+  </script>
+</body>
+</html>

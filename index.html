@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Barber Membership & Loyalty Platform &mdash; Project Scope & Blueprint</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Material 3 Monochrome Design Tokens */
+    :root {
+      --md-sys-color-surface: #0a0b0d;
+      --md-sys-color-surface-dim: #050608;
+      --md-sys-color-surface-container-lowest: #101216;
+      --md-sys-color-surface-container-low: #15181e;
+      --md-sys-color-surface-container: #1b1e25;
+      --md-sys-color-surface-container-high: #242831;
+      --md-sys-color-surface-container-highest: #2e333e;
+      
+      --md-sys-color-on-surface: #f4f5f7;
+      --md-sys-color-on-surface-variant: #9aa0ac;
+      --md-sys-color-outline: #3c4250;
+      --md-sys-color-outline-variant: #232730;
+      
+      --md-sys-color-primary: #ffffff;
+      --md-sys-color-on-primary: #000000;
+      --md-sys-color-primary-container: #282c36;
+      --md-sys-color-on-primary-container: #e6e8eb;
+
+      --md-sys-color-secondary: #c9ccd4;
+      --md-sys-color-on-secondary: #121418;
+      
+      --md-shape-corner-xs: 4px;
+      --md-shape-corner-sm: 8px;
+      --md-shape-corner-md: 12px;
+      --md-shape-corner-lg: 16px;
+      --md-shape-corner-xl: 24px;
+      --md-shape-corner-full: 9999px;
+      
+      --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Space Grotesk', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--md-sys-color-surface-dim);
+      color: var(--md-sys-color-on-surface);
+      font-family: var(--font-main);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+    }
+
+    /* Top Bar Header */
+    .top-bar {
+      height: 56px;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
+      background-color: rgba(10, 11, 13, 0.92);
+      backdrop-filter: blur(12px);
+      z-index: 50;
+      flex-shrink: 0;
+    }
+
+    .project-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background: var(--md-sys-color-primary);
+      border-radius: var(--md-shape-corner-xs);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--md-sys-color-on-primary);
+      font-weight: 800;
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+
+    .brand-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      background: transparent;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      color: var(--md-sys-color-on-surface);
+      padding: 6px 12px;
+      border-radius: var(--md-shape-corner-full);
+      font-family: var(--font-main);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      text-decoration: none;
+      line-height: 1;
+      transition: all 0.2s ease;
+    }
+
+    .btn-icon:hover {
+      background: var(--md-sys-color-surface-container);
+      border-color: var(--md-sys-color-outline);
+    }
+
+    /* Deck Viewport */
+    .deck-viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 28px;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 16px 28px;
+      background: var(--md-sys-color-surface-container-lowest);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-xl);
+      padding: 32px 42px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(12px) scale(0.994);
+      pointer-events: none;
+      transition: opacity 0.28s cubic-bezier(0.2, 0, 0, 1), transform 0.28s cubic-bezier(0.2, 0, 0, 1);
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    /* Typography & M3 Elements */
+    .slide-header {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .category-chip {
+      align-self: flex-start;
+      padding: 2.5px 9px;
+      background: var(--md-sys-color-surface-container-high);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-full);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--md-sys-color-secondary);
+    }
+
+    .slide-title {
+      font-size: 25px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--md-sys-color-primary);
+      line-height: 1.2;
+    }
+
+    .slide-subtitle {
+      font-size: 13px;
+      color: var(--md-sys-color-on-surface-variant);
+      max-width: 960px;
+      line-height: 1.45;
+    }
+
+    .slide-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    /* Layout Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 13px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 11px;
+    }
+
+    .grid-5 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 9px;
+    }
+
+    /* M3 Surface Cards */
+    .m3-card {
+      background: var(--md-sys-color-surface-container-low);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-lg);
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .m3-card:hover {
+      border-color: var(--md-sys-color-outline);
+      background: var(--md-sys-color-surface-container);
+    }
+
+    .m3-card.highlight {
+      background: var(--md-sys-color-surface-container);
+      border-color: var(--md-sys-color-outline);
+    }
+
+    .m3-card.addon-card {
+      border-left: 3px solid var(--md-sys-color-primary);
+    }
+
+    .card-num {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--md-sys-color-on-surface-variant);
+      letter-spacing: 0.05em;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--md-sys-color-primary);
+      line-height: 1.3;
+    }
+
+    .card-desc {
+      font-size: 11.8px;
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.45;
+    }
+
+    .card-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .card-list-item {
+      font-size: 11.8px;
+      color: var(--md-sys-color-on-surface);
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      line-height: 1.35;
+    }
+
+    .card-list-item::before {
+      content: "—";
+      color: var(--md-sys-color-on-surface-variant);
+      flex-shrink: 0;
+    }
+
+    /* M3 Tables */
+    .m3-table-wrapper {
+      width: 100%;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-lg);
+      overflow: hidden;
+      background: var(--md-sys-color-surface-container-low);
+    }
+
+    .m3-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .m3-table th {
+      background: var(--md-sys-color-surface-container);
+      color: var(--md-sys-color-primary);
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    }
+
+    .m3-table td {
+      padding: 11px 14px;
+      font-size: 12px;
+      color: var(--md-sys-color-on-surface);
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
+      line-height: 1.4;
+    }
+
+    .m3-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .m3-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tag-pill {
+      display: inline-block;
+      padding: 2px 6px;
+      background: var(--md-sys-color-surface-container-highest);
+      border-radius: var(--md-shape-corner-xs);
+      font-size: 9.5px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--md-sys-color-primary);
+    }
+
+    .tag-pill.accent {
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+    }
+
+    /* 5-Tab Bar Simulator */
+    .nav-bar-sim {
+      display: flex;
+      background: var(--md-sys-color-surface-container);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-full);
+      padding: 5px 10px;
+      justify-content: space-around;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .nav-tab-sim {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 5px 16px;
+      border-radius: var(--md-shape-corner-full);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .nav-tab-sim.active {
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-primary);
+    }
+
+    .nav-tab-code {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+    }
+
+    /* Step Timeline Flow */
+    .flow-container-5 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 9px;
+    }
+
+    .flow-container-6 {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+    }
+
+    .flow-step {
+      background: var(--md-sys-color-surface-container-low);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-md);
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .flow-index {
+      width: 20px;
+      height: 20px;
+      border-radius: var(--md-shape-corner-full);
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-primary);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--md-sys-color-primary);
+    }
+
+    .flow-desc {
+      font-size: 10.5px;
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.35;
+    }
+
+    /* Tier Visualizer (5 Tiers) */
+    .tier-box {
+      background: var(--md-sys-color-surface-container-low);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-lg);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tier-box.black-tier {
+      background: #000000;
+      border: 1px solid #4f535d;
+    }
+
+    .tier-box.infinite-tier {
+      background: var(--md-sys-color-surface-container-high);
+      border-color: var(--md-sys-color-outline);
+    }
+
+    .tier-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .tier-title-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--md-sys-color-primary);
+    }
+
+    .tier-req {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    /* Pricing Scope Cards (3 Column) */
+    .pricing-card {
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--md-sys-color-surface-container-low);
+    }
+
+    .pricing-card.full-package {
+      background: var(--md-sys-color-surface-container);
+      border: 1px solid var(--md-sys-color-primary);
+    }
+
+    .pricing-card.addon-pricing {
+      background: var(--md-sys-color-surface-container-lowest);
+      border: 1px dashed var(--md-sys-color-outline);
+    }
+
+    .package-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
+      padding-bottom: 10px;
+    }
+
+    .package-name {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--md-sys-color-primary);
+    }
+
+    .package-price {
+      font-family: var(--font-mono);
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--md-sys-color-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .package-tagline {
+      font-size: 11.5px;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-top: 2px;
+    }
+
+    /* Bottom Navigation Bar */
+    .bottom-bar {
+      height: 56px;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--md-sys-color-outline-variant);
+      background-color: rgba(10, 11, 13, 0.95);
+      backdrop-filter: blur(12px);
+      z-index: 50;
+      flex-shrink: 0;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .slide-counter {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--md-sys-color-on-surface-variant);
+      font-weight: 600;
+    }
+
+    .slide-counter span {
+      color: var(--md-sys-color-primary);
+    }
+
+    .progress-track {
+      width: 120px;
+      height: 4px;
+      background: var(--md-sys-color-surface-container-highest);
+      border-radius: var(--md-shape-corner-full);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--md-sys-color-primary);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .nav-center {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-nav {
+      background: var(--md-sys-color-surface-container);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      color: var(--md-sys-color-on-surface);
+      height: 34px;
+      padding: 0 15px;
+      border-radius: var(--md-shape-corner-full);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-nav:hover:not(:disabled) {
+      background: var(--md-sys-color-surface-container-high);
+      border-color: var(--md-sys-color-outline);
+      color: var(--md-sys-color-primary);
+    }
+
+    .btn-nav:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .btn-nav.primary {
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      border-color: var(--md-sys-color-primary);
+    }
+
+    .btn-nav.primary:hover:not(:disabled) {
+      background: #e2e4e8;
+    }
+
+    .nav-hints {
+      font-size: 11px;
+      color: var(--md-sys-color-on-surface-variant);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .kbd-shortcut {
+      background: var(--md-sys-color-surface-container);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      padding: 1px 5px;
+      border-radius: var(--md-shape-corner-xs);
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+    }
+
+    /* Modal Grid Index */
+    .overview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 9, 11, 0.92);
+      backdrop-filter: blur(16px);
+      z-index: 100;
+      display: none;
+      padding: 32px;
+      overflow-y: auto;
+    }
+
+    .overview-modal.open {
+      display: block;
+    }
+
+    .overview-header {
+      max-width: 1100px;
+      margin: 0 auto 18px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .overview-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 12px;
+    }
+
+    .overview-thumb {
+      background: var(--md-sys-color-surface-container-low);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-md);
+      padding: 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+
+    .overview-thumb:hover {
+      border-color: var(--md-sys-color-primary);
+      background: var(--md-sys-color-surface-container-high);
+    }
+
+    .overview-thumb.current {
+      border-color: var(--md-sys-color-primary);
+      background: var(--md-sys-color-surface-container-highest);
+    }
+
+    .thumb-num {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .thumb-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--md-sys-color-primary);
+    }
+
+    /* Hero Cover Slide */
+    .hero-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100%;
+      max-width: 940px;
+    }
+
+    .hero-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-bottom: 12px;
+    }
+
+    .hero-title {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--md-sys-color-primary);
+      margin-bottom: 16px;
+    }
+
+    .hero-description {
+      font-size: 15.5px;
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.6;
+      margin-bottom: 24px;
+      font-weight: 400;
+    }
+
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--md-sys-color-outline-variant);
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .meta-label {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .meta-val {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--md-sys-color-primary);
+    }
+
+    .m3-callout {
+      padding: 10px 15px;
+      background: var(--md-sys-color-surface-container);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-md);
+      font-size: 11.5px;
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.45;
+    }
+
+    .m3-callout strong {
+      color: var(--md-sys-color-primary);
+    }
+
+    /* MOBILE OVERHAUL: Ultra-Optimized Touch & Reading Experience */
+    @media (max-width: 768px) {
+      body {
+        height: 100vh;
+        height: 100dvh;
+      }
+      .app-container {
+        height: 100vh;
+        height: 100dvh;
+      }
+      .top-bar {
+        height: 50px;
+        padding: 0 12px;
+        gap: 8px;
+      }
+      .project-brand {
+        gap: 8px;
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .brand-mark {
+        width: 22px;
+        height: 22px;
+        font-size: 10px;
+        border-radius: 6px;
+        flex-shrink: 0;
+      }
+      .brand-title {
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .top-controls {
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .top-controls .btn-icon {
+        padding: 0 10px;
+        height: 30px;
+        font-size: 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      #btnFullscreen {
+        display: none !important;
+      }
+      .top-controls .kbd-shortcut {
+        display: none !important;
+      }
+      .deck-viewport {
+        padding: 6px 8px;
+        align-items: stretch;
+      }
+      .slide {
+        inset: 4px 6px 58px 6px;
+        border-radius: 16px;
+        padding: 16px 14px 28px 14px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 12px;
+      }
+      .slide-header {
+        margin-bottom: 6px;
+        gap: 3px;
+      }
+      .category-chip {
+        font-size: 9px;
+        padding: 2px 7px;
+      }
+      .slide-title {
+        font-size: 18px !important;
+        line-height: 1.25 !important;
+      }
+      .slide-subtitle {
+        font-size: 11.5px !important;
+        line-height: 1.45 !important;
+      }
+      .slide-body {
+        justify-content: flex-start;
+        gap: 10px;
+      }
+      /* Collapse all desktop multi-columns into clean mobile vertical flow */
+      .grid-2, .grid-3, .grid-4, .grid-5 {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+      }
+      .m3-card {
+        padding: 13px 12px !important;
+        gap: 6px !important;
+      }
+      .card-num {
+        font-size: 9.5px !important;
+      }
+      .card-title {
+        font-size: 13px !important;
+        line-height: 1.25 !important;
+      }
+      .card-desc {
+        font-size: 11px !important;
+        line-height: 1.4 !important;
+      }
+      .card-list {
+        gap: 4px !important;
+      }
+      .card-list-item {
+        font-size: 11px !important;
+        line-height: 1.35 !important;
+      }
+      .m3-table-wrapper {
+        border-radius: 12px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .m3-table th {
+        padding: 8px 10px;
+        font-size: 9.5px;
+        white-space: nowrap;
+      }
+      .m3-table td {
+        padding: 9px 10px;
+        font-size: 10.5px;
+        line-height: 1.35;
+      }
+      .flow-container-5, .flow-container-6 {
+        grid-template-columns: 1fr !important;
+        gap: 7px !important;
+      }
+      .flow-step {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 12px;
+      }
+      .flow-index {
+        width: 22px;
+        height: 22px;
+        font-size: 10px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .flow-title {
+        font-size: 12px;
+      }
+      .flow-desc {
+        font-size: 10.5px;
+        line-height: 1.35;
+      }
+      .nav-bar-sim {
+        padding: 4px 6px;
+        overflow-x: auto;
+        justify-content: flex-start;
+        gap: 4px;
+        scrollbar-width: none;
+      }
+      .nav-bar-sim::-webkit-scrollbar {
+        display: none;
+      }
+      .nav-tab-sim {
+        padding: 4px 10px;
+        font-size: 10px;
+        white-space: nowrap;
+      }
+      .tier-box {
+        padding: 12px 10px !important;
+        gap: 6px !important;
+      }
+      .tier-title-name {
+        font-size: 13px !important;
+      }
+      .pricing-card {
+        padding: 14px 12px !important;
+        gap: 8px !important;
+      }
+      .package-name {
+        font-size: 14px !important;
+      }
+      .package-price {
+        font-size: 15px !important;
+      }
+      .package-tagline {
+        font-size: 10.5px !important;
+      }
+      .hero-title {
+        font-size: 22px !important;
+        line-height: 1.2 !important;
+        margin-bottom: 10px !important;
+      }
+      .hero-description {
+        font-size: 12px !important;
+        line-height: 1.45 !important;
+        margin-bottom: 14px !important;
+      }
+      .meta-bar {
+        gap: 10px !important;
+        padding-top: 10px !important;
+      }
+      .meta-val {
+        font-size: 11px !important;
+      }
+      .bottom-bar {
+        height: 50px;
+        padding: 0 12px;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .slide-counter {
+        font-size: 11px;
+      }
+      .progress-track {
+        width: 70px;
+      }
+      .nav-hints {
+        display: none !important;
+      }
+      .btn-nav {
+        height: 30px;
+        padding: 0 12px;
+        font-size: 11px;
+      }
+      .overview-modal {
+        padding: 16px 12px;
+      }
+      .overview-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="project-brand">
+        <div class="brand-mark">B</div>
+        <div class="brand-title">Barber Membership</div>
+      </div>
+      <div class="top-controls">
+        <a href="app.html" class="btn-icon" style="background: #ffffff; color: #000000; font-weight: 700;" title="Buka Live Mobile App PWA Demo">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          <span>Demo App</span>
+        </a>
+        <button class="btn-icon" id="btnOverview" title="Slide Overview (O)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Overview</span>
+        </button>
+        <button class="btn-icon" id="btnFullscreen" title="Toggle Fullscreen (F)">
+          <span>Fullscreen</span>
+          <span class="kbd-shortcut">F</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Slide Deck Viewport -->
+    <main class="deck-viewport">
+
+      <!-- SLIDE 1: Cover -->
+      <section class="slide active" data-index="1">
+        <div class="hero-container">
+          <div class="hero-tag">Core Project Scope & System Architecture</div>
+          <h1 class="hero-title">Barber Membership & Loyalty Platform</h1>
+          <p class="hero-description">
+            Spesifikasi lengkap pengembangan sistem membership web app (QR Code based), POS kasir, sistem poin reward/cashback, 5-tier leveling, katalog produk, store locator multi-cabang, serta <strong>opsi penawaran add-on sistem smart card NFC</strong>.
+          </p>
+          <div class="meta-bar">
+            <div class="meta-item">
+              <span class="meta-label">Core Platform</span>
+              <span class="meta-val">Web App Membership (PWA) + POS Kasir</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Identifikasi Utama</span>
+              <span class="meta-val">Digital Member Card + QR Code Scan</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Opsi Tambahan (Add-on)</span>
+              <span class="meta-val">NFC Smart Card Loyalty System</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Target Stack</span>
+              <span class="meta-val">Next.js + Supabase + Vercel</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 2: Executive Summary & Objective -->
+      <section class="slide" data-index="2">
+        <div class="slide-header">
+          <div class="category-chip">01. Ringkasan Eksekutif</div>
+          <h2 class="slide-title">Latar Belakang & Sasaran Transformasi Digital</h2>
+          <p class="slide-subtitle">Membangun platform loyalitas mandiri untuk meningkatkan retensi repeat order pelanggan dan mempercepat transaksi kasir di outlet barbershop.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-3">
+            <div class="m3-card highlight">
+              <div class="card-num">01 / RETENSI MEMBER</div>
+              <div class="card-title">Insentif Poin Cashback</div>
+              <div class="card-desc">Setiap transaksi potong rambut menghasilkan poin reward transparan yang dapat ditukarkan langsung menjadi potongan harga pada kunjungan berikutnya.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">02 / MEJA KASIR CEPAT</div>
+              <div class="card-title">Scan QR Bebas Antrean</div>
+              <div class="card-desc">Kasir memindai kartu QR pelanggan dalam hitungan detik. Perhitungan poin reward, diskon potongan, dan riwayat dihitung otomatis oleh sistem.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">03 / KENDALI BISNIS</div>
+              <div class="card-title">Dashboard & Analitik Owner</div>
+              <div class="card-desc">Visibilitas penuh atas laporan omzet harian, performa staf capster, audit liabilitas saldo poin aktif, dan pertumbuhan basis pelanggan.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 3: 3 Core Pillars -->
+      <section class="slide" data-index="3">
+        <div class="slide-header">
+          <div class="category-chip">02. Arsitektur Sistem</div>
+          <h2 class="slide-title">Tiga Pilar Utama Sistem Barber Membership</h2>
+          <p class="slide-subtitle">Sistem dibangun atas 3 komponen yang saling terhubung secara real-time untuk operasional outlet yang efisien.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-3">
+            <div class="m3-card highlight">
+              <div class="card-num">PILAR 01 / FRONTEND</div>
+              <div class="card-title">Web App Pelanggan (PWA)</div>
+              <div class="card-desc">Aplikasi web mobile-first dengan 5 navigasi utama (Home, Reward, Scan QR, Product, Store), kartu member digital, tracking poin, dan profil capster.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">PILAR 02 / BACKOFFICE</div>
+              <div class="card-title">Dashboard Admin & Kasir (POS)</div>
+              <div class="card-desc">Pusat operasional kasir untuk scan QR, input transaksi, kelola layanan, capster, produk, cabang, pengaturan poin, dan laporan omzet.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">PILAR 03 / ENGINE</div>
+              <div class="card-title">Automated Background Engine</div>
+              <div class="card-desc">Otomatisasi kalkulasi poin cashback, penukaran diskon, auto-upgrade tier 5 level, ledger mutasi saldo, dan kalkulasi jarak cabang terdekat.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 4: Customer Web App 5 Tabs -->
+      <section class="slide" data-index="4">
+        <div class="slide-header">
+          <div class="category-chip">03. Antarmuka Member</div>
+          <h2 class="slide-title">Navigasi Utama Aplikasi Pelanggan (5 Tab PWA)</h2>
+          <p class="slide-subtitle">Bilah navigasi bawah ergonomis yang memberikan pengalaman penggunaan intuitif layaknya aplikasi smartphone native.</p>
+        </div>
+        <div class="slide-body">
+          <div class="nav-bar-sim">
+            <div class="nav-tab-sim active"><span class="nav-tab-code">TAB 01</span><span>HOME</span></div>
+            <div class="nav-tab-sim"><span class="nav-tab-code">TAB 02</span><span>REWARD</span></div>
+            <div class="nav-tab-sim"><span class="nav-tab-code">TAB 03</span><span>SCAN QR</span></div>
+            <div class="nav-tab-sim"><span class="nav-tab-code">TAB 04</span><span>PRODUCT</span></div>
+            <div class="nav-tab-sim"><span class="nav-tab-code">TAB 05</span><span>STORE</span></div>
+          </div>
+          <div class="grid-5">
+            <div class="m3-card">
+              <div class="card-num">01. HOME</div>
+              <div class="card-title">Beranda Utama</div>
+              <div class="card-desc">Kartu digital member, badge level tier aktif, saldo poin saat ini, promo banner, dan pintasan cepat.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">02. REWARD</div>
+              <div class="card-title">Katalog Poin</div>
+              <div class="card-desc">Daftar penukaran poin untuk voucher diskon potong rambut atau klaim produk grooming gratis.</div>
+            </div>
+            <div class="m3-card highlight">
+              <div class="card-num">03. SCAN QR</div>
+              <div class="card-title">Identitas QR</div>
+              <div class="card-desc">Tampilan layar penuh kode QR dinamis beresolusi tinggi untuk dipindai kasir saat pembayaran.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">04. PRODUCT</div>
+              <div class="card-title">Katalog Retail</div>
+              <div class="card-desc">Katalog produk pomade, wax, tonic lengkap dengan fitur pencarian, filter, dan spesifikasi hold/shine.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">05. STORE</div>
+              <div class="card-title">Lokasi Cabang</div>
+              <div class="card-desc">Daftar outlet barber, integrasi Google Maps, dan kalkulasi jarak cabang terdekat dari lokasi pengguna.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 5: Member Sub-Pages -->
+      <section class="slide" data-index="5">
+        <div class="slide-header">
+          <div class="category-chip">04. Fitur Member</div>
+          <h2 class="slide-title">Halaman Pendukung & Profil Pelanggan</h2>
+          <p class="slide-subtitle">Modul pendukung untuk melengkapi riwayat transaksi dan transparansi mutasi saldo poin member.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-3">
+            <div class="m3-card">
+              <div class="card-num">MODUL A</div>
+              <div class="card-title">Profil Member & Tier Status</div>
+              <ul class="card-list">
+                <li class="card-list-item">Data diri: Nama, Nomor WhatsApp, Tanggal Bergabung</li>
+                <li class="card-list-item">Nomor ID unik member & kartu digital dinamis</li>
+                <li class="card-list-item">Progress bar poin menuju kenaikan tier berikutnya</li>
+                <li class="card-list-item">Daftar benefit dan hak diskon khusus tier aktif</li>
+              </ul>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">MODUL B</div>
+              <div class="card-title">Riwayat Transaksi & Ledger Poin</div>
+              <ul class="card-list">
+                <li class="card-list-item">Histori kunjungan potong rambut & treatment</li>
+                <li class="card-list-item">Log poin masuk (+Poin dari reward transaksi)</li>
+                <li class="card-list-item">Log poin keluar (-Poin penukaran potongan diskon)</li>
+                <li class="card-list-item">Informasi masa berlaku kedaluwarsa saldo poin</li>
+              </ul>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">MODUL C</div>
+              <div class="card-title">Profil Capster & Info Produk</div>
+              <ul class="card-list">
+                <li class="card-list-item">Portofolio capster: foto, nama, spesialisasi, pengalaman</li>
+                <li class="card-list-item">Statistik total pelanggan yang dilayani capster</li>
+                <li class="card-list-item">Detail produk retail & informasi stok cabang</li>
+                <li class="card-list-item">Panduan resmi cara mendapatkan dan menukar poin</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 6: 5-Tier Membership System -->
+      <section class="slide" data-index="6">
+        <div class="slide-header">
+          <div class="category-chip">05. Gamifikasi Loyalitas</div>
+          <h2 class="slide-title">Sistem 5-Tier Membership Lengkap</h2>
+          <p class="slide-subtitle">Skema peningkatan level bertahap dengan benefit yang semakin eksklusif untuk menjaga loyalitas jangka panjang.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-5">
+            <div class="tier-box">
+              <div class="tier-title-row">
+                <span class="tier-title-name">Silver</span>
+                <span class="tag-pill">TIER 1</span>
+              </div>
+              <div class="tier-req">0 &mdash; 49.999 Poin</div>
+              <ul class="card-list">
+                <li class="card-list-item">Status pendaftaran awal</li>
+                <li class="card-list-item">Multiplier reward 1.0x</li>
+                <li class="card-list-item">Kartu member QR digital</li>
+              </ul>
+            </div>
+
+            <div class="tier-box">
+              <div class="tier-title-row">
+                <span class="tier-title-name">Gold</span>
+                <span class="tag-pill">TIER 2</span>
+              </div>
+              <div class="tier-req">50.000 &mdash; 99.999 Poin</div>
+              <ul class="card-list">
+                <li class="card-list-item">Multiplier reward 1.2x</li>
+                <li class="card-list-item">Diskon hari ulang tahun</li>
+                <li class="card-list-item">Akses reward promo</li>
+              </ul>
+            </div>
+
+            <div class="tier-box">
+              <div class="tier-title-row">
+                <span class="tier-title-name">Platinum</span>
+                <span class="tag-pill">TIER 3</span>
+              </div>
+              <div class="tier-req">100.000 &mdash; 199.999 Poin</div>
+              <ul class="card-list">
+                <li class="card-list-item">Multiplier reward 1.35x</li>
+                <li class="card-list-item">Diskon produk retail 5%</li>
+                <li class="card-list-item">Free hot towel / hair tonic</li>
+              </ul>
+            </div>
+
+            <div class="tier-box infinite-tier">
+              <div class="tier-title-row">
+                <span class="tier-title-name">Infinite</span>
+                <span class="tag-pill accent">TIER 4</span>
+              </div>
+              <div class="tier-req">200.000 &mdash; 349.999 Poin</div>
+              <ul class="card-list">
+                <li class="card-list-item">Multiplier reward 1.5x</li>
+                <li class="card-list-item">Diskon produk retail 10%</li>
+                <li class="card-list-item">Prioritas antrean kasir</li>
+              </ul>
+            </div>
+
+            <div class="tier-box black-tier">
+              <div class="tier-title-row">
+                <span class="tier-title-name">Black</span>
+                <span class="tag-pill" style="background:#fff; color:#000;">VIP TIER 5</span>
+              </div>
+              <div class="tier-req" style="color:#bbb;">&ge; 350.000 Poin</div>
+              <ul class="card-list">
+                <li class="card-list-item" style="color:#eee;">Multiplier reward 2.0x</li>
+                <li class="card-list-item" style="color:#eee;">Complimentary grooming set</li>
+                <li class="card-list-item" style="color:#eee;">Akses VIP all branch</li>
+              </ul>
+            </div>
+          </div>
+          <div class="m3-callout">
+            <strong>Auto-Leveling:</strong> Sistem mengevaluasi akumulasi total poin member pada setiap akhir transaksi dan langsung menaikkan status tier beserta benefitnya secara otomatis.
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 7: Cashier POS System -->
+      <section class="slide" data-index="7">
+        <div class="slide-header">
+          <div class="category-chip">06. Point of Sale (POS)</div>
+          <h2 class="slide-title">Modul Transaksi Kasir & Alur Transaksi Cepat</h2>
+          <p class="slide-subtitle">Alur transaksi kasir dirancang sangat ringkas (sub-60 detik) untuk meminimalkan antrean di outlet.</p>
+        </div>
+        <div class="slide-body">
+          <div class="flow-container-6">
+            <div class="flow-step">
+              <div class="flow-index">1</div>
+              <div class="flow-title">Scan QR Member</div>
+              <div class="flow-desc">Scan QR pelanggan via kamera kasir atau input nomor HP (tersedia opsi Non-Member).</div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-index">2</div>
+              <div class="flow-title">Pilih Layanan</div>
+              <div class="flow-desc">Pilih menu dari master layanan (Haircut, Beard Trim, Wash, Treatment).</div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-index">3</div>
+              <div class="flow-title">Pilih Capster</div>
+              <div class="flow-desc">Tentukan staf capster yang melayani pelanggan untuk pelaporan produktivitas.</div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-index">4</div>
+              <div class="flow-title">Tukar Poin</div>
+              <div class="flow-desc">Opsi potong harga transaksi langsung menggunakan saldo poin member.</div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-index">5</div>
+              <div class="flow-title">Hitung Reward</div>
+              <div class="flow-desc">Sistem menghitung perolehan poin baru sesuai multiplier tier member.</div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-index">6</div>
+              <div class="flow-title">Simpan & Sync</div>
+              <div class="flow-desc">Transaksi tersimpan, laporan omzet masuk, dan saldo member ter-update seketika.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 8: Admin Dashboard & Analytics -->
+      <section class="slide" data-index="8">
+        <div class="slide-header">
+          <div class="category-chip">07. Dashboard Owner</div>
+          <h2 class="slide-title">Dashboard Admin, Laporan & Manajemen Data</h2>
+          <p class="slide-subtitle">Pusat kontrol bagi Owner untuk memantau omzet, performa staf, serta mengelola seluruh master data.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-3">
+            <div class="m3-card">
+              <div class="card-num">METRIK FINANSIAL</div>
+              <div class="card-title">Ringkasan Omzet & Transaksi</div>
+              <ul class="card-list">
+                <li class="card-list-item">Total omzet kotor & bersih per outlet/cabang</li>
+                <li class="card-list-item">Rasio transaksi member vs non-member</li>
+                <li class="card-list-item">Filter rentang tanggal kustom (harian/bulanan)</li>
+                <li class="card-list-item">Rata-rata belanja per kunjungan (basket size)</li>
+              </ul>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">METRIK LOYALITAS</div>
+              <div class="card-title">Audit Liabilitas Poin</div>
+              <ul class="card-list">
+                <li class="card-list-item">Total poin yang diterbitkan (issued)</li>
+                <li class="card-list-item">Total poin yang sudah ditukarkan (redeemed)</li>
+                <li class="card-list-item">Sisa saldo liabilitas poin beredar</li>
+                <li class="card-list-item">Pertumbuhan member baru & member aktif</li>
+              </ul>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">KONTROL MASTER DATA</div>
+              <div class="card-title">Pengaturan Entitas Bisnis</div>
+              <ul class="card-list">
+                <li class="card-list-item">Kelola Member & Hak Akses Akun Kasir</li>
+                <li class="card-list-item">Kelola Capster & Master Layanan/Harga</li>
+                <li class="card-list-item">Kelola Katalog Produk Retail & Cabang</li>
+                <li class="card-list-item">Koreksi saldo poin manual + alasan audit</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 9: Loyalty Rules & Anti-Fraud -->
+      <section class="slide" data-index="9">
+        <div class="slide-header">
+          <div class="category-chip">08. Loyalty Engine</div>
+          <h2 class="slide-title">Aturan Poin & Proteksi Anti-Kecurangan</h2>
+          <p class="slide-subtitle">Fleksibilitas aturan poin yang dapat dikonfigurasi penuh oleh Admin serta proteksi manipulasi data.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-4">
+            <div class="m3-card">
+              <div class="card-num">ENGINE RULE 01</div>
+              <div class="card-title">Rasio Poin & Diskon</div>
+              <div class="card-desc">Konfigurasi persentase reward dari transaksi (misal: Rp50.000 = 5.000 Poin) dan nilai tukar poin menjadi diskon rupiah.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">ENGINE RULE 02</div>
+              <div class="card-title">Batas & Masa Berlaku</div>
+              <div class="card-desc">Batas minimal poin untuk penukaran, maksimal diskon per transaksi, dan pengaturan tanggal kedaluwarsa saldo poin.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">PROTEKSI 03</div>
+              <div class="card-title">UUID & Anti Double-Spend</div>
+              <div class="card-desc">Setiap transaksi menghasilkan token UUID unik di database untuk mencegah terjadinya pemrosesan ganda.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">PROTEKSI 04</div>
+              <div class="card-title">Void Rollback Poin</div>
+              <div class="card-desc">Jika transaksi dibatalkan kasir sesuai izin, sistem otomatis menarik kembali poin reward dan mengembalikan poin yang ditukar.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 10: Role Access Matrix -->
+      <section class="slide" data-index="10">
+        <div class="slide-header">
+          <div class="category-chip">09. Hak Akses</div>
+          <h2 class="slide-title">Matriks Pengguna & Otorisasi Sistem</h2>
+          <p class="slide-subtitle">Pemisahan 4 tingkat hak akses guna menjaga integritas transaksi dan keamanan saldo loyalitas.</p>
+        </div>
+        <div class="slide-body">
+          <div class="m3-table-wrapper">
+            <table class="m3-table">
+              <thead>
+                <tr>
+                  <th style="width: 16%;">Role</th>
+                  <th style="width: 32%;">Tanggung Jawab Utama</th>
+                  <th style="width: 38%;">Akses Fitur Sistem</th>
+                  <th style="width: 14%;">Device</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Owner / Admin</strong></td>
+                  <td>Mengontrol seluruh master data, cabang, staf, keuangan, dan audit poin.</td>
+                  <td>Full Access: Laporan Omzet, Rule Poin, Member, Capster, Produk, Cabang, Log Audit, Koreksi Saldo.</td>
+                  <td><span class="tag-pill">Laptop / Desktop</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Kasir</strong></td>
+                  <td>Melayani transaksi kasir harian, scan QR, input layanan, dan redeem diskon.</td>
+                  <td>Scan QR, Input Transaksi, Potong Poin Diskon, Transaksi Non-Member, Riwayat Shift Harian.</td>
+                  <td><span class="tag-pill">Tablet / HP / POS</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Member</strong></td>
+                  <td>Melihat kartu digital, saldo poin, reward diskon, produk, dan cabang.</td>
+                  <td>Dashboard Web PWA (5 Tab), Riwayat Poin Masuk/Keluar, Profil Capster, Lokasi Outlet.</td>
+                  <td><span class="tag-pill">Smartphone</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Capster</strong></td>
+                  <td>Menampilkan data profil portofolio, spesialisasi, dan status kerja.</td>
+                  <td>Profil Publik, Spesialisasi Gaya Rambut, Total Pelanggan Dilayani (Akun khusus opsional).</td>
+                  <td><span class="tag-pill">Master Data</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 11: NFC Smart System Add-on Overview -->
+      <section class="slide" data-index="11">
+        <div class="slide-header">
+          <div class="category-chip">10. Penawaran Add-On</div>
+          <h2 class="slide-title">Modul Tambahan: Smart NFC Tap di Meja Kasir</h2>
+          <p class="slide-subtitle">Kartu/Standee NFC dipegang kasir untuk mempermudah pendaftaran member baru sehabis cukur hanya dengan Nama & No WhatsApp.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-3">
+            <div class="m3-card addon-card highlight">
+              <div class="card-num">KONSEP ONBOARDING</div>
+              <div class="card-title">Kartu NFC Dipegang Kasir</div>
+              <div class="card-desc">Barbershop tidak perlu mencetak kartu untuk tiap member. Kasir cukup memegang 1 kartu/standee NFC pintar di meja kasir untuk di-tap ke HP pelanggan.</div>
+            </div>
+            <div class="m3-card addon-card">
+              <div class="card-num">DAFTAR INSTAN</div>
+              <div class="card-title">Cukup Nama & No WhatsApp</div>
+              <div class="card-desc">Setelah tap ke HP pelanggan, form web otomatis terbuka seketika. Pelanggan hanya perlu mengetikkan Nama dan Nomor WhatsApp (tanpa install aplikasi).</div>
+            </div>
+            <div class="m3-card addon-card">
+              <div class="card-num">POIN LANGSUNG MASUK</div>
+              <div class="card-title">Klaim Cashback Transaksi</div>
+              <div class="card-desc">Akun langsung aktif dan poin cashback dari transaksi potong rambut saat itu juga otomatis masuk ke saldo akun member pelanggan.</div>
+            </div>
+          </div>
+          <div class="m3-callout">
+            <strong>Kelebihan Model Ini:</strong> Sangat hemat biaya operasional bagi owner (hanya butuh 1 kartu NFC kasir per outlet), pelanggan tidak repot menyimpan kartu fisik, dan kartu digital QR otomatis tersimpan di ponsel pelanggan.
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 12: NFC Workflow & POS Sync -->
+      <section class="slide" data-index="12">
+        <div class="slide-header">
+          <div class="category-chip">11. Alur Modul Add-On</div>
+          <h2 class="slide-title">Alur Lengkap: Dari Selesai Cukur Hingga Poin Masuk</h2>
+          <p class="slide-subtitle">Langkah praktis onboarding pelanggan baru di meja kasir dalam waktu kurang dari 30 detik.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="m3-card highlight">
+              <div class="card-num">LANGKAH 1 &mdash; 3 (DI MEJA KASIR)</div>
+              <div class="card-title">Selesai Cukur & Tap HP ke Kartu Kasir</div>
+              <ul class="card-list">
+                <li class="card-list-item"><strong>1. Selesai Cukur:</strong> Pelanggan menuju meja kasir untuk pembayaran tagihan potong rambut.</li>
+                <li class="card-list-item"><strong>2. Kasir Sodorkan Kartu NFC:</strong> Kasir mengarahkan pelanggan untuk menempelkan (tap) HP-nya ke kartu NFC kasir.</li>
+                <li class="card-list-item"><strong>3. Web App Terbuka Otomatis:</strong> Layar HP pelanggan langsung membuka form pendaftaran tanpa perlu ketik link atau cari di Google.</li>
+              </ul>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">LANGKAH 4 &mdash; 5 (KLAIM POIN)</div>
+              <div class="card-title">Input Nama + No WA & Poin Masuk</div>
+              <ul class="card-list">
+                <li class="card-list-item"><strong>4. Masukkan Nama & No WA:</strong> Pelanggan cukup mengisi Nama Lengkap dan Nomor WhatsApp aktif di HP-nya.</li>
+                <li class="card-list-item"><strong>5. Akun & Poin Aktif:</strong> Akun membership langsung jadi, poin cashback cukur masuk otomatis, dan kartu member digital siap dipakai untuk diskon kunjungan berikutnya.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 13: Scope Boundaries -->
+      <section class="slide" data-index="13">
+        <div class="slide-header">
+          <div class="category-chip">12. Batasan Proyek</div>
+          <h2 class="slide-title">Matriks Ruang Lingkup (Scope Boundaries)</h2>
+          <p class="slide-subtitle">Definisi fitur deliverable sistem inti, modul add-on NFC, dan fitur pengembangan fase lanjutan.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-3">
+            <div class="m3-card highlight">
+              <div class="card-num">CORE IN-SCOPE (UTAMA)</div>
+              <div class="card-title">Barber Membership System</div>
+              <ul class="card-list">
+                <li class="card-list-item">Web App Member PWA (5 Tab)</li>
+                <li class="card-list-item">Kartu Digital & Scan QR Code</li>
+                <li class="card-list-item">POS Kasir & Transaksi Cepat</li>
+                <li class="card-list-item">Poin Cashback & Redeem Diskon</li>
+                <li class="card-list-item">Sistem 5-Tier Auto-Upgrade</li>
+                <li class="card-list-item">Katalog Produk & Store Locator</li>
+                <li class="card-list-item">Dashboard Omzet & Audit Admin</li>
+              </ul>
+            </div>
+            <div class="m3-card addon-card">
+              <div class="card-num">ADD-ON (OPSI PENAWARAN)</div>
+              <div class="card-title">NFC Smart Loyalty Module</div>
+              <ul class="card-list">
+                <li class="card-list-item">Aktivasi & Pairing Kartu NFC Fisik</li>
+                <li class="card-list-item">Tap to Open Web App Onboarding</li>
+                <li class="card-list-item">Manajemen & Blokir Kartu Hilang</li>
+                <li class="card-list-item">QR Code Cadangan di Kartu Fisik</li>
+                <li class="card-list-item">Opsi Integrasi API POS Kasir Luar</li>
+              </ul>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">OUT-OF-SCOPE (FASE 2)</div>
+              <div class="card-title">Fitur Pengembangan Lanjutan</div>
+              <ul class="card-list">
+                <li class="card-list-item">Booking Jadwal Capster Online</li>
+                <li class="card-list-item">Payment Gateway Pembelian Produk</li>
+                <li class="card-list-item">OTP WhatsApp Business API Berbayar</li>
+                <li class="card-list-item">Komisi & Penggajian Capster</li>
+                <li class="card-list-item">Manajemen Stok Gudang Retail</li>
+                <li class="card-list-item">Aplikasi Native Play Store/App Store</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 14: Package Comparison & Pricing -->
+      <section class="slide" data-index="14">
+        <div class="slide-header">
+          <div class="category-chip">13. Paket Penawaran</div>
+          <h2 class="slide-title">Pilihan Paket Pengembangan & Estimasi Biaya (Rentang Rp 3 &ndash; 7 Juta)</h2>
+          <p class="slide-subtitle">Struktur penawaran super kompetitif: Seluruh paket dirancang tepat di rentang Rp 3 &ndash; 7 Juta dengan deliverable maksimal.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-3">
+            <!-- Paket Basic -->
+            <div class="pricing-card">
+              <div class="package-header">
+                <div>
+                  <div class="package-name">Paket Basic (Core MVP)</div>
+                  <div class="package-tagline">Digital loyalty outlet tunggal hemat</div>
+                </div>
+                <div class="package-price">Rp3.0 &ndash; 3.8 Jt</div>
+              </div>
+              <ul class="card-list">
+                <li class="card-list-item">Registrasi Member & Kartu QR Digital</li>
+                <li class="card-list-item">Poin Cashback & Penukaran Diskon Kasir</li>
+                <li class="card-list-item">Riwayat Transaksi & Mutasi Saldo Poin</li>
+                <li class="card-list-item">Sistem Tier Sederhana (Silver & Gold)</li>
+                <li class="card-list-item">Profil Capster & Master Layanan Barber</li>
+                <li class="card-list-item">Dashboard Admin & Kasir POS Cepat</li>
+              </ul>
+            </div>
+
+            <!-- Paket Full -->
+            <div class="pricing-card full-package">
+              <div class="package-header">
+                <div>
+                  <span class="tag-pill accent" style="margin-bottom:4px;">REKOMENDASI UTAMA</span>
+                  <div class="package-name">Paket Full (Omnichannel PWA)</div>
+                  <div class="package-tagline">Sesuai referensi 5-Tab PWA lengkap</div>
+                </div>
+                <div class="package-price">Rp4.9 &ndash; 5.8 Jt</div>
+              </div>
+              <ul class="card-list">
+                <li class="card-list-item"><strong>Semua Fitur Paket Basic Termasuk</strong></li>
+                <li class="card-list-item">5-Tier Membership Lengkap (Silver s.d. Black)</li>
+                <li class="card-list-item">Modul Tab Reward & Penukaran Hadiah</li>
+                <li class="card-list-item">Modul Tab Product (Katalog Grooming & Search)</li>
+                <li class="card-list-item">Modul Tab Store (Store Locator & Peta)</li>
+                <li class="card-list-item">Manajemen Multi-Cabang & Laporan Omzet</li>
+              </ul>
+            </div>
+
+            <!-- Paket Ultimate + NFC -->
+            <div class="pricing-card addon-pricing">
+              <div class="package-header">
+                <div>
+                  <span class="tag-pill" style="margin-bottom:4px;">SMART NFC ONBOARDING</span>
+                  <div class="package-name">Paket Ultimate + NFC Kasir</div>
+                  <div class="package-tagline">PWA 5-Tab + Smart NFC Tap Kasir</div>
+                </div>
+                <div class="package-price">Rp6.2 &ndash; 6.9 Jt</div>
+              </div>
+              <ul class="card-list">
+                <li class="card-list-item"><strong>Semua Fitur Paket Full Termasuk</strong></li>
+                <li class="card-list-item">Smart NFC Master Card / Standee Meja Kasir</li>
+                <li class="card-list-item">Tap to Open Form Pendaftaran (Nama + No WA)</li>
+                <li class="card-list-item">Otomatisasi Klaim Poin Cashback Pertama</li>
+                <li class="card-list-item">Setup & Konfigurasi NFC Meja Kasir Outlet</li>
+                <li class="card-list-item"><em>*Hemat biaya: Cukup 1 unit NFC pintar di meja kasir</em></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 15: Tech Stack & Cloud Architecture -->
+      <section class="slide" data-index="15">
+        <div class="slide-header">
+          <div class="category-chip">14. Spesifikasi Teknis</div>
+          <h2 class="slide-title">Arsitektur Teknologi & Infrastruktur Cloud</h2>
+          <p class="slide-subtitle">Fondasi sistem modern yang scalable, berbiaya efisien, dan memiliki latency rendah untuk operasional kasir.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-4">
+            <div class="m3-card">
+              <div class="card-num">FRONTEND</div>
+              <div class="card-title">Next.js & Tailwind</div>
+              <div class="card-desc">Server-side rendering responsif, antarmuka mobile-first PWA, loading sub-detik, dan kompatibel semua browser.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">DATABASE & AUTH</div>
+              <div class="card-title">Supabase (PostgreSQL)</div>
+              <div class="card-desc">Database relasional tangguh dengan Row Level Security (RLS), sinkronisasi real-time saldo poin, dan auth multi-role.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">HOSTING & EDGE</div>
+              <div class="card-title">Vercel Edge Cloud</div>
+              <div class="card-desc">Hosting jaringan edge global dengan uptime 99.99%, sertifikat SSL otomatis, dan continuous deployment.</div>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">SECURITY & BACKUP</div>
+              <div class="card-title">Data Protection & Audit</div>
+              <div class="card-desc">Daily automatic database backup, pencatatan log transaksi kasir, dan proteksi otorisasi bertingkat.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 16: Implementation Roadmap -->
+      <section class="slide" data-index="16">
+        <div class="slide-header">
+          <div class="category-chip">15. Rencana Kerja</div>
+          <h2 class="slide-title">Tahapan Eksekusi & Roadmap Implementasi</h2>
+          <p class="slide-subtitle">Alur pengerjaan terstruktur mulai dari pemodelan data hingga pengujian lapangan di outlet.</p>
+        </div>
+        <div class="slide-body">
+          <div class="flow-container-5">
+            <div class="flow-step">
+              <div class="flow-index">1</div>
+              <div class="flow-title">Analisis & Rules</div>
+              <div class="flow-desc">Finalisasi aturan rasio poin, nilai diskon, syarat tier, dan struktur entitas data.</div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-index">2</div>
+              <div class="flow-title">Database & Core</div>
+              <div class="flow-desc">Penyusunan skema Supabase PostgreSQL, RBAC Auth, dan points calculation engine.</div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-index">3</div>
+              <div class="flow-title">UI/UX & Modul</div>
+              <div class="flow-desc">Pengembangan Web App Member PWA (5 Tab), POS Kasir, dan Dashboard Admin.</div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-index">4</div>
+              <div class="flow-title">Testing & Add-on</div>
+              <div class="flow-desc">Simulasi kasir, stress-test akurasi saldo poin, security test, dan modul NFC (jika diambil).</div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-index">5</div>
+              <div class="flow-title">Deployment</div>
+              <div class="flow-desc">Live deployment ke domain resmi barbershop, setup outlet, dan pelatihan kasir.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 17: Client Discovery Checklist -->
+      <section class="slide" data-index="17">
+        <div class="slide-header">
+          <div class="category-chip">16. Discovery Checklist</div>
+          <h2 class="slide-title">Checklist Konfirmasi Kebutuhan Klien</h2>
+          <p class="slide-subtitle">Poin-poin klarifikasi sebelum memulai pengerjaan untuk menyelaraskan ekspektasi sistem.</p>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="m3-card">
+              <div class="card-num">CHECKLIST 01 &mdash; 05</div>
+              <ul class="card-list">
+                <li class="card-list-item"><strong>1. Jumlah Cabang:</strong> Apakah untuk 1 cabang tunggal atau langsung multi-cabang?</li>
+                <li class="card-list-item"><strong>2. Software Kasir:</strong> Apakah menggunakan POS bawaan web atau integrasi POS lama?</li>
+                <li class="card-list-item"><strong>3. Rumus Cashback:</strong> Berapa rasio perolehan poin dan konversi diskon rupiah?</li>
+                <li class="card-list-item"><strong>4. Perhitungan Poin:</strong> Berdasarkan nominal total belanja atau frekuensi kunjungan?</li>
+                <li class="card-list-item"><strong>5. Kebutuhan Tier:</strong> Apakah langsung 5-tier (Silver s.d. Black) atau 1 tier standar?</li>
+              </ul>
+            </div>
+            <div class="m3-card">
+              <div class="card-num">CHECKLIST 06 &mdash; 10</div>
+              <ul class="card-list">
+                <li class="card-list-item"><strong>6. Katalog Produk:</strong> Apakah sebatas etalase informasi atau butuh pembelian online?</li>
+                <li class="card-list-item"><strong>7. Booking Capster:</strong> Apakah butuh reservasi jadwal capster atau profil staf saja?</li>
+                <li class="card-list-item"><strong>8. Login Member:</strong> Cukup WhatsApp + PIN atau harus OTP WhatsApp API berbayar?</li>
+                <li class="card-list-item"><strong>9. Perangkat Kasir:</strong> Perangkat apa yang ada di meja kasir (HP, iPad, PC Windows)?</li>
+                <li class="card-list-item"><strong>10. Opsi Add-on NFC:</strong> Apakah ingin menyertakan opsi cetak kartu fisik pintar NFC?</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 18: Summary & Closing -->
+      <section class="slide" data-index="18">
+        <div class="hero-container">
+          <div class="hero-tag">Ringkasan Eksekutif & Penutup</div>
+          <h2 class="hero-title" style="font-size: 34px;">Solusi Membership Lengkap, Fleksibel, & Scalable</h2>
+          <p class="hero-description">
+            Sistem <strong>Barber Membership & Loyalty Platform</strong> memberikan solusi digital menyeluruh bagi barbershop: member card digital QR yang bebas hambatan, operasional kasir cepat sub-60 detik, retensi 5-tier otomatis, serta fleksibilitas peningkatan ke <strong>NFC Smart Card System</strong> kapan saja dibutuhkan.
+          </p>
+          <div class="meta-bar">
+            <div class="meta-item">
+              <span class="meta-label">Localhost URL</span>
+              <span class="meta-val">http://localhost:3000</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Total Slide</span>
+              <span class="meta-val">18 Slide Presentasi M3</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Status Dokumen</span>
+              <span class="meta-val">Final Scope & Add-on Proposal</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <footer class="bottom-bar">
+      <div class="nav-left">
+        <div class="slide-counter">
+          Slide <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">18</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+
+      <div class="nav-center">
+        <button class="btn-nav" id="btnPrev" title="Previous Slide (Left Arrow)">
+          &larr; Prev
+        </button>
+        <button class="btn-nav primary" id="btnNext" title="Next Slide (Right Arrow or Space)">
+          Next &rarr;
+        </button>
+      </div>
+
+      <div class="nav-hints">
+        <span>Gunakan <span class="kbd-shortcut">&larr;</span> <span class="kbd-shortcut">&rarr;</span> atau <span class="kbd-shortcut">Space</span> untuk navigasi</span>
+      </div>
+    </footer>
+
+    <!-- Overview Grid Modal -->
+    <div class="overview-modal" id="overviewModal">
+      <div class="overview-header">
+        <h3 style="font-size: 17px; font-weight: 700; color: var(--md-sys-color-primary);">Daftar Semua Slide Presentasi (18 Slide)</h3>
+        <button class="btn-icon" id="btnCloseOverview">Tutup (Esc)</button>
+      </div>
+      <div class="overview-grid" id="overviewGrid">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Slide Controller Logic
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    let currentIndex = 0;
+
+    const currentSlideNumEl = document.getElementById('currentSlideNum');
+    const totalSlidesNumEl = document.getElementById('totalSlidesNum');
+    const progressFillEl = document.getElementById('progressFill');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const overviewModal = document.getElementById('overviewModal');
+    const btnOverview = document.getElementById('btnOverview');
+    const btnCloseOverview = document.getElementById('btnCloseOverview');
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    const overviewGrid = document.getElementById('overviewGrid');
+
+    totalSlidesNumEl.textContent = totalSlides;
+
+    function updateSlides(index) {
+      if (index < 0) index = 0;
+      if (index >= totalSlides) index = totalSlides - 1;
+      currentIndex = index;
+
+      slides.forEach((slide, idx) => {
+        if (idx === currentIndex) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      });
+
+      // Update UI Counters
+      currentSlideNumEl.textContent = currentIndex + 1;
+      const progressPercent = ((currentIndex + 1) / totalSlides) * 100;
+      progressFillEl.style.width = `${progressPercent}%`;
+
+      btnPrev.disabled = currentIndex === 0;
+      btnNext.disabled = currentIndex === totalSlides - 1;
+
+      // Update Overview Active State
+      document.querySelectorAll('.overview-thumb').forEach((thumb, idx) => {
+        if (idx === currentIndex) {
+          thumb.classList.add('current');
+        } else {
+          thumb.classList.remove('current');
+        }
+      });
+    }
+
+    function goToNext() {
+      if (currentIndex < totalSlides - 1) {
+        updateSlides(currentIndex + 1);
+      }
+    }
+
+    function goToPrev() {
+      if (currentIndex > 0) {
+        updateSlides(currentIndex - 1);
+      }
+    }
+
+    // Build Overview Grid items
+    function initOverview() {
+      overviewGrid.innerHTML = '';
+      slides.forEach((slide, idx) => {
+        const titleEl = slide.querySelector('.slide-title') || slide.querySelector('.hero-title');
+        const titleText = titleEl ? titleEl.textContent : `Slide ${idx + 1}`;
+
+        const thumb = document.createElement('div');
+        thumb.className = `overview-thumb ${idx === currentIndex ? 'current' : ''}`;
+        thumb.innerHTML = `
+          <div class="thumb-num">SLIDE ${String(idx + 1).padStart(2, '0')}</div>
+          <div class="thumb-title">${titleText}</div>
+        `;
+        thumb.addEventListener('click', () => {
+          updateSlides(idx);
+          toggleOverview(false);
+        });
+        overviewGrid.appendChild(thumb);
+      });
+    }
+
+    function toggleOverview(open) {
+      if (open === undefined) {
+        overviewModal.classList.toggle('open');
+      } else if (open) {
+        overviewModal.classList.add('open');
+      } else {
+        overviewModal.classList.remove('open');
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Event Listeners
+    btnNext.addEventListener('click', goToNext);
+    btnPrev.addEventListener('click', goToPrev);
+    btnOverview.addEventListener('click', () => toggleOverview());
+    btnCloseOverview.addEventListener('click', () => toggleOverview(false));
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (overviewModal.classList.contains('open')) {
+        if (e.key === 'Escape') {
+          toggleOverview(false);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        goToNext();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        goToPrev();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        updateSlides(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        updateSlides(totalSlides - 1);
+      } else if (e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        toggleOverview();
+      } else if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    });
+
+    // Touch Swipe Navigation for Mobile Screens
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      touchEndY = e.changedTouches[0].screenY;
+      handleTouchSwipe();
+    }, { passive: true });
+
+    function handleTouchSwipe() {
+      if (overviewModal.classList.contains('open')) return;
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+      // Trigger horizontal slide flip if swipe is horizontal and > 45px
+      if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+        if (deltaX < 0) {
+          goToNext();
+        } else {
+          goToPrev();
+        }
+      }
+    }
+
+    // Initialize
+    initOverview();
+    updateSlides(0);
+  </script>
+</body>
+</html>
