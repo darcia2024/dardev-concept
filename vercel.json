@@ -3,6 +3,22 @@
     {
       "source": "/finalpenawaran",
       "destination": "/finalpenawaran.html"
+    },
+    {
+      "source": "/pos",
+      "destination": "/pos.html"
+    },
+    {
+      "source": "/kasir",
+      "destination": "/pos.html"
+    },
+    {
+      "source": "/rekap",
+      "destination": "/rekap.html"
+    },
+    {
+      "source": "/owner",
+      "destination": "/rekap.html"
     }
   ]
 }
