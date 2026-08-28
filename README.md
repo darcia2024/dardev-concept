@@ -9,6 +9,8 @@ Sistem Manajemen Membership Digital, Kasir POS & Loyalitas 5-Tier berbasis Web P
 * **Slide Presentasi Scope & Blueprint:** [https://dardev-concept.vercel.app](https://dardev-concept.vercel.app)
 * **Live Demo Mobile Web App (PWA):** [https://dardev-concept.vercel.app/app.html](https://dardev-concept.vercel.app/app.html)
 * **Addendum Penawaran Final (Revisi 02):** [https://dardev-concept.vercel.app/finalpenawaran](https://dardev-concept.vercel.app/finalpenawaran)
+* **POS Kasir Mode Opening (Fase 0):** [https://dardev-concept.vercel.app/pos](https://dardev-concept.vercel.app/pos)
+* **Dashboard Rekap Owner (Fase 0):** [https://dardev-concept.vercel.app/rekap](https://dardev-concept.vercel.app/rekap)
 
 ---
 
@@ -63,3 +65,6 @@ python -m http.server 3000
 Akses melalui browser:
 * **Slide Presentasi Scope & Arsitektur:** `http://localhost:3000/index.html`
 * **Mobile Web App Demo (PWA):** `http://localhost:3000/app.html`
+* **POS Kasir Mode Opening (Fase 0):** `http://localhost:3000/pos.html`
+* **Dashboard Rekap Owner (Fase 0):** `http://localhost:3000/rekap.html`
+* **Addendum Penawaran Final:** `http://localhost:3000/finalpenawaran.html`

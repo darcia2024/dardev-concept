@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#08090b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Dashboard Rekap Owner &mdash; Barber Opening Mode (Fase 0)</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --ink:          #08090b;
+      --ink-raised:   #0f1217;
+      --ink-card:     #14171d;
+      --ink-inset:    #0b0d11;
+      --line:         #242832;
+      --line-soft:    #191c23;
+      --fg:           #f2f3f5;
+      --fg-mid:       #a9afba;
+      --fg-dim:       #757c8a;
+      --brass:        #c9a26a;
+      --brass-deep:   #8d7047;
+      --brass-wash:   rgba(201, 162, 106, 0.12);
+      --sage:         #7fae8c;
+      --sage-wash:    rgba(127, 174, 140, 0.12);
+      --clay:         #c9756a;
+      --clay-wash:    rgba(201, 117, 106, 0.12);
+      --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono: 'Space Grotesk', monospace;
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background-color: var(--ink);
+      color: var(--fg);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Layout Header */
+    header.rekap-header {
+      background: var(--ink-raised);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo-badge {
+      width: 36px;
+      height: 36px;
+      background: var(--brass);
+      color: var(--ink);
+      border-radius: var(--r-sm);
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .brand-titles h1 {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .brand-titles .owner-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--fg-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--sage);
+      box-shadow: 0 0 6px var(--sage);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-nav {
+      background: var(--ink-card);
+      border: 1px solid var(--line);
+      color: var(--fg);
+      padding: 7px 14px;
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-nav:hover {
+      border-color: var(--brass);
+      color: var(--brass);
+    }
+
+    .btn-nav.is-gold {
+      background: var(--brass);
+      color: var(--ink);
+      border-color: var(--brass);
+      font-weight: 700;
+    }
+
+    /* Main Container */
+    .rekap-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      flex: 1;
+    }
+
+    /* Control Bar: Date Selector & Export */
+    .control-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: var(--ink-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 12px 16px;
+    }
+
+    .date-filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-filter-date {
+      background: var(--ink-inset);
+      border: 1px solid var(--line);
+      color: var(--fg-mid);
+      padding: 6px 12px;
+      border-radius: var(--r-sm);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-filter-date.active {
+      background: var(--fg);
+      color: var(--ink);
+      border-color: var(--fg);
+    }
+
+    .export-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Hero KPI Metrics */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .kpi-card {
+      background: var(--ink-card);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card.is-featured {
+      border-color: var(--brass-deep);
+      background: linear-gradient(135deg, var(--brass-wash), var(--ink-card) 60%);
+    }
+
+    .kpi-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--fg-dim);
+    }
+
+    .kpi-value {
+      font-family: var(--mono);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--fg);
+      letter-spacing: -0.02em;
+    }
+
+    .kpi-card.is-featured .kpi-value {
+      color: var(--brass);
+    }
+
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--fg-dim);
+    }
+
+    /* 2-Column Split: Payment Breakdown & Capster Performance */
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 800px) {
+      .two-col-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel-box {
+      background: var(--ink-card);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--line-soft);
+      padding-bottom: 10px;
+    }
+
+    .panel-head h2 {
+      font-size: 14.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Payment Breakdown Rows */
+    .pay-breakdown-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pay-breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--ink-inset);
+      border: 1px solid var(--line-soft);
+      padding: 10px 14px;
+      border-radius: var(--r-sm);
+    }
+
+    .pay-tag {
+      font-weight: 700;
+      font-size: 13.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pay-count-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--line);
+      color: var(--fg-dim);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .pay-amount {
+      font-family: var(--mono);
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--fg);
+    }
+
+    /* Capster Performance List */
+    .capster-perf-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .capster-perf-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--ink-inset);
+      border: 1px solid var(--line-soft);
+      padding: 10px 14px;
+      border-radius: var(--r-sm);
+    }
+
+    .capster-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .capster-avatar-sm {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--brass-deep);
+      color: var(--fg);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .capster-perf-name {
+      font-size: 13.5px;
+      font-weight: 600;
+    }
+
+    .capster-stat {
+      text-align: right;
+    }
+
+    .capster-heads {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--fg-dim);
+    }
+
+    .capster-omzet {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--brass);
+    }
+
+    /* Table Logs */
+    .table-panel {
+      background: var(--ink-card);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .table-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      background: var(--ink-inset);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      color: var(--fg);
+      padding: 8px 12px;
+      font-size: 13px;
+      width: 260px;
+      outline: none;
+    }
+    .search-input:focus { border-color: var(--brass); }
+
+    .table-scroll {
+      overflow-x: auto;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--r-sm);
+    }
+
+    table.tx-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 700px;
+    }
+
+    table.tx-table th {
+      background: var(--ink-inset);
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--fg-dim);
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--line);
+    }
+
+    table.tx-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line-soft);
+      color: var(--fg-mid);
+    }
+
+    table.tx-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .pill-pay {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .pill-pay.tunai { background: rgba(127,174,140,0.15); color: var(--sage); border: 1px solid rgba(127,174,140,0.3); }
+    .pill-pay.qris  { background: rgba(201,162,106,0.15); color: var(--brass); border: 1px solid var(--brass-deep); }
+    .pill-pay.edc   { background: rgba(94, 161, 255, 0.15); color: #72a9ff; border: 1px solid rgba(94,161,255,0.3); }
+    .pill-pay.transfer { background: rgba(180, 130, 255, 0.15); color: #d0a5ff; border: 1px solid rgba(180,130,255,0.3); }
+
+    /* Empty state */
+    .empty-row {
+      text-align: center;
+      padding: 30px;
+      color: var(--fg-dim);
+      font-size: 13.5px;
+    }
+
+    @media print {
+      body { background: #fff; color: #000; }
+      header.rekap-header, .control-strip, .btn-nav, .search-input { display: none !important; }
+      .rekap-container { max-width: 100%; padding: 0; }
+      .kpi-card, .panel-box, .table-panel { border-color: #ccc; background: #fff; color: #000; }
+      .kpi-value, .pay-amount, .capster-omzet { color: #000 !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Application Header -->
+  <header class="rekap-header">
+    <div class="brand-wrap">
+      <div class="brand-logo-badge">BK</div>
+      <div class="brand-titles">
+        <h1>Dashboard Rekap Owner</h1>
+        <div class="owner-tag">
+          <span class="live-dot"></span>
+          <span>Live Sync &middot; Fase 0 Active</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="/pos" class="btn-nav is-gold">💳 Buka POS Kasir</a>
+    </div>
+  </header>
+
+  <!-- Main Content Body -->
+  <main class="rekap-container">
+
+    <!-- Control Strip -->
+    <div class="control-strip">
+      <div class="date-filter-group">
+        <span style="font-size: 12.5px; color: var(--fg-dim); font-weight: 600;">Periode:</span>
+        <button class="btn-filter-date active" data-range="TODAY">Hari Ini</button>
+        <button class="btn-filter-date" data-range="YESTERDAY">Kemarin</button>
+        <button class="btn-filter-date" data-range="ALL">Semua Riwayat</button>
+      </div>
+
+      <div class="export-group">
+        <button id="btnExportCsv" class="btn-nav" title="Download Excel CSV">📥 Unduh CSV</button>
+        <button onclick="window.print()" class="btn-nav" title="Cetak Ringkasan">🖨️ Cetak</button>
+      </div>
+    </div>
+
+    <!-- Hero KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card is-featured">
+        <div class="kpi-label">Total Omzet Bersih</div>
+        <div class="kpi-value" id="kpiTotalRevenue">Rp 0</div>
+        <div class="kpi-sub" id="kpiRevenueSub">0 transaksi sukses tercatat</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Total Pelanggan Dicukur</div>
+        <div class="kpi-value" id="kpiTotalCustomers">0</div>
+        <div class="kpi-sub">Kepala potong rambut & layanan</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Rata-Rata Keranjang (Basket)</div>
+        <div class="kpi-value" id="kpiAvgBasket">Rp 0</div>
+        <div class="kpi-sub">Rata-rata belanja per orang</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Member Terdaftar</div>
+        <div class="kpi-value" id="kpiTotalMembers">0</div>
+        <div class="kpi-sub">Database no. WhatsApp member</div>
+      </div>
+    </div>
+
+    <!-- 2 Column Breakdown -->
+    <div class="two-col-grid">
+      
+      <!-- Payment Method Breakdown (Level 1 Reconciliation) -->
+      <div class="panel-box">
+        <div class="panel-head">
+          <h2>💳 Rekap Metode Pembayaran</h2>
+          <span style="font-size: 11px; color: var(--fg-dim); font-family: var(--mono);">Rekonsiliasi Kasir</span>
+        </div>
+        <div class="pay-breakdown-list">
+          <div class="pay-breakdown-row">
+            <div class="pay-tag">
+              <span class="pill-pay tunai">Tunai</span>
+              <span class="pay-count-badge" id="countPayTunai">0 trx</span>
+            </div>
+            <span class="pay-amount" id="sumPayTunai">Rp 0</span>
+          </div>
+
+          <div class="pay-breakdown-row">
+            <div class="pay-tag">
+              <span class="pill-pay qris">QRIS</span>
+              <span class="pay-count-badge" id="countPayQris">0 trx</span>
+            </div>
+            <span class="pay-amount" id="sumPayQris">Rp 0</span>
+          </div>
+
+          <div class="pay-breakdown-row">
+            <div class="pay-tag">
+              <span class="pill-pay edc">EDC Bank</span>
+              <span class="pay-count-badge" id="countPayEdc">0 trx</span>
+            </div>
+            <span class="pay-amount" id="sumPayEdc">Rp 0</span>
+          </div>
+
+          <div class="pay-breakdown-row">
+            <div class="pay-tag">
+              <span class="pill-pay transfer">Transfer</span>
+              <span class="pay-count-badge" id="countPayTransfer">0 trx</span>
+            </div>
+            <span class="pay-amount" id="sumPayTransfer">Rp 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Capster Performance Summary -->
+      <div class="panel-box">
+        <div class="panel-head">
+          <h2>✂️ Performa Capster</h2>
+          <span style="font-size: 11px; color: var(--fg-dim); font-family: var(--mono);">Kontribusi Omzet</span>
+        </div>
+        <div class="capster-perf-list" id="capsterPerfContainer">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Live Transaction Logs Table -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 700;">📜 Log Transaksi Detail</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">Data tersimpan otomatis & real-time</p>
+        </div>
+        <input type="text" id="inpSearchTx" class="search-input" placeholder="🔍 Cari nama, invoice, capster..." />
+      </div>
+
+      <div class="table-scroll">
+        <table class="tx-table" id="txTable">
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>No. Invoice</th>
+              <th>Pelanggan</th>
+              <th>WhatsApp</th>
+              <th>Capster</th>
+              <th>Layanan</th>
+              <th>Metode</th>
+              <th>Ref / Approval</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody id="txTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    /* =========================================================================
+       BARBER REKAP OWNER - PHASE 0 CORE LOGIC
+       ========================================================================= */
+
+    const STORAGE_KEY_TRANSACTIONS = 'barber_transactions_v1';
+    const STORAGE_KEY_MEMBERS = 'barber_members_v1';
+    const STORAGE_KEY_CAPSTERS = 'barber_capsters_v1';
+
+    let rawTransactions = [];
+    let membersData = {};
+    let capstersData = [];
+    let selectedDateFilter = 'TODAY';
+    let searchQuery = '';
+
+    function formatRupiah(num) {
+      return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+    }
+
+    function loadData() {
+      const storedTx = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
+      rawTransactions = storedTx ? JSON.parse(storedTx) : [];
+
+      const storedM = localStorage.getItem(STORAGE_KEY_MEMBERS);
+      membersData = storedM ? JSON.parse(storedM) : {};
+
+      const storedC = localStorage.getItem(STORAGE_KEY_CAPSTERS);
+      capstersData = storedC ? JSON.parse(storedC) : [];
+
+      renderDashboard();
+    }
+
+    // Filter transactions based on date filter and search
+    function getFilteredTransactions() {
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+      return rawTransactions.filter(tx => {
+        const txDate = tx.created_at ? tx.created_at.slice(0, 10) : '';
+
+        if (selectedDateFilter === 'TODAY' && txDate !== todayStr) return false;
+        if (selectedDateFilter === 'YESTERDAY' && txDate !== yesterdayStr) return false;
+
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          const matchInv = (tx.invoice_no || '').toLowerCase().includes(q);
+          const matchCust = (tx.member_name || '').toLowerCase().includes(q);
+          const matchPhone = (tx.member_phone || '').toLowerCase().includes(q);
+          const matchCap = (tx.capster_name || '').toLowerCase().includes(q);
+          const matchSrv = (tx.services || []).some(s => s.name.toLowerCase().includes(q));
+          if (!matchInv && !matchCust && !matchPhone && !matchCap && !matchSrv) return false;
+        }
+
+        return true;
+      });
+    }
+
+    function renderDashboard() {
+      const txList = getFilteredTransactions();
+
+      // 1. KPI Aggregates
+      let totalRevenue = 0;
+      let totalCut = 0;
+      let payBreakdown = {
+        'Tunai': { sum: 0, count: 0 },
+        'QRIS': { sum: 0, count: 0 },
+        'EDC': { sum: 0, count: 0 },
+        'Transfer': { sum: 0, count: 0 }
+      };
+      let capsterBreakdown = {};
+
+      txList.forEach(tx => {
+        const amt = tx.final_amount || 0;
+        totalRevenue += amt;
+        totalCut += (tx.services ? tx.services.length : 1);
+
+        const method = tx.payment_method || 'Tunai';
+        if (!payBreakdown[method]) payBreakdown[method] = { sum: 0, count: 0 };
+        payBreakdown[method].sum += amt;
+        payBreakdown[method].count += 1;
+
+        const capName = tx.capster_name || 'Tidak Ditentukan';
+        if (!capsterBreakdown[capName]) capsterBreakdown[capName] = { omzet: 0, heads: 0 };
+        capsterBreakdown[capName].omzet += amt;
+        capsterBreakdown[capName].heads += (tx.services ? tx.services.length : 1);
+      });
+
+      const avgBasket = txList.length > 0 ? Math.round(totalRevenue / txList.length) : 0;
+      const totalMembersCount = Object.keys(membersData).length;
+
+      // Update KPIs DOM
+      document.getElementById('kpiTotalRevenue').textContent = formatRupiah(totalRevenue);
+      document.getElementById('kpiRevenueSub').textContent = `${txList.length} transaksi sukses tercatat`;
+      document.getElementById('kpiTotalCustomers').textContent = totalCut;
+      document.getElementById('kpiAvgBasket').textContent = formatRupiah(avgBasket);
+      document.getElementById('kpiTotalMembers').textContent = totalMembersCount;
+
+      // Update Payment Breakdown DOM
+      ['Tunai', 'QRIS', 'EDC', 'Transfer'].forEach(m => {
+        document.getElementById(`sumPay${m}`).textContent = formatRupiah(payBreakdown[m].sum);
+        document.getElementById(`countPay${m}`).textContent = `${payBreakdown[m].count} trx`;
+      });
+
+      // Update Capster Performance DOM
+      const capContainer = document.getElementById('capsterPerfContainer');
+      const sortedCapsters = Object.entries(capsterBreakdown).sort((a, b) => b[1].omzet - a[1].omzet);
+
+      if (sortedCapsters.length === 0) {
+        capContainer.innerHTML = `<div style="text-align:center; padding:16px; color:var(--fg-dim); font-size:13px;">Belum ada data capster pada periode ini</div>`;
+      } else {
+        capContainer.innerHTML = sortedCapsters.map(([name, stat]) => `
+          <div class="capster-perf-row">
+            <div class="capster-info">
+              <div class="capster-avatar-sm">${name.charAt(0).toUpperCase()}</div>
+              <div>
+                <div class="capster-perf-name">${name}</div>
+                <div class="capster-heads">${stat.heads} pangkas & layanan</div>
+              </div>
+            </div>
+            <div class="capster-stat">
+              <div class="capster-omzet">${formatRupiah(stat.omzet)}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Update Transactions Table DOM
+      const tbody = document.getElementById('txTableBody');
+      if (txList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="empty-row">Tidak ada transaksi yang cocok dengan filter</td></tr>`;
+      } else {
+        tbody.innerHTML = txList.map(tx => {
+          const timeStr = tx.created_at ? new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+          const methodClass = (tx.payment_method || 'tunai').toLowerCase();
+          const srvNames = (tx.services || []).map(s => s.name).join(', ') || '-';
+          return `
+            <tr>
+              <td style="font-family:var(--mono);">${timeStr}</td>
+              <td style="font-family:var(--mono); font-weight:700; color:var(--fg);">${tx.invoice_no || '-'}</td>
+              <td><strong>${tx.member_name || 'Umum'}</strong></td>
+              <td style="font-family:var(--mono); font-size:12px;">${tx.member_phone || '-'}</td>
+              <td>${tx.capster_name || '-'}</td>
+              <td>${srvNames}</td>
+              <td><span class="pill-pay ${methodClass}">${tx.payment_method || 'Tunai'}</span></td>
+              <td style="font-family:var(--mono); font-size:11.5px; color:var(--brass);">${tx.payment_ref || '-'}</td>
+              <td style="font-family:var(--mono); font-weight:700; color:var(--fg); text-align:right;">${formatRupiah(tx.final_amount)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // Export CSV Feature
+    document.getElementById('btnExportCsv').addEventListener('click', () => {
+      const txList = getFilteredTransactions();
+      if (txList.length === 0) {
+        alert('Tidak ada data transaksi untuk diekspor!');
+        return;
+      }
+
+      const headers = ['Waktu', 'No Invoice', 'Nama Pelanggan', 'No WhatsApp', 'Capster', 'Layanan', 'Metode Bayar', 'Kode Ref/Approval', 'Total (Rp)'];
+      const rows = txList.map(tx => [
+        `"${tx.created_at ? new Date(tx.created_at).toLocaleString('id-ID') : ''}"`,
+        `"${tx.invoice_no || ''}"`,
+        `"${tx.member_name || ''}"`,
+        `"${tx.member_phone || ''}"`,
+        `"${tx.capster_name || ''}"`,
+        `"${(tx.services || []).map(s => s.name).join(' + ')}"`,
+        `"${tx.payment_method || ''}"`,
+        `"${tx.payment_ref || ''}"`,
+        tx.final_amount || 0
+      ]);
+
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `Rekap_Barber_${selectedDateFilter}_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // Date Filters
+    document.querySelectorAll('.btn-filter-date').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.btn-filter-date').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedDateFilter = btn.dataset.range;
+        renderDashboard();
+      });
+    });
+
+    // Search Input
+    document.getElementById('inpSearchTx').addEventListener('input', (e) => {
+      searchQuery = e.target.value.trim();
+      renderDashboard();
+    });
+
+    // Auto sync across tabs via Storage Event
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY_TRANSACTIONS || e.key === STORAGE_KEY_MEMBERS) {
+        loadData();
+      }
+    });
+
+    // Initial Load & Auto-polling
+    loadData();
+    setInterval(loadData, 8000);
+  </script>
+</body>
+</html>
