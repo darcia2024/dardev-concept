@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/finalpenawaran",
+      "destination": "/finalpenawaran.html"
+    }
+  ]
+}

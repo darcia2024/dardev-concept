@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#08090b">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Addendum ruang lingkup Paket Full: modul kalkulator HPP produk, absensi & cuti karyawan, strategi rilis bertahap menuju hari pembukaan, serta sistem pembayaran QRIS & EDC.">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="id_ID">
+<meta property="og:title" content="Addendum &mdash; Barber Membership &amp; Loyalty System">
+<meta property="og:description" content="Addendum ruang lingkup Paket Full: modul kalkulator HPP produk, absensi & cuti karyawan, strategi rilis bertahap menuju hari pembukaan, serta sistem pembayaran QRIS & EDC.">
+<meta name="twitter:card" content="summary">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+  img, svg, video { max-width: 100%; height: auto; }
+</style>
+<title>Addendum Barber Membership</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     Addendum — Barber Membership & Loyalty System
+     Monokrom gelap (lanjutan design system deck penawaran)
+     + aksen kuningan sebagai penanda status & urgensi
+     ============================================================ */
+
+  :root {
+    --ink:          #08090b;
+    --ink-raised:   #0f1217;
+    --ink-card:     #14171d;
+    --ink-inset:    #0b0d11;
+
+    --line:         #242832;
+    --line-soft:    #191c23;
+
+    --fg:           #f2f3f5;
+    --fg-mid:       #a9afba;
+    --fg-dim:       #757c8a;
+
+    --brass:        #c9a26a;
+    --brass-deep:   #8d7047;
+    --brass-wash:   rgba(201, 162, 106, 0.09);
+
+    --sage:         #7fae8c;
+    --sage-wash:    rgba(127, 174, 140, 0.10);
+    --clay:         #c9756a;
+    --clay-wash:    rgba(201, 117, 106, 0.10);
+
+    --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'Space Grotesk', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    --measure: 860px;
+    --r-sm: 6px;
+    --r-md: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ink);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    padding: 0 20px 96px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+
+  .wrap {
+    max-width: var(--measure);
+    margin: 0 auto;
+  }
+
+  a { color: var(--brass); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+  a:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  /* ---------- Masthead ---------- */
+
+  .masthead {
+    padding: 68px 0 40px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+  }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brass);
+  }
+
+  .masthead h1 {
+    font-size: clamp(30px, 5.4vw, 46px);
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -0.028em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .lede {
+    font-size: 17px;
+    font-weight: 300;
+    line-height: 1.68;
+    color: var(--fg-mid);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  .lede strong { font-weight: 600; color: var(--fg); }
+
+  .meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+
+  .meta-cell {
+    flex: 1 1 158px;
+    padding: 14px 18px;
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: var(--ink-raised);
+  }
+
+  .meta-cell:last-child { border-right: 0; }
+
+  .meta-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+  }
+
+  .meta-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .meta-value.accent { color: var(--brass); }
+
+  /* ---------- Daftar isi ---------- */
+
+  .toc {
+    margin-top: 34px;
+    padding: 22px 24px;
+    background: var(--ink-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .toc-head {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+  }
+
+  .toc-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+    gap: 2px 26px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .toc-link {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 5px 0;
+    color: var(--fg-mid);
+    text-decoration: none;
+    font-size: 14.5px;
+  }
+
+  .toc-link:hover { color: var(--fg); }
+
+  .toc-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--brass-deep);
+    font-variant-numeric: tabular-nums;
+    flex: none;
+  }
+
+  /* ---------- Struktur bagian ---------- */
+
+  .section {
+    padding-top: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    scroll-margin-top: 24px;
+  }
+
+  .section + .section {
+    border-top: 1px solid var(--line-soft);
+    margin-top: 56px;
+  }
+
+  .sec-head {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 1px;
+    background: var(--brass-deep);
+    flex: none;
+  }
+
+  .section h2 {
+    font-size: clamp(22px, 3.4vw, 29px);
+    font-weight: 700;
+    line-height: 1.22;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .section h3 {
+    font-size: 16.5px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+    color: var(--fg);
+  }
+
+  .section p {
+    margin: 0;
+    color: var(--fg-mid);
+    max-width: 68ch;
+  }
+
+  .section p strong { color: var(--fg); font-weight: 600; }
+
+  /* ---------- Kartu ---------- */
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--ink-card);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .card-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+
+  .card-body {
+    font-size: 14px;
+    color: var(--fg-mid);
+    line-height: 1.6;
+  }
+
+  .card.is-brass { border-color: var(--brass-deep); background: var(--brass-wash); }
+  .card.is-brass .card-tag { color: var(--brass); }
+
+  /* ---------- Daftar bertanda ---------- */
+
+  .ticks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .ticks li {
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+    font-size: 14.5px;
+    color: var(--fg-mid);
+    line-height: 1.55;
+  }
+
+  .ticks li strong { color: var(--fg); font-weight: 600; }
+
+  .ticks li::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    margin-top: 8px;
+    border-radius: 50%;
+    background: var(--brass-deep);
+    flex: none;
+  }
+
+  .ticks.is-plain li::before { background: var(--line); }
+
+  /* ---------- Tabel ---------- */
+
+  .table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--ink-raised);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 560px;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 13px 16px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+    border-bottom: 1px solid var(--line);
+    background: var(--ink-inset);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--fg-mid);
+    vertical-align: top;
+    line-height: 1.55;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+
+  tbody td:first-child { color: var(--fg); font-weight: 600; }
+
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- Pil status ---------- */
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 1px solid var(--line);
+    color: var(--fg-mid);
+  }
+
+  .pill.ok    { color: var(--sage);  border-color: rgba(127,174,140,0.4); background: var(--sage-wash); }
+  .pill.out   { color: var(--clay);  border-color: rgba(201,117,106,0.4); background: var(--clay-wash); }
+  .pill.add   { color: var(--brass); border-color: var(--brass-deep);     background: var(--brass-wash); }
+
+  /* ---------- Linimasa fase ---------- */
+
+  .phases {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phase {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 22px;
+    padding-bottom: 30px;
+    position: relative;
+  }
+
+  .phase::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 26px;
+    bottom: -4px;
+    width: 1px;
+    background: var(--line);
+  }
+
+  .phase:last-child { padding-bottom: 0; }
+  .phase:last-child::before { display: none; }
+
+  .phase-marker {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .phase-dot {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--ink);
+    display: grid;
+    place-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--fg-dim);
+  }
+
+  .phase.is-now .phase-dot {
+    border-color: var(--brass);
+    background: var(--brass);
+    color: var(--ink);
+  }
+
+  .phase-date {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    color: var(--fg-dim);
+    line-height: 1.45;
+  }
+
+  .phase.is-now .phase-date { color: var(--brass); }
+
+  .phase-panel {
+    background: var(--ink-card);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .phase.is-now .phase-panel {
+    border-color: var(--brass-deep);
+    background: linear-gradient(180deg, var(--brass-wash), var(--ink-card) 62%);
+  }
+
+  .phase-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.012em;
+  }
+
+  /* ---------- Kotak sorotan ---------- */
+
+  .note {
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--brass);
+    border-radius: var(--r-sm);
+    background: var(--ink-raised);
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .note-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass);
+  }
+
+  .note p { font-size: 14.5px; max-width: 70ch; }
+
+  .note.is-warn { border-left-color: var(--clay); }
+  .note.is-warn .note-label { color: var(--clay); }
+
+  /* ---------- Kalkulasi HPP ---------- */
+
+  .calc {
+    background: var(--ink-inset);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+
+  .calc-head {
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+    background: var(--ink-raised);
+  }
+
+  .calc-rows { padding: 8px 20px 16px; }
+
+  .calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 20px;
+    padding: 8px 0;
+    font-size: 14.5px;
+    color: var(--fg-mid);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .calc-row:last-child { border-bottom: 0; }
+
+  .calc-row .num { font-family: var(--mono); color: var(--fg); }
+
+  .calc-row.is-total {
+    border-top: 1px solid var(--line);
+    border-bottom: 0;
+    margin-top: 6px;
+    padding-top: 13px;
+    font-weight: 700;
+    color: var(--fg);
+    font-size: 15.5px;
+  }
+
+  .calc-row.is-total .num { color: var(--brass); font-weight: 700; }
+
+  .calc-row.is-sub { font-size: 13.5px; color: var(--fg-dim); }
+  .calc-row.is-sub .num { color: var(--fg-mid); }
+
+  .formula {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--fg-mid);
+    background: var(--ink-inset);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    padding: 16px 20px;
+    overflow-x: auto;
+    white-space: pre;
+    margin: 0;
+  }
+
+  .formula b { color: var(--brass); font-weight: 500; }
+
+  /* ---------- Daftar konfirmasi ---------- */
+
+  .checklist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+
+  .checklist li {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 14px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--ink-raised);
+    font-size: 14.5px;
+    color: var(--fg-mid);
+    line-height: 1.55;
+  }
+
+  .checklist li:last-child { border-bottom: 0; }
+  .checklist li strong { color: var(--fg); font-weight: 600; }
+
+  .check-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--brass-deep);
+    padding-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Biaya ---------- */
+
+  .cost {
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--ink-raised);
+  }
+
+  .cost-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 20px;
+    padding: 17px 22px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .cost-row:last-child { border-bottom: 0; }
+
+  .cost-label { display: flex; flex-direction: column; gap: 3px; }
+  .cost-name  { font-size: 15px; font-weight: 600; color: var(--fg); }
+  .cost-desc  { font-size: 13px; color: var(--fg-dim); }
+
+  .cost-value {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .cost-row.is-strike .cost-name,
+  .cost-row.is-strike .cost-value { color: var(--fg-dim); text-decoration: line-through; }
+
+  .cost-row.is-grand {
+    background: var(--brass-wash);
+    border-top: 1px solid var(--brass-deep);
+    padding: 22px;
+  }
+
+  .cost-row.is-grand .cost-name  { font-size: 17px; font-weight: 800; }
+  .cost-row.is-grand .cost-value { font-size: 24px; font-weight: 700; color: var(--brass); letter-spacing: -0.02em; }
+
+  /* ---------- Penutup ---------- */
+
+  .closer {
+    margin-top: 34px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .closer p { font-size: 14px; color: var(--fg-dim); max-width: 66ch; margin: 0; }
+  .closer .sig { font-size: 14px; color: var(--fg-mid); }
+  .closer .sig strong { color: var(--fg); }
+
+  /* ---------- Responsif ---------- */
+
+  @media (max-width: 620px) {
+    body { padding: 0 16px 72px; font-size: 15.5px; }
+    .masthead { padding: 44px 0 32px; }
+    .section { padding-top: 46px; }
+    .section + .section { margin-top: 42px; }
+    .phase { grid-template-columns: 1fr; gap: 12px; }
+    .phase::before { display: none; }
+    .phase-marker { flex-direction: row; align-items: center; gap: 12px; }
+    .meta-cell { flex-basis: 50%; border-bottom: 1px solid var(--line); }
+    .cost-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .calc-row { gap: 12px; }
+  }
+
+  @media print {
+    body { background: #ffffff; color: #111111; padding: 0; }
+    .toc { display: none; }
+    .section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ══════════════ MASTHEAD ══════════════ -->
+  <header class="masthead">
+    <div class="kicker">Addendum Ruang Lingkup &mdash; Revisi 02</div>
+    <h1>Barber Membership &amp; Loyalty System</h1>
+    <p class="lede">
+      Dokumen ini menjabarkan hasil kesepakatan terakhir: <strong>Paket Full (Omnichannel PWA)</strong>
+      tanpa modul NFC, dengan dua modul tambahan atas permintaan klien, serta
+      <strong>strategi rilis bertahap</strong> agar outlet tetap bisa beroperasi dan mencatat transaksi
+      pada hari pembukaan &mdash; Minggu, 30 Agustus 2026.
+    </p>
+
+    <div class="meta-strip">
+      <div class="meta-cell">
+        <span class="meta-label">Paket Terpilih</span>
+        <span class="meta-value">Full &mdash; Omnichannel PWA</span>
+      </div>
+      <div class="meta-cell">
+        <span class="meta-label">Target Opening</span>
+        <span class="meta-value accent">Minggu, 30 Agu 2026</span>
+      </div>
+      <div class="meta-cell">
+        <span class="meta-label">Estimasi Rampung</span>
+        <span class="meta-value">Rabu, 16 Sep 2026</span>
+      </div>
+      <div class="meta-cell">
+        <span class="meta-label">Nilai Investasi</span>
+        <span class="meta-value">Rp 6.250.000</span>
+      </div>
+    </div>
+
+    <nav class="toc" aria-label="Daftar isi dokumen">
+      <div class="toc-head">Isi Dokumen</div>
+      <ol class="toc-list">
+        <li><a class="toc-link" href="#s1"><span class="toc-num">01</span> Ringkasan Kesepakatan</a></li>
+        <li><a class="toc-link" href="#s2"><span class="toc-num">02</span> Perubahan dari Proposal Awal</a></li>
+        <li><a class="toc-link" href="#s3"><span class="toc-num">03</span> Modul Kalkulator HPP Produk</a></li>
+        <li><a class="toc-link" href="#s4"><span class="toc-num">04</span> Modul Absensi &amp; Cuti Karyawan</a></li>
+        <li><a class="toc-link" href="#s5"><span class="toc-num">05</span> Strategi Rilis Bertahap</a></li>
+        <li><a class="toc-link" href="#s6"><span class="toc-num">06</span> Sistem Pembayaran QRIS &amp; EDC</a></li>
+        <li><a class="toc-link" href="#s7"><span class="toc-num">07</span> Rincian Biaya &amp; Termin</a></li>
+        <li><a class="toc-link" href="#s8"><span class="toc-num">08</span> Yang Perlu Dikonfirmasi</a></li>
+      </ol>
+    </nav>
+  </header>
+
+  <!-- ══════════════ 01 ══════════════ -->
+  <section class="section" id="s1">
+    <div class="sec-head">
+      <div class="eyebrow">01 &mdash; Ringkasan</div>
+      <h2>Empat keputusan yang mengubah bentuk proyek</h2>
+      <p>
+        Dibanding proposal awal, ada empat penyesuaian. Seluruhnya dapat dikerjakan tanpa mengubah
+        fondasi teknis yang sudah dirancang.
+      </p>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-tag">Keputusan 01</div>
+        <div class="card-title">Paket Full, bukan Ultimate</div>
+        <div class="card-body">
+          Klien mengambil paket tengah: PWA 5 tab lengkap, 5-tier membership, POS kasir,
+          dan dashboard owner multi-cabang.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-tag">Keputusan 02</div>
+        <div class="card-title">Modul NFC dikeluarkan</div>
+        <div class="card-body">
+          Pendaftaran member tetap berjalan lewat QR code dan input nomor WhatsApp di kasir &mdash;
+          hasilnya sama, tanpa perangkat tambahan.
+        </div>
+      </div>
+      <div class="card is-brass">
+        <div class="card-tag">Keputusan 03</div>
+        <div class="card-title">Dua modul operasional baru</div>
+        <div class="card-body">
+          Kalkulator HPP produk di dashboard owner, serta absensi dan pengajuan cuti
+          di dashboard karyawan.
+        </div>
+      </div>
+      <div class="card is-brass">
+        <div class="card-tag">Keputusan 04</div>
+        <div class="card-title">Rilis dipecah bertahap</div>
+        <div class="card-body">
+          Pencatatan kasir aktif di hari pembukaan; modul lainnya menyusul sambil outlet
+          berjalan, sampai sistem lengkap.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 02 ══════════════ -->
+  <section class="section" id="s2">
+    <div class="sec-head">
+      <div class="eyebrow">02 &mdash; Selisih Scope</div>
+      <h2>Perubahan dari proposal awal</h2>
+      <p>
+        Fondasi sistem tidak berubah. Yang bergeser hanya isi paket dan urutan pengirimannya.
+      </p>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:27%">Komponen</th>
+            <th style="width:46%">Keterangan</th>
+            <th style="width:27%">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sistem inti membership</td>
+            <td>PWA 5 tab, kartu QR digital, POS kasir, poin cashback, 5-tier auto-upgrade, dashboard owner.</td>
+            <td><span class="pill ok">Tetap</span></td>
+          </tr>
+          <tr>
+            <td>Smart NFC meja kasir</td>
+            <td>Kartu atau standee NFC untuk pendaftaran tap. Dikeluarkan atas permintaan klien &mdash; dapat diaktifkan kapan saja sebagai add-on terpisah.</td>
+            <td><span class="pill out">Dikeluarkan</span></td>
+          </tr>
+          <tr>
+            <td>Kalkulator HPP produk</td>
+            <td>Perhitungan harga pokok, margin, dan harga jual rekomendasi per produk retail.</td>
+            <td><span class="pill add">Ditambahkan</span></td>
+          </tr>
+          <tr>
+            <td>Absensi &amp; cuti karyawan</td>
+            <td>Dashboard karyawan dengan absen berfoto, validasi lokasi, pengajuan cuti, dan persetujuan owner.</td>
+            <td><span class="pill add">Ditambahkan</span></td>
+          </tr>
+          <tr>
+            <td>Pencatatan metode bayar</td>
+            <td>Kasir mencatat pembayaran Tunai, QRIS, EDC, atau Transfer, dengan rekap harian per metode.</td>
+            <td><span class="pill add">Ditambahkan</span></td>
+          </tr>
+          <tr>
+            <td>Metode rilis</td>
+            <td>Semula serah terima sekaligus di akhir. Kini dipecah menjadi empat fase agar outlet bisa buka lebih dulu.</td>
+            <td><span class="pill add">Direvisi</span></td>
+          </tr>
+          <tr>
+            <td>Payroll, booking, stok gudang</td>
+            <td>Komisi capster otomatis, reservasi jadwal online, manajemen stok, dan aplikasi Play Store.</td>
+            <td><span class="pill">Di luar scope</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ 03 ══════════════ -->
+  <section class="section" id="s3">
+    <div class="sec-head">
+      <div class="eyebrow">03 &mdash; Modul Tambahan</div>
+      <h2>Kalkulator HPP Produk</h2>
+      <p>
+        Ditempatkan di <strong>dashboard owner</strong>, menempel langsung pada katalog produk retail
+        yang sudah ada. Setiap produk mendapat satu nilai HPP, sehingga laporan penjualan bisa
+        menampilkan <strong>laba kotor</strong>, bukan hanya omzet.
+      </p>
+    </div>
+
+    <div class="note">
+      <div class="note-label">Kenapa modul ini penting di sistem loyalitas</div>
+      <p>
+        Tanpa HPP, owner tidak tahu sampai berapa besar diskon poin yang masih menyisakan untung.
+        Dengan HPP terpasang, sistem bisa menampilkan <strong>batas diskon aman</strong> per produk &mdash;
+        aturan penukaran poin jadi bisa disusun berdasarkan angka, bukan perkiraan.
+      </p>
+    </div>
+
+    <h3>Yang dihitung sistem</h3>
+    <div class="cards">
+      <div class="card">
+        <div class="card-tag">Input</div>
+        <div class="card-title">Komponen biaya</div>
+        <div class="card-body">
+          Harga beli supplier, ongkos kirim yang dialokasikan per unit, biaya kemasan atau label,
+          dan alokasi overhead.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-tag">Output</div>
+        <div class="card-title">HPP &amp; margin</div>
+        <div class="card-body">
+          HPP per unit, margin kotor dalam rupiah maupun persen, serta persentase markup
+          terhadap modal.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-tag">Simulasi</div>
+        <div class="card-title">Harga jual &amp; batas diskon</div>
+        <div class="card-body">
+          Masukkan target margin, sistem menghitung harga jual yang disarankan, sekaligus
+          diskon maksimum sebelum produk merugi.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-tag">Laporan</div>
+        <div class="card-title">Laba kotor per produk</div>
+        <div class="card-body">
+          Peringkat produk paling menguntungkan, bukan sekadar paling laris.
+          Terhubung ke laporan penjualan harian.
+        </div>
+      </div>
+    </div>
+
+    <h3>Contoh perhitungan &mdash; satu unit pomade</h3>
+    <div class="calc">
+      <div class="calc-head">Simulasi produk retail</div>
+      <div class="calc-rows">
+        <div class="calc-row"><span>Harga beli dari supplier</span><span class="num">Rp 42.000</span></div>
+        <div class="calc-row"><span>Ongkos kirim, dibagi 50 pcs</span><span class="num">Rp 1.500</span></div>
+        <div class="calc-row"><span>Kemasan &amp; label</span><span class="num">Rp 500</span></div>
+        <div class="calc-row"><span>Alokasi overhead</span><span class="num">Rp 1.000</span></div>
+        <div class="calc-row is-total"><span>HPP per unit</span><span class="num">Rp 45.000</span></div>
+        <div class="calc-row is-sub"><span>Harga jual pada target margin 40%</span><span class="num">Rp 75.000</span></div>
+        <div class="calc-row is-sub"><span>Margin kotor</span><span class="num">Rp 30.000 &middot; 40,0%</span></div>
+        <div class="calc-row is-sub"><span>Batas diskon aman</span><span class="num">maks. 40%</span></div>
+        <div class="calc-row is-sub"><span>Bila member menukar poin senilai Rp 20.000</span><span class="num">sisa margin Rp 10.000 &middot; 18,2%</span></div>
+      </div>
+    </div>
+
+    <pre class="formula"><b>HPP</b>          = Harga Beli + Ongkir + Kemasan + Overhead
+<b>Margin (Rp)</b>  = Harga Jual &minus; HPP
+<b>Margin (%)</b>   = (Harga Jual &minus; HPP) &divide; Harga Jual &times; 100
+<b>Harga Jual</b>   = HPP &divide; (1 &minus; Target Margin)
+<b>Diskon Aman</b>  = Margin (%), yaitu batas sebelum laba menjadi nol</pre>
+
+    <div class="note is-warn">
+      <div class="note-label">Batasan modul</div>
+      <p>
+        Modul ini menghitung dan menyimpan HPP, bukan mengelola stok gudang. Jumlah persediaan,
+        kartu stok, dan pencatatan barang masuk atau keluar tetap berada di luar scope sesuai
+        proposal awal. Nilai HPP diperbarui manual oleh owner setiap kali harga supplier berubah.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════ 04 ══════════════ -->
+  <section class="section" id="s4">
+    <div class="sec-head">
+      <div class="eyebrow">04 &mdash; Modul Tambahan</div>
+      <h2>Absensi &amp; Cuti Karyawan</h2>
+      <p>
+        Modul ini membuka <strong>role kelima</strong> di sistem. Sebelumnya capster hanya berupa
+        master data; kini setiap karyawan punya akun dan dashboard sendiri yang dibuka dari ponsel.
+      </p>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-tag">Sisi Karyawan</div>
+        <div class="card-title">Absen masuk &amp; pulang</div>
+        <div class="card-body">
+          Satu tombol untuk absen masuk dan pulang, wajib foto selfie, dengan waktu diambil
+          dari server &mdash; bukan dari jam ponsel.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-tag">Sisi Karyawan</div>
+        <div class="card-title">Pengajuan cuti &amp; izin</div>
+        <div class="card-body">
+          Pilih jenis pengajuan (cuti tahunan, izin, atau sakit), rentang tanggal, alasan, dan
+          lampiran foto surat dokter bila ada. Statusnya terlihat langsung.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-tag">Sisi Owner</div>
+        <div class="card-title">Persetujuan &amp; kalender tim</div>
+        <div class="card-body">
+          Setujui atau tolak dari satu layar. Kalender bulanan memperlihatkan siapa cuti kapan,
+          agar jadwal capster tidak kosong bersamaan.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-tag">Sisi Owner</div>
+        <div class="card-title">Rekap bulanan</div>
+        <div class="card-body">
+          Total hadir, terlambat, dan tidak masuk per karyawan, akumulasi jam kerja,
+          serta sisa kuota cuti. Dapat diunduh.
+        </div>
+      </div>
+    </div>
+
+    <h3>Proteksi terhadap titip absen</h3>
+    <ul class="ticks">
+      <li><strong>Waktu diambil dari server.</strong> Mengubah jam di ponsel tidak berpengaruh pada catatan absensi.</li>
+      <li><strong>Validasi lokasi.</strong> Absen hanya diterima bila karyawan berada dalam radius outlet &mdash; rekomendasi 100 meter dari titik koordinat toko.</li>
+      <li><strong>Foto selfie wajib.</strong> Tersimpan bersama catatan absensi sebagai bukti visual.</li>
+      <li><strong>Satu catatan per shift.</strong> Absen masuk ganda pada hari yang sama otomatis ditolak sistem.</li>
+    </ul>
+
+    <div class="note is-warn">
+      <div class="note-label">Batasan modul</div>
+      <p>
+        Modul ini mencatat kehadiran dan cuti, <strong>belum menghitung gaji atau komisi capster
+        secara otomatis</strong>. Perhitungan payroll tetap berada di fase pengembangan lanjutan sesuai
+        proposal awal. Data jam kerja yang terkumpul sudah dalam format yang siap dipakai bila
+        modul payroll diambil di kemudian hari.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════ 05 ══════════════ -->
+  <section class="section" id="s5">
+    <div class="sec-head">
+      <div class="eyebrow">05 &mdash; Rencana Rilis</div>
+      <h2>Strategi rilis bertahap menuju pembukaan</h2>
+      <p>
+        Estimasi pengerjaan penuh tetap 7&ndash;14 hari kerja. Karena outlet dibuka Minggu,
+        30 Agustus, sistem tidak menunggu selesai seluruhnya &mdash; melainkan dirilis bertahap,
+        dimulai dari yang paling dibutuhkan di hari pertama: <strong>pencatatan</strong>.
+      </p>
+    </div>
+
+    <div class="note">
+      <div class="note-label">Jawaban atas pertanyaan &ldquo;aman atau tidak&rdquo;</div>
+      <p>
+        Aman, karena Fase 0 <strong>bukan sistem sementara yang nanti dibuang</strong>. Yang dirilis
+        di hari pembukaan adalah sistem finalnya sendiri, hanya dengan modul yang dibuka bertahap.
+        Database, akun, dan transaksi sejak hari pertama dipakai seterusnya &mdash; pelanggan yang
+        didaftarkan saat opening akan <strong>otomatis menerima poin secara retroaktif</strong> begitu
+        loyalty engine diaktifkan di Fase 1. Tidak ada data yang perlu diinput ulang.
+      </p>
+    </div>
+
+    <div class="phases">
+
+      <div class="phase is-now">
+        <div class="phase-marker">
+          <div class="phase-dot">0</div>
+          <div class="phase-date">Sab&ndash;Min<br>29&ndash;30 Agu</div>
+        </div>
+        <div class="phase-panel">
+          <div class="phase-title">Mode Opening <span class="pill add">Hari pembukaan</span></div>
+          <p>Outlet bisa buka, melayani, dan mencatat. Fokus tunggal: tidak ada transaksi yang lolos tanpa tercatat.</p>
+          <ul class="ticks">
+            <li>POS kasir versi ringkas &mdash; pilih layanan, harga, dan capster yang melayani</li>
+            <li>Pendaftaran pelanggan cepat: nama dan nomor WhatsApp</li>
+            <li>Pencatatan metode pembayaran: Tunai, QRIS, EDC, atau Transfer</li>
+            <li>Rekap transaksi harian dan total omzet, dapat dibuka owner dari ponsel</li>
+            <li>Master data layanan, harga, dan daftar capster sudah terisi</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-marker">
+          <div class="phase-dot">1</div>
+          <div class="phase-date">Sen&ndash;Jum<br>31 Agu&ndash;4 Sep</div>
+        </div>
+        <div class="phase-panel">
+          <div class="phase-title">Loyalty Engine aktif</div>
+          <p>Mesin poin dinyalakan. Seluruh transaksi Fase 0 dihitung mundur dan poinnya masuk ke pelanggan yang sudah terdaftar.</p>
+          <ul class="ticks">
+            <li>Kartu member digital dengan QR code</li>
+            <li>Poin cashback otomatis dan penukaran poin menjadi diskon di kasir</li>
+            <li>Sistem 5-tier, Silver sampai Black, dengan kenaikan level otomatis</li>
+            <li>Riwayat mutasi poin dan proteksi anti double-spend</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-marker">
+          <div class="phase-dot">2</div>
+          <div class="phase-date">Sab&ndash;Jum<br>5&ndash;11 Sep</div>
+        </div>
+        <div class="phase-panel">
+          <div class="phase-title">Aplikasi member 5 tab</div>
+          <p>Sisi pelanggan dibuka penuh. Member mulai bisa memakai aplikasi dari ponsel masing-masing.</p>
+          <ul class="ticks">
+            <li>Tab Home, Reward, Scan QR, Product, dan Store</li>
+            <li>Katalog reward dan penukaran hadiah</li>
+            <li>Katalog produk grooming dan lokasi outlet</li>
+            <li>Dashboard owner lengkap: laporan omzet, performa capster, audit poin</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-marker">
+          <div class="phase-dot">3</div>
+          <div class="phase-date">Sab&ndash;Rab<br>12&ndash;16 Sep</div>
+        </div>
+        <div class="phase-panel">
+          <div class="phase-title">Modul tambahan &amp; serah terima</div>
+          <p>Dua modul operasional baru dipasang, lalu sistem diserahterimakan.</p>
+          <ul class="ticks">
+            <li>Kalkulator HPP produk di dashboard owner</li>
+            <li>Absensi dan cuti karyawan, termasuk akun untuk tiap karyawan</li>
+            <li>Pengujian menyeluruh serta pelatihan kasir dan owner</li>
+            <li>Serah terima, dokumentasi, dan masa pendampingan</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="note is-warn">
+      <div class="note-label">Syarat agar Fase 0 tercapai</div>
+      <p>
+        Waktu efektif menuju hari pembukaan kurang dari dua hari kerja. Agar target ini realistis,
+        <strong>daftar layanan beserta harga final dan daftar capster harus diterima paling lambat
+        Sabtu, 29 Agustus</strong>. Scope Fase 0 juga dikunci hanya pada pencatatan &mdash; permintaan
+        baru di fase ini akan menggeser tanggal, bukan menambah beban di hari yang sama.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════ 06 ══════════════ -->
+  <section class="section" id="s6">
+    <div class="sec-head">
+      <div class="eyebrow">06 &mdash; Pembayaran</div>
+      <h2>Sistem pembayaran QRIS &amp; EDC</h2>
+      <p>
+        Integrasi pembayaran punya tiga tingkat kedalaman yang sangat berbeda biaya dan syaratnya.
+        Membedakan ketiganya sejak awal penting agar ekspektasi sejalan.
+      </p>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:16%">Aspek</th>
+            <th style="width:28%">Level 1 &mdash; Catat metode bayar</th>
+            <th style="width:28%">Level 2 &mdash; QRIS dinamis</th>
+            <th style="width:28%">Level 3 &mdash; Integrasi mesin EDC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cara kerja</td>
+            <td>Pelanggan membayar lewat QRIS atau EDC yang sudah dimiliki outlet. Kasir memilih metodenya di POS.</td>
+            <td>Sistem membuat QR dengan nominal yang sudah terisi otomatis. Begitu dibayar, transaksi langsung berstatus lunas.</td>
+            <td>Sistem mengirim nominal langsung ke mesin EDC, kasir tidak perlu mengetik ulang.</td>
+          </tr>
+          <tr>
+            <td>Rekonsiliasi</td>
+            <td>Rekap harian per metode, dicocokkan dengan mutasi rekening dan struk settlement.</td>
+            <td>Otomatis dan seketika. Tidak ada risiko salah ketik nominal.</td>
+            <td>Otomatis.</td>
+          </tr>
+          <tr>
+            <td>Biaya tambahan</td>
+            <td>Tidak ada.</td>
+            <td>Biaya integrasi, ditambah biaya layanan per transaksi kepada payment gateway.</td>
+            <td>Perlu sertifikasi dan SDK resmi dari bank penerbit EDC.</td>
+          </tr>
+          <tr>
+            <td>Prasyarat</td>
+            <td>Cukup QRIS atau EDC yang sudah ada di meja kasir.</td>
+            <td>Akun payment gateway seperti Midtrans atau Xendit, dokumen usaha, dan rekening.</td>
+            <td>Kerja sama resmi langsung dengan bank acquirer, berbeda untuk tiap bank.</td>
+          </tr>
+          <tr>
+            <td>Status</td>
+            <td><span class="pill ok">Termasuk paket &middot; siap Fase 0</span></td>
+            <td><span class="pill add">Add-on, kapan saja</span></td>
+            <td><span class="pill out">Di luar scope</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Rekomendasi: mulai dari Level 1</h3>
+    <p>
+      Untuk outlet yang baru buka, Level 1 sudah menutup kebutuhan nyata &mdash; owner tetap bisa
+      melihat berapa yang masuk lewat tunai, QRIS, dan EDC setiap harinya. Level 2 baru layak
+      dipertimbangkan setelah dua sampai empat minggu berjalan, ketika volume transaksi QRIS sudah
+      terlihat dan biaya per transaksinya bisa ditimbang terhadap manfaatnya.
+    </p>
+
+    <ul class="ticks">
+      <li><strong>QRIS statis</strong> &mdash; satu QR dicetak dan ditempel di meja, pelanggan mengetik nominal sendiri. Paling murah, tapi kasir perlu memastikan nominalnya benar.</li>
+      <li><strong>QRIS dinamis</strong> &mdash; nominal sudah terkunci di QR yang dibuat sistem. Menghilangkan risiko salah ketik dan mempercepat antrean. Inilah yang dibuka di Level 2.</li>
+      <li><strong>Untuk EDC</strong> &mdash; praktik yang kami sarankan: kasir mengetik <strong>kode approval</strong> dari struk EDC ke kolom catatan transaksi. Laporan harian jadi bisa dicocokkan baris per baris dengan struk settlement bank. Gratis, akurat, dan tidak butuh integrasi apa pun.</li>
+    </ul>
+
+    <div class="note is-warn">
+      <div class="note-label">Catatan biaya QRIS</div>
+      <p>
+        Biaya layanan QRIS (MDR) mengikuti ketentuan Bank Indonesia dan berbeda antara merchant
+        usaha mikro dan merchant reguler. Besarannya <strong>dapat berubah sewaktu-waktu dan berbeda
+        antar penyedia</strong>, sehingga angka pastinya sebaiknya dikonfirmasi langsung ke bank atau
+        payment gateway saat pendaftaran merchant, bukan diasumsikan dari dokumen ini. Biaya
+        tersebut dibayarkan klien kepada penyedia, terpisah dari biaya pengembangan sistem.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════ 07 ══════════════ -->
+  <section class="section" id="s7">
+    <div class="sec-head">
+      <div class="eyebrow">07 &mdash; Komersial</div>
+      <h2>Rincian biaya &amp; termin pembayaran</h2>
+      <p>
+        Modul NFC dikeluarkan dari paket, dua modul operasional masuk sebagai add-on.
+        Nilai akhir tetap berada di bawah plafon Paket Ultimate pada proposal awal.
+      </p>
+    </div>
+
+    <div class="cost">
+      <div class="cost-row">
+        <div class="cost-label">
+          <span class="cost-name">Paket Full &mdash; Omnichannel PWA</span>
+          <span class="cost-desc">PWA 5 tab, 5-tier membership, POS kasir, dashboard owner multi-cabang</span>
+        </div>
+        <span class="cost-value">Rp 5.500.000</span>
+      </div>
+      <div class="cost-row">
+        <div class="cost-label">
+          <span class="cost-name">Add-on &mdash; HPP Produk + Absensi &amp; Cuti</span>
+          <span class="cost-desc">Dua modul operasional baru, termasuk role dan dashboard karyawan</span>
+        </div>
+        <span class="cost-value">Rp 750.000</span>
+      </div>
+      <div class="cost-row is-strike">
+        <div class="cost-label">
+          <span class="cost-name">Add-on Smart NFC Kasir</span>
+          <span class="cost-desc">Tidak diambil &mdash; dapat diaktifkan kapan saja di kemudian hari</span>
+        </div>
+        <span class="cost-value">Rp 1.100.000</span>
+      </div>
+      <div class="cost-row is-grand">
+        <div class="cost-label">
+          <span class="cost-name">Total investasi</span>
+          <span class="cost-desc">Sudah termasuk deployment, pelatihan, dan masa pendampingan</span>
+        </div>
+        <span class="cost-value">Rp 6.250.000</span>
+      </div>
+    </div>
+
+    <h3>Usulan termin pembayaran</h3>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:16%">Termin</th>
+            <th style="width:52%">Waktu</th>
+            <th style="width:32%">Nilai</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>50%</td>
+            <td>Saat kesepakatan, sebelum pengerjaan Fase 0 dimulai</td>
+            <td class="num">Rp 3.125.000</td>
+          </tr>
+          <tr>
+            <td>30%</td>
+            <td>Setelah Fase 2 selesai, saat aplikasi member 5 tab sudah berjalan</td>
+            <td class="num">Rp 1.875.000</td>
+          </tr>
+          <tr>
+            <td>20%</td>
+            <td>Saat serah terima dan pelatihan selesai</td>
+            <td class="num">Rp 1.250.000</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Biaya berjalan</h3>
+    <ul class="ticks is-plain">
+      <li><strong>Hosting dan database</strong> &mdash; untuk volume satu outlet, layanan Vercel dan Supabase masih tercakup di tingkat gratisnya. Belum ada biaya bulanan di awal.</li>
+      <li><strong>Domain</strong> &mdash; opsional. Sistem dapat berjalan di subdomain gratis, atau memakai domain sendiri dengan biaya tahunan yang dibayarkan langsung ke registrar.</li>
+      <li><strong>Biaya layanan QRIS</strong> &mdash; hanya berlaku bila klien memilih naik ke Level 2, dan dibayarkan ke payment gateway, bukan ke pengembang.</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════ 08 ══════════════ -->
+  <section class="section" id="s8">
+    <div class="sec-head">
+      <div class="eyebrow">08 &mdash; Konfirmasi</div>
+      <h2>Yang perlu dikonfirmasi klien</h2>
+      <p>
+        Lima poin pertama menentukan apakah target pembukaan hari Minggu tercapai, sehingga
+        dibutuhkan paling lambat <strong>Sabtu, 29 Agustus</strong>. Sisanya boleh menyusul seiring
+        fase berjalan.
+      </p>
+    </div>
+
+    <h3>Wajib sebelum Sabtu, 29 Agustus</h3>
+    <ol class="checklist">
+      <li><span class="check-num">01</span><span><strong>Daftar layanan dan harga final</strong> &mdash; nama layanan beserta tarifnya, untuk mengisi menu kasir.</span></li>
+      <li><span class="check-num">02</span><span><strong>Daftar capster dan karyawan</strong> &mdash; nama dan nomor WhatsApp, untuk pembuatan akun.</span></li>
+      <li><span class="check-num">03</span><span><strong>Perangkat kasir dan koneksi internet</strong> &mdash; memakai ponsel, tablet, atau laptop, serta apakah outlet sudah punya jaringan yang stabil.</span></li>
+      <li><span class="check-num">04</span><span><strong>Metode bayar yang aktif di hari pertama</strong> &mdash; tunai saja, atau sudah termasuk QRIS dan EDC dari bank tertentu.</span></li>
+      <li><span class="check-num">05</span><span><strong>Nama dan logo outlet</strong> &mdash; untuk identitas visual aplikasi dan struk.</span></li>
+    </ol>
+
+    <h3>Menyusul di Fase 1 sampai 3</h3>
+    <ol class="checklist">
+      <li><span class="check-num">06</span><span><strong>Rasio poin dan nilai tukarnya</strong> &mdash; misalnya setiap belanja Rp 10.000 memperoleh 1 poin, dan 1 poin setara berapa rupiah diskon.</span></li>
+      <li><span class="check-num">07</span><span><strong>Syarat naik tier</strong> &mdash; berapa poin atau berapa kali kunjungan untuk naik dari Silver hingga Black.</span></li>
+      <li><span class="check-num">08</span><span><strong>Katalog produk retail dan harga modalnya</strong> &mdash; untuk mengisi kalkulator HPP.</span></li>
+      <li><span class="check-num">09</span><span><strong>Jam kerja standar, toleransi keterlambatan, dan kuota cuti tahunan</strong> &mdash; sebagai aturan modul absensi.</span></li>
+      <li><span class="check-num">10</span><span><strong>Titik koordinat outlet dan radius absensi</strong> &mdash; rekomendasi 100 meter dari lokasi toko.</span></li>
+      <li><span class="check-num">11</span><span><strong>Rencana jumlah cabang</strong> &mdash; satu outlet dulu, atau langsung disiapkan untuk beberapa cabang.</span></li>
+    </ol>
+  </section>
+
+  <!-- ══════════════ CATATAN ══════════════ -->
+  <section class="section">
+    <div class="sec-head">
+      <div class="eyebrow">Catatan penutup</div>
+      <h2>Batasan dan asumsi</h2>
+    </div>
+    <ul class="ticks is-plain">
+      <li><strong>Sistem memerlukan koneksi internet.</strong> Bila jaringan outlet terganggu, transaksi dicatat manual di formulir cadangan lalu diinput susulan &mdash; tidak ada data yang hilang, hanya tertunda.</li>
+      <li><strong>Booking online, komisi capster otomatis, manajemen stok gudang, dan aplikasi Play Store</strong> tetap berada di luar scope, sesuai proposal awal.</li>
+      <li><strong>Tanggal pada Fase 1 sampai 3 bergeser mengikuti kecepatan konfirmasi klien</strong> pada bagian 08. Setiap hari keterlambatan data menggeser satu hari jadwal.</li>
+      <li><strong>Modul NFC yang dikeluarkan tidak dihapus dari rancangan.</strong> Fondasi datanya tetap disiapkan, sehingga bila suatu saat diambil, pemasangannya tidak perlu membongkar sistem yang sudah berjalan.</li>
+    </ul>
+
+    <div class="closer">
+      <p class="sig">Disusun oleh <strong>Dardev</strong> &mdash; 28 Agustus 2026 &middot; Addendum Revisi 02</p>
+      <p>
+        Dokumen ini menggantikan bagian paket dan lini masa pada proposal sebelumnya.
+        Seluruh poin di atas berlaku setelah dikonfirmasi kedua belah pihak.
+        <br><a href="/">Lihat proposal &amp; blueprint lengkap &rarr;</a>
+      </p>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

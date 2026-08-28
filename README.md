@@ -8,6 +8,7 @@ Sistem Manajemen Membership Digital, Kasir POS & Loyalitas 5-Tier berbasis Web P
 
 * **Slide Presentasi Scope & Blueprint:** [https://dardev-concept.vercel.app](https://dardev-concept.vercel.app)
 * **Live Demo Mobile Web App (PWA):** [https://dardev-concept.vercel.app/app.html](https://dardev-concept.vercel.app/app.html)
+* **Addendum Penawaran Final (Revisi 02):** [https://dardev-concept.vercel.app/finalpenawaran](https://dardev-concept.vercel.app/finalpenawaran)
 
 ---
 
