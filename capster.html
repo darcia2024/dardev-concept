@@ -3,37 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#08090b" />
+  <meta name="theme-color" content="#F4F5F7" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Kinerja Saya &mdash; Capster</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Bobot berhenti di 600. Sistem ini tidak memakai huruf tebal. -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="theme.css" />
 
   <style>
-    :root {
-      --ink:          #08090b;
-      --ink-raised:   #0f1217;
-      --ink-card:     #14171d;
-      --ink-inset:    #0b0d11;
-      --line:         #242832;
-      --line-soft:    #191c23;
-      --fg:           #f2f3f5;
-      --fg-mid:       #a9afba;
-      --fg-dim:       #757c8a;
-      --brass:        #c9a26a;
-      --brass-deep:   #8d7047;
-      --brass-wash:   rgba(201, 162, 106, 0.12);
-      --sage:         #7fae8c;
-      --clay:         #c9756a;
-      --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --mono: 'Space Grotesk', monospace;
-      --r-sm: 6px;
-      --r-md: 10px;
-      --r-lg: 16px;
-    }
-
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
     body {
@@ -65,10 +46,10 @@
       background: var(--brass); color: var(--ink);
       border-radius: 10px;
       display: grid; place-items: center;
-      font-family: var(--mono); font-weight: 800; font-size: 15px;
+      font-family: var(--mono); font-weight: 600; font-size: 15px;
     }
     .who-text { min-width: 0; }
-    .who-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
+    .who-name { font-size: 15px; font-weight: 600; line-height: 1.2; }
     .who-role {
       font-family: var(--mono); font-size: 10.5px;
       letter-spacing: .12em; text-transform: uppercase; color: var(--fg-dim);
@@ -101,7 +82,7 @@
       font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
       text-transform: uppercase; color: var(--fg-dim);
     }
-    .kpi-val { font-family: var(--mono); font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+    .kpi-val { font-family: var(--mono); font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
     .kpi.is-lead .kpi-val { color: var(--brass); }
     .kpi-sub { font-size: 11.5px; color: var(--fg-dim); }
 
@@ -114,7 +95,7 @@
       display: flex; justify-content: space-between; align-items: baseline;
       gap: 10px; border-bottom: 1px solid var(--line-soft); padding-bottom: 10px;
     }
-    .card-head h2 { font-size: 14.5px; font-weight: 700; }
+    .card-head h2 { font-size: 14.5px; font-weight: 600; }
     .card-head span { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); }
 
     .rows { display: flex; flex-direction: column; gap: 7px; }
@@ -130,7 +111,7 @@
     .row-main { flex: 1; min-width: 0; }
     .row-name { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
     .row-inv { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); }
-    .row-amt { font-family: var(--mono); font-size: 13.5px; font-weight: 700; flex: none; }
+    .row-amt { font-family: var(--mono); font-size: 13.5px; font-weight: 600; flex: none; }
 
     /* Grafik batang sederhana untuk tren harian */
     .bars { display: flex; flex-direction: column; gap: 8px; }
@@ -166,7 +147,7 @@
     .btn-absen {
       width: 100%; padding: 13px; border: none; border-radius: var(--r-sm);
       background: var(--brass); color: var(--ink);
-      font-size: 14.5px; font-weight: 700; font-family: inherit; cursor: pointer;
+      font-size: 14.5px; font-weight: 600; font-family: inherit; cursor: pointer;
     }
     .btn-absen:disabled { background: var(--ink-inset); color: var(--fg-dim); border: 1px solid var(--line); cursor: default; }
     .btn-absen.is-out { background: var(--ink-card); color: var(--fg); border: 1px solid var(--brass); }
@@ -178,7 +159,7 @@
       border-radius: var(--r-sm); padding: 12px 13px;
     }
     .cuti-main { flex: 1; min-width: 0; }
-    .cuti-kind { font-size: 13px; font-weight: 700; }
+    .cuti-kind { font-size: 13px; font-weight: 600; }
     .cuti-tgl { font-family: var(--mono); font-size: 11.5px; color: var(--fg-dim); margin-top: 2px; }
     .cuti-alasan { font-size: 11.5px; color: var(--fg-mid); margin-top: 4px; line-height: 1.45; }
     .cuti-pill {
@@ -204,6 +185,7 @@
 </head>
 <body>
   <header>
+    <img src="assets/logo.png" alt="Underrated Barbershop" class="brandmark" style="margin-right:2px;" />
     <div class="who">
       <div class="avatar" id="avatar">–</div>
       <div class="who-text">
@@ -231,7 +213,7 @@
     <!-- Absensi -->
     <div class="absen-card">
       <div class="card-head" style="border-bottom:1px solid var(--line-soft); padding-bottom:10px;">
-        <h2>🕐 Absensi Hari Ini</h2>
+        <h2>Absensi Hari Ini</h2>
         <span id="jamKerja"></span>
       </div>
       <div class="absen-state">
@@ -251,7 +233,7 @@
     <!-- Cuti -->
     <div class="card">
       <div class="card-head">
-        <h2>🗓️ Cuti &amp; Izin</h2>
+        <h2>Cuti &amp; Izin</h2>
         <button class="btn" id="btnAjukanCuti" style="font-size:11.5px; padding:5px 10px;">+ Ajukan</button>
       </div>
       <div class="rows" id="cutiList"></div>
@@ -259,7 +241,7 @@
 
     <div class="card">
       <div class="card-head">
-        <h2>✂️ Layanan Hari Ini</h2>
+        <h2>Layanan Hari Ini</h2>
         <span id="lblServiceCount"></span>
       </div>
       <div class="rows" id="serviceRows"></div>
@@ -267,7 +249,7 @@
 
     <div class="card">
       <div class="card-head">
-        <h2>📈 30 Hari Terakhir</h2>
+        <h2>30 Hari Terakhir</h2>
         <span id="lblMonthTotal"></span>
       </div>
       <div class="bars" id="dailyBars"></div>

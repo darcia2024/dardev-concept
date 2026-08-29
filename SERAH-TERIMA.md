@@ -73,7 +73,7 @@ memanggil API secara langsung.
 ### Kasir
 
 1. Buka `/pos`, masukkan PIN.
-2. Pilih capster → pilih layanan (tab **🧴 Produk** untuk barang retail).
+2. Pilih capster → pilih layanan (tab **Produk** untuk barang retail).
 3. Isi nomor WhatsApp pelanggan. Bila sudah member, poinnya muncul otomatis.
 4. Bila menukar poin: isi jumlah poin, atau tekan **Maks**.
 5. Bila pelanggan menunjukkan kode klaim reward: masukkan di kolom
@@ -83,7 +83,7 @@ memanggil API secara langsung.
 
 ### Akhir shift kasir — Tutup Kas
 
-Tekan **💰 Tutup Kas**, hitung fisik uang tunai, masukkan jumlahnya.
+Tekan **Tutup Kas**, hitung fisik uang tunai, masukkan jumlahnya.
 
 > **Layar kasir sengaja tidak menampilkan berapa yang seharusnya ada.**
 > Bila kasir dapat melihat angka sistem, hitungan fisiknya berhenti menjadi
@@ -109,8 +109,8 @@ setoran kas, HPP & laba produk, rekap absensi, dan persetujuan cuti.
 
 Seluruh data berikut masih **contoh** dan wajib diganti:
 
-- [ ] Daftar layanan dan harga final — `/pos` → ⚙️ Pengaturan
-- [ ] Daftar capster — `/pos` → ⚙️ Pengaturan
+- [ ] Daftar layanan dan harga final — `/pos` → Pengaturan
+- [ ] Daftar capster — `/pos` → Pengaturan
 - [ ] Nama kasir dan **PIN masing-masing** — PIN contoh `1234/5678/9012`
       berurutan dan mudah ditebak
 - [ ] Alamat dan **koordinat outlet** — dipakai validasi radius absensi
@@ -152,6 +152,17 @@ ditandai agar terlihat orang, bukan diulang diam-diam selamanya.
 **Foto absensi tidak dapat ditimpa atau dihapus** oleh siapa pun, termasuk
 owner. Bukti yang dapat diganti belakangan bukan lagi bukti.
 
+**Merah dipakai hemat.** Merah #BE0000 diambil dari bintang pada logo dan
+hanya muncul di aksi utama, penanda posisi, dan angka yang menjadi kesimpulan
+sebuah layar. Harga layanan sengaja bertinta, bukan merah — harga muncul
+puluhan kali dalam satu layar, dan mewarnainya merah membuat kasir berhenti
+melihat merah sebagai peringatan. Daftar tempat merah boleh muncul ada di
+bagian akhir `theme.css`; menambah baris di sana berarti mengurangi artinya
+di tempat lain.
+
+**Tidak ada huruf tebal.** Bobot berhenti di 600. Hierarki dibangun dari
+ukuran, warna, jarak huruf, dan ruang kosong.
+
 **Library di-host sendiri di `vendor/`, bukan CDN.** Kasir tidak boleh ikut
 mati bila jaringan luar terganggu.
 
@@ -186,6 +197,8 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | `capster.html` | Kinerja, absensi, cuti capster |
 | `kartu.html` | Kartu member 5 tab |
 | `sb-app.js` | Konfigurasi, gerbang login, gerbang PIN, antrean offline |
+| `theme.css` | **Sistem desain** — palet, tipografi, komponen dasar. Mengubah warna cukup di sini. |
+| `assets/logo.png` · `logo-putih.png` | Logo Underrated Barbershop (gelap & putih) |
 | `vendor/` | Library Supabase & QR, di-host sendiri |
 | `supabase_schema.sql` | Skema dasar |
 | `supabase_migration_02..10_*.sql` | Migrasi berurutan; jalankan sesuai nomor |

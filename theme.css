@@ -1,0 +1,438 @@
+/* =============================================================================
+   UNDERRATED BARBERSHOP — SISTEM DESAIN
+   Satu sumber kebenaran untuk warna, tipografi, dan komponen dasar.
+   Mengubah palet cukup di berkas ini; halaman tidak perlu disentuh.
+
+   TIGA ATURAN YANG MENENTUKAN BENTUKNYA
+   1. Latar dominan abu terang, permukaan putih. Bukan hitam pekat.
+   2. Merah #BE0000 diambil dari bintang pada logo, dipakai HEMAT — hanya
+      untuk aksi utama, penanda aktif, dan angka yang menuntut perhatian.
+      Bila merah ada di mana-mana, ia berhenti berarti apa pun.
+   3. Tidak ada huruf tebal. Bobot berhenti di 600. Hierarki dibangun dari
+      ukuran, warna, jarak huruf, dan ruang kosong — bukan dari ketebalan.
+   ============================================================================= */
+
+:root {
+  /* ---------- Merah merek, dari bintang pada logo ---------- */
+  --brand:        #BE0000;
+  --brand-deep:   #8E0000;
+  --brand-wash:   rgba(190, 0, 0, 0.055);
+  --brand-line:   rgba(190, 0, 0, 0.22);
+
+  /* ---------- Netral: abu & putih ---------- */
+  --bg:            #F4F5F7;   /* latar halaman */
+  --surface:       #FFFFFF;   /* kartu, header */
+  --surface-sunk:  #EDEFF2;   /* input, area tenggelam */
+  --surface-tint:  #F8F9FA;   /* baris berselang */
+  --border:        #E1E5EA;
+  --border-soft:   #EEF0F3;
+
+  /* ---------- Teks ---------- */
+  --text:      #16181C;   /* utama — nyaris hitam, bukan hitam pekat */
+  --text-mid:  #565C66;   /* sekunder */
+  --text-dim:  #767D87;   /* redup, tetap lolos kontras 4.5:1 */
+
+  /* ---------- Status ---------- */
+  --ok:        #0F7355;
+  --ok-wash:   rgba(15, 115, 85, 0.08);
+  --warn:      #8A5A00;
+  --warn-wash: rgba(138, 90, 0, 0.09);
+
+  /* ---------- Tipografi ---------- */
+  --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'Plus Jakarta Sans', -apple-system, sans-serif;  /* angka memakai tabular-nums */
+  --w-reg: 400;
+  --w-med: 500;
+  --w-semi: 600;          /* batas atas; tidak ada 700/800 di sistem ini */
+
+  /* ---------- Bentuk ---------- */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --shadow-sm: 0 1px 2px rgba(22, 24, 28, 0.04);
+  --shadow-md: 0 4px 16px rgba(22, 24, 28, 0.06);
+  --shadow-lg: 0 18px 44px rgba(22, 24, 28, 0.10);
+
+  /* ---------- Alias untuk CSS warisan tema gelap ----------
+     Halaman lama memakai nama --ink/--fg. Dipetakan ke nilai terang di sini
+     supaya tidak ada aturan yang perlu diburu satu per satu. */
+  --ink:         var(--bg);
+  --ink-raised:  var(--surface);
+  --ink-card:    var(--surface);
+  --ink-inset:   var(--surface-sunk);
+  --line:        var(--border);
+  --line-soft:   var(--border-soft);
+  --fg:          var(--text);
+  --fg-mid:      var(--text-mid);
+  --fg-dim:      var(--text-dim);
+  /* --brass dulu adalah emas yang dipakai dekoratif di mana-mana: harga,
+     pil aktif, garis bawah, angka. Memetakannya langsung ke merah membuat
+     seluruh layar berteriak dan merah kehilangan arti. Karena itu peran
+     dekoratifnya diambil alih tinta, dan merah dipasang manual hanya pada
+     aksi utama serta angka yang benar-benar menuntut perhatian. */
+  --brass:       var(--text);
+  --brass-deep:  var(--text-mid);
+  --brass-wash:  rgba(22, 24, 28, 0.045);
+  --sage:        var(--ok);
+  --sage-wash:   var(--ok-wash);
+  --clay:        var(--brand);
+  --clay-wash:   var(--brand-wash);
+}
+
+/* =============================================================================
+   DASAR
+   ============================================================================= */
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-weight: var(--w-reg);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Angka berjajar rapi di kolom tabel dan nominal rupiah */
+.num, .mono, [class*="-val"], [class*="-amt"], [class*="kpi-value"] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+::selection { background: var(--brand-wash); color: var(--brand-deep); }
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* =============================================================================
+   LOGO
+   Logo bersifat lebar (4.8:1). Tingginya yang dikunci, bukan lebarnya,
+   supaya bariskan header tetap rapi di layar sempit.
+   ============================================================================= */
+
+.brandmark {
+  height: 26px;
+  width: auto;
+  display: block;
+  flex: none;
+}
+.brandmark--lg { height: 34px; }
+.brandmark--xl { height: 46px; }
+
+@media (max-width: 420px) {
+  .brandmark { height: 22px; }
+  .brandmark--lg { height: 26px; }
+  .brandmark--xl { height: 34px; }
+}
+
+/* =============================================================================
+   MIKRO-LABEL
+   Menggantikan peran huruf tebal: huruf kecil, dijarangkan, warna redup.
+   ============================================================================= */
+
+.eyebrow,
+.sb-auth-label,
+.kpi-label,
+.stat-label,
+.meter-lb,
+.card-brand {
+  font-size: 10.5px;
+  font-weight: var(--w-med);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* =============================================================================
+   TOMBOL
+   ============================================================================= */
+
+.btn-primary,
+.btn-absen,
+.sb-auth-btn {
+  background: var(--brand);
+  color: #fff;
+  border: 1px solid var(--brand);
+  font-weight: var(--w-med);
+  transition: background .15s ease, border-color .15s ease;
+}
+.btn-primary:hover:not(:disabled),
+.btn-absen:hover:not(:disabled),
+.sb-auth-btn:hover:not(:disabled) {
+  background: var(--brand-deep);
+  border-color: var(--brand-deep);
+}
+.btn-primary:disabled,
+.btn-absen:disabled,
+.sb-auth-btn:disabled {
+  background: var(--surface-sunk);
+  color: var(--text-dim);
+  border-color: var(--border);
+  cursor: default;
+}
+
+/* =============================================================================
+   PENYESUAIAN KOMPONEN WARISAN
+   Aturan di halaman ditulis untuk tema gelap. Yang di bawah menyelaraskannya
+   dengan permukaan terang tanpa perlu menyunting tiap halaman.
+   ============================================================================= */
+
+/* Kartu & panel: batas tipis mengambil alih peran bayangan tebal */
+.section-box, .panel, .panel-box, .kpi-card, .kpi, .card,
+.table-panel, .absen-card, .receipt-modal-card, .sb-auth-card {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Tombol netral di header */
+.btn-hdr, .btn-nav, .btn, .btn-filter-date {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: var(--w-med);
+}
+.btn-hdr:hover, .btn-nav:hover, .btn:hover, .btn-filter-date:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.btn-hdr.is-accent, .btn-nav.is-gold, .btn-filter-date.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.btn-hdr.is-accent:hover, .btn-nav.is-gold:hover {
+  background: var(--brand-deep);
+  border-color: var(--brand-deep);
+  color: #fff;
+}
+
+/* Kolom input */
+.input-field, input[type="text"], input[type="tel"], input[type="number"],
+input[type="email"], input[type="password"], .search-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--sans);
+  font-weight: var(--w-reg);
+}
+.input-field:focus, input:focus, .search-input:focus {
+  border-color: var(--brand);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--brand-wash);
+}
+::placeholder { color: var(--text-dim); opacity: 1; }
+
+/* Latar gelap yang ditulis langsung di halaman */
+.modal-backdrop { background: rgba(22, 24, 28, 0.42) !important; backdrop-filter: blur(3px); }
+
+/* Kepala tabel */
+thead th, table.sm-table th {
+  background: var(--surface-tint) !important;
+  color: var(--text-dim) !important;
+  font-weight: var(--w-med) !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 10.5px !important;
+}
+
+/* Tidak ada bobot di atas 600 di seluruh sistem */
+h1, h2, h3, h4, h5, h6,
+strong, b,
+.kpi-value, .kpi-val, .points-val, .total-amount,
+.brand-titles h1, .card-name, .service-name, .capster-name {
+  font-weight: var(--w-semi);
+}
+
+
+/* =============================================================================
+   TEMPAT MERAH BOLEH MUNCUL
+   Daftar ini sengaja pendek. Menambah baris di sini berarti mengurangi
+   arti merah di tempat lain.
+   ============================================================================= */
+
+/* Aksi utama */
+.btn-submit-order,
+#btnSubmitClosing,
+.btn-primary, .btn-absen, .sb-auth-btn {
+  background: var(--brand) !important;
+  border-color: var(--brand) !important;
+  color: #fff !important;
+}
+.btn-submit-order:disabled,
+.btn-primary:disabled, .btn-absen:disabled, .sb-auth-btn:disabled {
+  background: var(--surface-sunk) !important;
+  border-color: var(--border) !important;
+  color: var(--text-dim) !important;
+}
+
+/* Angka yang menjadi kesimpulan sebuah layar */
+.total-amount,
+#kpiTotalRevenue,
+.points-val {
+  color: var(--brand) !important;
+}
+
+/* Penanda posisi saat ini */
+.cat-pill.active,
+.btn-filter-date.active,
+.btn-hdr.is-accent, .btn-nav.is-gold {
+  background: var(--brand) !important;
+  border-color: var(--brand) !important;
+  color: #fff !important;
+}
+.tabbtn.is-on { color: var(--brand) !important; }
+.tabbtn.is-qr .ic { background: var(--brand) !important; color: #fff !important; }
+
+/* Kondisi yang menuntut tindakan */
+.sb-conn-pill.is-offline,
+.svc-err, .sb-auth-err { color: var(--brand); border-color: var(--brand-line); }
+
+/* -----------------------------------------------------------------------------
+   Harga layanan & produk: tinta, bukan merah. Harga adalah informasi biasa
+   yang muncul puluhan kali di satu layar; mewarnainya merah membuat kasir
+   berhenti melihat merah sebagai peringatan.
+   ----------------------------------------------------------------------------- */
+.service-price, .prod-price, .rw-cost, .item-price, .row-amt, .hist-amt {
+  color: var(--text) !important;
+}
+
+/* Permukaan pilihan di dalam kartu putih: putih dengan batas, bukan abu keruh */
+.service-card, .capster-card {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  transition: border-color .14s ease, box-shadow .14s ease;
+}
+.service-card:hover, .capster-card:hover { border-color: var(--text-dim) !important; }
+.service-card.is-selected, .capster-card.is-selected {
+  border-color: var(--brand) !important;
+  background: var(--brand-wash) !important;
+  box-shadow: inset 0 0 0 1px var(--brand-line);
+}
+.check-indicator { background: var(--brand) !important; color: #fff !important; }
+
+
+/* =============================================================================
+   HEADER POS
+   Enam kendali dalam satu baris di layar 375px pasti melipat. Yang dilakukan
+   di sini bukan memaksanya muat, melainkan menyusun ulang: identitas dan
+   status di baris pertama, kendali di baris kedua, dengan ukuran yang
+   nyaman disentuh.
+   ============================================================================= */
+
+header.pos-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  gap: 10px 12px;
+  flex-wrap: wrap;
+}
+.pos-header .brand-wrap { gap: 10px; align-items: center; }
+.pos-header .mode-tag {
+  font-size: 11px;
+  font-weight: var(--w-med);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.header-nav-actions { gap: 8px; flex-wrap: wrap; }
+.btn-hdr {
+  padding: 8px 13px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Chip kasir bertugas: identitas orang, bukan tombol biasa */
+.sb-cashier-chip {
+  background: var(--surface-sunk);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: var(--w-med);
+  font-size: 12.5px;
+  padding: 7px 13px;
+  border-radius: 99px;
+}
+.sb-cashier-chip:hover { border-color: var(--brand); color: var(--brand); }
+.sb-cashier-chip .dot { background: var(--ok); }
+
+/* Pil status koneksi */
+.sb-conn-pill { padding: 6px 11px; font-weight: var(--w-med); background: var(--surface); }
+
+/* =============================================================================
+   LAYAR PIN
+   ============================================================================= */
+
+.sb-pin-backdrop { background: var(--bg); }
+.sb-pin-title { font-weight: var(--w-semi); font-size: 17px; }
+.sb-pin-dot {
+  width: 12px; height: 12px;
+  border: 1.5px solid var(--text-dim);
+  background: var(--surface);
+}
+.sb-pin-dot.is-filled { background: var(--brand); border-color: var(--brand); }
+.sb-pin-key {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: var(--w-med);
+  box-shadow: var(--shadow-sm);
+}
+.sb-pin-key:active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+/* =============================================================================
+   KERANJANG & TOTAL
+   ============================================================================= */
+
+.total-box {
+  background: var(--surface-sunk);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+}
+.total-label { color: var(--text-mid); font-size: 13px; }
+.total-amount { font-size: 24px; font-weight: var(--w-semi); }
+.btn-submit-order {
+  border-radius: var(--r-sm);
+  padding: 15px;
+  font-size: 15px;
+  font-weight: var(--w-med);
+  border: 1px solid var(--brand);
+}
+.cart-row { border-bottom: 1px solid var(--border-soft); }
+
+/* Nomor langkah 01/02/03 */
+.step-badge {
+  background: var(--text) !important;
+  color: #fff !important;
+  font-weight: var(--w-med) !important;
+}
+
+
+/* =============================================================================
+   KARTU MEMBER
+   Kartu adalah benda milik pelanggan; ia harus terbaca di bawah sinar matahari
+   di depan outlet, bukan hanya di layar redup.
+   ============================================================================= */
+
+.card-hero .card-name { color: var(--text); }
+.card-hero .card-phone { color: var(--text-dim); }
+.points-unit { color: var(--text-mid); }
+.progress-track { background: var(--surface-sunk); border-color: var(--border); }
+.progress-fill { background: var(--brand); }
+.progress-text { color: var(--text-dim); }
+
+.tabbar { border-top: 1px solid var(--border); }
+.tabbtn .ic svg { width: 21px; height: 21px; display: block; }
+.tabbtn.is-qr .ic { box-shadow: 0 6px 18px rgba(190, 0, 0, .28); }
+.tabbtn.is-qr .ic svg { width: 19px; height: 19px; }

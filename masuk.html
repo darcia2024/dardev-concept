@@ -3,51 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#08090b" />
+  <meta name="theme-color" content="#F4F5F7" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Masuk &mdash; Barber Membership System</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Bobot berhenti di 600. Sistem ini tidak memakai huruf tebal. -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="theme.css" />
 
   <style>
-    :root {
-      --ink:          #08090b;
-      --ink-raised:   #0f1217;
-      --ink-card:     #14171d;
-      --ink-inset:    #0b0d11;
-      --line:         #242832;
-      --line-soft:    #191c23;
-      --fg:           #f2f3f5;
-      --fg-mid:       #a9afba;
-      --fg-dim:       #757c8a;
-      --brass:        #c9a26a;
-      --brass-deep:   #8d7047;
-      --brass-wash:   rgba(201, 162, 106, 0.12);
-      --sage:         #7fae8c;
-      --clay:         #c9756a;
-      --clay-wash:    rgba(201, 117, 106, 0.12);
-      --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --mono: 'Space Grotesk', monospace;
-      --r-sm: 6px;
-      --r-md: 10px;
-      --r-lg: 16px;
-    }
-
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
     body {
-      background: var(--ink);
-      color: var(--fg);
-      font-family: var(--sans);
-      font-size: 15px;
-      line-height: 1.55;
       min-height: 100dvh;
-      display: grid;
-      place-items: center;
-      padding: 24px 20px 40px;
-      -webkit-font-smoothing: antialiased;
+      display: flex;
+      justify-content: center;
+      /* Konten diletakkan sedikit di atas tengah optik, bukan tepat di tengah
+         geometris — halaman pendek yang benar-benar terpusat terasa melayang. */
+      align-items: flex-start;
+      padding: clamp(48px, 14vh, 132px) 20px 48px;
     }
 
     .shell {
@@ -63,23 +40,24 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       text-align: center;
     }
-    .brand-badge {
-      width: 52px; height: 52px;
-      background: var(--brass);
-      color: var(--ink);
-      border-radius: 13px;
-      display: grid; place-items: center;
-      font-family: var(--mono);
-      font-weight: 800;
-      font-size: 19px;
+    .brand p {
+      font-size: 11px;
+      font-weight: var(--w-med);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
     }
-    .brand h1 {
-      font-size: 19px;
-      font-weight: 700;
-      letter-spacing: -0.015em;
+    /* Garis rambut merah: satu-satunya aksen merek di layar ini,
+       cukup untuk menandai identitas tanpa berisik. */
+    .brand::after {
+      content: "";
+      width: 34px;
+      height: 2px;
+      background: var(--brand);
+      border-radius: 2px;
     }
     .brand p {
       font-family: var(--mono);
@@ -93,44 +71,72 @@
     .roles { display: flex; flex-direction: column; gap: 10px; }
 
     .role-card {
-      background: var(--ink-card);
-      border: 1px solid var(--line);
+      position: relative;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: var(--r-md);
-      padding: 15px 16px;
+      padding: 16px 18px;
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 15px;
       cursor: pointer;
       text-align: left;
       width: 100%;
       color: inherit;
       font: inherit;
       text-decoration: none;
-      transition: border-color .15s ease, background .15s ease;
+      box-shadow: var(--shadow-sm);
+      transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+    /* Batang merah muncul dari tepi kiri saat disorot */
+    .role-card::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--brand);
+      transform: scaleY(0);
+      transform-origin: center;
+      transition: transform .18s ease;
     }
     .role-card:hover, .role-card:focus-visible {
-      border-color: var(--brass);
-      background: var(--brass-wash);
+      border-color: var(--border);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
       outline: none;
     }
+    .role-card:hover::before, .role-card:focus-visible::before { transform: scaleY(1); }
+    .role-card:hover .role-arrow { color: var(--brand); transform: translateX(3px); }
+    .role-card:hover .role-icon { color: var(--brand); border-color: var(--brand-line); }
+
     .role-icon {
       width: 40px; height: 40px; flex: none;
-      border-radius: 10px;
-      background: var(--ink-inset);
-      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface-sunk);
+      border: 1px solid var(--border);
       display: grid; place-items: center;
-      font-size: 18px;
+      color: var(--text-mid);
+      transition: color .16s ease, border-color .16s ease;
     }
+    .role-icon svg { width: 19px; height: 19px; display: block; }
+
     .role-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .role-name { font-size: 15px; font-weight: 700; }
-    .role-desc { font-size: 12.5px; color: var(--fg-dim); line-height: 1.45; }
-    .role-arrow { margin-left: auto; color: var(--fg-dim); font-size: 17px; flex: none; }
+    .role-name { font-size: 15.5px; font-weight: var(--w-semi); letter-spacing: -.01em; }
+    .role-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+    .role-arrow {
+      margin-left: auto; flex: none;
+      color: var(--border); display: grid; place-items: center;
+      transition: color .16s ease, transform .16s ease;
+    }
+    .role-arrow svg { width: 17px; height: 17px; display: block; }
 
     /* ---------- Formulir ---------- */
     .panel {
-      background: var(--ink-card);
-      border: 1px solid var(--line);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: var(--r-lg);
+      box-shadow: var(--shadow-md);
       padding: 22px 20px;
       display: flex;
       flex-direction: column;
@@ -143,7 +149,7 @@
       padding: 2px 4px; font-family: inherit;
     }
     .btn-back:hover { color: var(--fg); }
-    .panel-title { font-size: 16px; font-weight: 700; }
+    .panel-title { font-size: 16px; font-weight: 600; }
     .panel-sub { font-size: 12px; color: var(--fg-dim); }
 
     .field { display: flex; flex-direction: column; gap: 6px; }
@@ -155,38 +161,26 @@
       color: var(--fg-dim);
     }
     input {
-      background: var(--ink-inset);
-      border: 1px solid var(--line);
       border-radius: var(--r-sm);
-      color: var(--fg);
       padding: 12px 13px;
       font-size: 15px;
-      font-family: inherit;
-      outline: none;
       width: 100%;
-      transition: border-color .15s ease;
+      transition: border-color .15s ease, box-shadow .15s ease;
     }
-    input:focus { border-color: var(--brass); }
 
     .btn-primary {
-      background: var(--brass);
-      color: var(--ink);
-      border: none;
       border-radius: var(--r-sm);
       padding: 13px;
       font-size: 14.5px;
-      font-weight: 700;
       font-family: inherit;
       cursor: pointer;
-      transition: opacity .15s ease;
     }
-    .btn-primary:disabled { opacity: .55; cursor: default; }
 
     .err {
       font-size: 13px;
-      color: var(--clay);
-      background: var(--clay-wash);
-      border: 1px solid var(--clay);
+      color: var(--brand-deep);
+      background: var(--brand-wash);
+      border: 1px solid var(--brand-line);
       border-radius: var(--r-sm);
       padding: 10px 12px;
       line-height: 1.45;
@@ -199,8 +193,8 @@
       color: var(--fg-dim);
       line-height: 1.6;
     }
-    .foot a { color: var(--brass-deep); text-decoration: none; }
-    .foot a:hover { color: var(--brass); }
+    .foot a { color: var(--brand); text-decoration: none; }
+    .foot a:hover { color: var(--brand-deep); }
 
     .spinner {
       display: grid; place-items: center; gap: 12px;
@@ -210,7 +204,7 @@
     .spinner-dot {
       width: 26px; height: 26px;
       border: 2px solid var(--line);
-      border-top-color: var(--brass);
+      border-top-color: var(--brand);
       border-radius: 50%;
       animation: spin .8s linear infinite;
     }
@@ -221,11 +215,8 @@
   <div class="shell">
 
     <div class="brand">
-      <div class="brand-badge">BK</div>
-      <div>
-        <h1>Barber Membership System</h1>
-        <p>Opening Mode &middot; Fase 0</p>
-      </div>
+      <img src="assets/logo.png" alt="Underrated Barbershop" class="brandmark brandmark--xl" />
+      <p>Sistem Kasir &amp; Membership</p>
     </div>
 
     <!-- Memeriksa sesi yang mungkin masih tersimpan -->
@@ -237,30 +228,30 @@
     <!-- Pemilihan peran -->
     <div class="roles" id="viewRoles" hidden>
       <button class="role-card" data-role="owner">
-        <span class="role-icon">👑</span>
+        <span class="role-icon"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M3 8.5l3.6 2.6L12 4.5l5.4 6.6L21 8.5l-1.7 9.1a1.4 1.4 0 0 1-1.4 1.1H6.1a1.4 1.4 0 0 1-1.4-1.1L3 8.5Z"/></svg></span>
         <span class="role-text">
           <span class="role-name">Owner</span>
           <span class="role-desc">Laporan, data pegawai, pengaturan &mdash; akses penuh</span>
         </span>
-        <span class="role-arrow">→</span>
+        <span class="role-arrow"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M5 12h13M12.5 6.5 18.5 12l-6 5.5"/></svg></span>
       </button>
 
       <a class="role-card" href="/pos" data-role="kasir">
-        <span class="role-icon">💳</span>
+        <span class="role-icon"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><path d="M2.5 10h19M6.5 14.5h4"/></svg></span>
         <span class="role-text">
           <span class="role-name">Kasir</span>
           <span class="role-desc">Masuk dengan PIN di perangkat outlet</span>
         </span>
-        <span class="role-arrow">→</span>
+        <span class="role-arrow"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M5 12h13M12.5 6.5 18.5 12l-6 5.5"/></svg></span>
       </a>
 
       <button class="role-card" data-role="capster">
-        <span class="role-icon">✂️</span>
+        <span class="role-icon"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="18" r="2.6"/><path d="M7.9 16.1 19.5 4.5M16.1 16.1 4.5 4.5"/></svg></span>
         <span class="role-text">
           <span class="role-name">Capster</span>
           <span class="role-desc">Lihat kinerja Anda sendiri hari ini</span>
         </span>
-        <span class="role-arrow">→</span>
+        <span class="role-arrow"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M5 12h13M12.5 6.5 18.5 12l-6 5.5"/></svg></span>
       </button>
     </div>
 
