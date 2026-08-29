@@ -172,6 +172,27 @@
 
     .empty { text-align: center; color: var(--fg-dim); font-size: 13px; padding: 22px 10px; line-height: 1.55; }
 
+    /* Ganti sandi — satu-satunya jalan capster memperbarui kredensialnya
+       sendiri. Tanpa ini sandi acak buatan owner berlaku selamanya, dan
+       setiap lupa sandi harus lewat dashboard Supabase. */
+    .pw-form { display: grid; gap: 9px; }
+    .pw-form input {
+      background: var(--surface-sunk);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 15px;
+      padding: 11px 12px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s ease;
+    }
+    .pw-form input:focus { border-color: var(--brand-line); }
+    .pw-msg { font-size: 12.5px; line-height: 1.45; border-radius: var(--r-sm); padding: 9px 11px; }
+    .pw-msg.is-ok  { color: var(--ok);         background: var(--ok-wash);    border: 1px solid rgba(15, 115, 85, 0.28); }
+    .pw-msg.is-bad { color: var(--brand-deep); background: var(--brand-wash); border: 1px solid var(--brand-line); }
+
     .note {
       font-size: 11.5px; color: var(--fg-dim); line-height: 1.55;
       border-top: 1px solid var(--line-soft); padding-top: 11px;
@@ -257,6 +278,25 @@
         Angka di halaman ini hanya milik Anda. Bila ada pelanggan yang Anda layani
         tetapi tidak muncul di sini, beri tahu kasir &mdash; kemungkinan transaksinya
         tercatat atas nama capster lain.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Ganti Sandi</h2>
+      </div>
+      <form class="pw-form" id="formPw" autocomplete="off">
+        <input type="password" id="pwBaru" placeholder="Sandi baru" minlength="8"
+               autocomplete="new-password" required>
+        <input type="password" id="pwUlang" placeholder="Ulangi sandi baru" minlength="8"
+               autocomplete="new-password" required>
+        <button class="btn" type="submit" id="btnPw">Simpan Sandi Baru</button>
+      </form>
+      <div class="pw-msg" id="pwMsg" hidden></div>
+      <div class="note">
+        Sandi diminta dua kali karena tidak ada cara memulihkannya sendiri &mdash;
+        salah ketik sekali berarti harus meminta owner mengatur ulang. Minimal
+        8 karakter. Setelah tersimpan, Anda tetap masuk di perangkat ini.
       </div>
     </div>
   </main>
@@ -566,6 +606,41 @@
         </div>`;
       }).join('');
     }
+
+    /* Ganti sandi ------------------------------------------------------------
+       updateUser() bekerja pada sesi yang sedang berjalan, jadi capster tidak
+       perlu mengetik sandi lamanya. Sesi ini tetap hidup setelah perubahan;
+       perangkat lain yang memakai akun sama tetap masuk sampai tokennya habis. */
+    function pwKabar(teks, baik) {
+      const el = $('pwMsg');
+      el.textContent = teks;
+      el.className = 'pw-msg ' + (baik ? 'is-ok' : 'is-bad');
+      el.hidden = false;
+    }
+
+    $('formPw').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const baru = $('pwBaru').value;
+      const ulang = $('pwUlang').value;
+
+      if (baru.length < 8) { pwKabar('Sandi minimal 8 karakter.', false); return; }
+      if (baru !== ulang)  { pwKabar('Dua isian tidak sama. Periksa ketikannya.', false); return; }
+
+      const tombol = $('btnPw');
+      tombol.disabled = true;
+      tombol.textContent = 'Menyimpan…';
+
+      const { error } = await sb.auth.updateUser({ password: baru });
+
+      tombol.disabled = false;
+      tombol.textContent = 'Simpan Sandi Baru';
+
+      if (error) { pwKabar('Gagal: ' + error.message, false); return; }
+
+      $('pwBaru').value = '';
+      $('pwUlang').value = '';
+      pwKabar('Sandi diperbarui. Pakai sandi baru ini saat masuk berikutnya.', true);
+    });
 
     $('btnSignOut').addEventListener('click', async () => {
       await sb.auth.signOut();

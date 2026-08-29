@@ -96,8 +96,24 @@ menyesuaikan; angka asli kasir tidak pernah ditimpa.
 
 ### Capster
 
-Buka `/capster` dari ponsel. Berisi kinerja hari ini, absensi, dan cuti.
-Absen masuk memerlukan **foto selfie** dan **berada dalam radius outlet**.
+Buka `/capster` dari ponsel. Berisi kinerja hari ini, absensi, cuti, dan
+**ganti sandi**. Absen masuk memerlukan **foto selfie** dan **berada dalam
+radius outlet**.
+
+Sandi awal dibuat owner dan bersifat acak. Kartu **Ganti Sandi** di bawah
+halaman itu satu-satunya cara capster memperbaruinya sendiri; tanpa itu setiap
+lupa sandi harus diselesaikan owner lewat dashboard Supabase. Sandi diminta
+dua kali karena tidak ada pemulihan mandiri — salah ketik sekali mengunci
+orangnya sampai owner turun tangan.
+
+> **Capster tidak memakai PIN.** PIN hanya hidup di POS, pada perangkat yang
+> sudah diautentikasi owner, dan tugasnya menandai siapa yang bertugas — bukan
+> membuka basis data. Halaman capster dibuka dari ponsel pribadi, yang tidak
+> pernah boleh memegang kredensial perangkat POS: ponsel itu ikut pulang, dan
+> kredensialnya bertahan setelah orangnya berhenti. Karena itu ponsel pribadi
+> memakai akun sungguhan yang dapat dicabut satu per satu. Tiga orang yang
+> merangkap kasir dan capster memegang dua kredensial: PIN di POS, sandi di
+> ponsel sendiri.
 
 ### Owner
 
