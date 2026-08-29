@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#F4F5F7" />
+  <meta name="theme-color" content="#2A0607" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>Masuk &mdash; Barber Membership System</title>
+  <title>Masuk &mdash; Underrated Barbershop</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,273 +15,270 @@
   <link rel="stylesheet" href="theme.css" />
 
   <style>
+    /* =========================================================================
+       HALAMAN MASUK — kartu terbelah
+
+       Satu-satunya layar dalam sistem ini yang sengaja berlatar gelap. Sisanya
+       terang, sesuai permintaan klien. Di sini gelap justru bekerja: layar ini
+       dibuka sekali lalu ditinggalkan, dan latar pekat membuat kartu putihnya
+       terangkat seperti benda yang diletakkan di atas meja.
+
+       Warnanya maroon, bukan hitam — diturunkan dari merah #BE0000 pada logo,
+       supaya latar terasa dipilih dan bukan sekadar gelap.
+       ========================================================================= */
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
+    :root {
+      --pekat:   #2A0607;
+      --pekat-2: #1C0304;
+      --kartu:   #FFFFFF;
+    }
+
     body {
-      min-height: 100dvh;
-      display: flex;
-      justify-content: center;
-      /* Konten diletakkan sedikit di atas tengah optik, bukan tepat di tengah
-         geometris — halaman pendek yang benar-benar terpusat terasa melayang. */
-      align-items: flex-start;
-      padding: clamp(48px, 14vh, 132px) 20px 48px;
-    }
-
-    .shell {
-      width: 100%;
-      max-width: 400px;
-      display: flex;
-      flex-direction: column;
-      gap: 26px;
-    }
-
-    /* ---------- Identitas ---------- */
-    .brand {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-      text-align: center;
-    }
-    .brand p {
-      font-size: 11px;
-      font-weight: var(--w-med);
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-    /* Garis rambut merah: satu-satunya aksen merek di layar ini,
-       cukup untuk menandai identitas tanpa berisik. */
-    .brand::after {
-      content: "";
-      width: 34px;
-      height: 2px;
-      background: var(--brand);
-      border-radius: 2px;
-    }
-    .brand p {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--fg-dim);
-    }
-
-    /* ---------- Pilihan peran ---------- */
-    .roles { display: flex; flex-direction: column; gap: 10px; }
-
-    .role-card {
-      position: relative;
-      overflow: hidden;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--r-md);
-      padding: 16px 18px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      cursor: pointer;
-      text-align: left;
-      width: 100%;
-      color: inherit;
-      font: inherit;
-      text-decoration: none;
-      box-shadow: var(--shadow-sm);
-      transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
-    }
-    /* Batang merah muncul dari tepi kiri saat disorot */
-    .role-card::before {
-      content: "";
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
-      width: 3px;
-      background: var(--brand);
-      transform: scaleY(0);
-      transform-origin: center;
-      transition: transform .18s ease;
-    }
-    .role-card:hover, .role-card:focus-visible {
-      border-color: var(--border);
-      box-shadow: var(--shadow-md);
-      transform: translateY(-1px);
-      outline: none;
-    }
-    .role-card:hover::before, .role-card:focus-visible::before { transform: scaleY(1); }
-    .role-card:hover .role-arrow { color: var(--brand); transform: translateX(3px); }
-    .role-card:hover .role-icon { color: var(--brand); border-color: var(--brand-line); }
-
-    .role-icon {
-      width: 40px; height: 40px; flex: none;
-      border-radius: 11px;
-      background: var(--surface-sunk);
-      border: 1px solid var(--border);
-      display: grid; place-items: center;
-      color: var(--text-mid);
-      transition: color .16s ease, border-color .16s ease;
-    }
-    .role-icon svg { width: 19px; height: 19px; display: block; }
-
-    .role-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .role-name { font-size: 15.5px; font-weight: var(--w-semi); letter-spacing: -.01em; }
-    .role-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
-    .role-arrow {
-      margin-left: auto; flex: none;
-      color: var(--border); display: grid; place-items: center;
-      transition: color .16s ease, transform .16s ease;
-    }
-    .role-arrow svg { width: 17px; height: 17px; display: block; }
-
-    /* ---------- Formulir ---------- */
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--r-lg);
-      box-shadow: var(--shadow-md);
-      padding: 22px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-    .panel-top { display: flex; align-items: center; gap: 12px; }
-    .btn-back {
-      background: none; border: none; cursor: pointer;
-      color: var(--fg-dim); font-size: 19px; line-height: 1;
-      padding: 2px 4px; font-family: inherit;
-    }
-    .btn-back:hover { color: var(--fg); }
-    .panel-title { font-size: 16px; font-weight: 600; }
-    .panel-sub { font-size: 12px; color: var(--fg-dim); }
-
-    .field { display: flex; flex-direction: column; gap: 6px; }
-    .label {
-      font-family: var(--mono);
-      font-size: 10.5px;
-      letter-spacing: 0.13em;
-      text-transform: uppercase;
-      color: var(--fg-dim);
-    }
-    input {
-      border-radius: var(--r-sm);
-      padding: 12px 13px;
+      background: var(--pekat);
+      background-image: radial-gradient(120% 100% at 50% 0%, #3A0A0B 0%, var(--pekat) 46%, var(--pekat-2) 100%);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: var(--w-reg);
       font-size: 15px;
+      line-height: 1.55;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: clamp(16px, 4vw, 56px);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Jendela pendek: kurangi napas di luar kartu sebelum mengurangi isinya */
+    @media (min-width: 861px) and (max-height: 780px) {
+      body { padding: 24px; }
+      .kartu { padding: 22px; gap: clamp(28px, 4vw, 52px); }
+    }
+
+    /* ---- Kartu ---- */
+    .kartu {
       width: 100%;
+      max-width: 1000px;
+      background: var(--kartu);
+      border-radius: 28px;
+      padding: 28px;
+      box-shadow: 0 40px 90px rgba(0,0,0,.42), 0 4px 14px rgba(0,0,0,.22);
+      display: grid;
+      grid-template-columns: minmax(0, 420px) 1fr;
+      gap: clamp(32px, 5vw, 68px);
+      align-items: stretch;
+    }
+
+    /* ---- Panel gambar: identitas ada di sini, bukan di sisi formulir ------
+       Gambar berbentuk persegi sementara panelnya potret 3:4. Dengan
+       object-fit:cover yang terlihat adalah 75% lebar tengah; wordmark
+       menempati 20,9%–78,9% sehingga tersisa margin sekitar 8% di kedua sisi.
+       Diukur, bukan dikira-kira. */
+    .panel-gambar {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #EDEFF2;
+      aspect-ratio: 3 / 4;
+      /* Pada layar pendek rasio 3:4 membuat kartu melampaui tinggi jendela dan
+         bagian bawahnya terpotong. Batas ini membuat panel memendek lebih dulu
+         — aspect-ratio mengalah pada max-height — sehingga kartunya tetap utuh
+         tanpa perlu menggulir. Wordmark tetap terlihat: sudah diuji utuh sampai
+         rasio 16:9. */
+      max-height: calc(100dvh - 128px);
+    }
+    .panel-gambar img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: 50% 52%;   /* wordmark berpusat di 53,6% — digeser sedikit
+                                     agar duduk optis di tengah panel */
+      display: block;
+    }
+
+    /* ---- Kolom formulir ---- */
+    .sisi {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 380px;
+      width: 100%;
+      padding: 8px 0;
+      min-width: 0;
+    }
+    /* align-self wajib: .sisi adalah flex kolom, dan align-items bawaannya
+       stretch. Tanpa ini gambar diregangkan selebar kolom sementara tingginya
+       tetap 26px — logonya gepeng, dan 'width:auto' tidak menolong karena yang
+       meregangkan adalah sumbu silang, bukan lebar intrinsiknya. */
+    .tanda {
+      height: 26px; width: auto;
+      align-self: flex-start;
+      display: block;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      font-size: 34px;
+      font-weight: var(--w-semi);
+      letter-spacing: -.032em;
+      line-height: 1.12;
+      color: var(--text);
+    }
+    .sub { font-size: 14px; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+    .garis { height: 1px; background: var(--border); margin: 26px 0; }
+
+    .medan { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+    .label { font-size: 13.5px; color: var(--text-mid); }
+
+    input {
+      width: 100%;
+      height: 50px;
+      padding: 0 15px;
+      font-family: var(--sans);
+      font-size: 15.5px;
+      font-weight: var(--w-reg);
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      outline: none;
       transition: border-color .15s ease, box-shadow .15s ease;
     }
-
-    .btn-primary {
-      border-radius: var(--r-sm);
-      padding: 13px;
-      font-size: 14.5px;
-      font-family: inherit;
-      cursor: pointer;
+    input::placeholder { color: var(--text-dim); }
+    input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px var(--brand-wash);
     }
+
+    .btn {
+      width: 100%;
+      height: 52px;
+      margin-top: 10px;
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: var(--sans);
+      font-size: 15.5px;
+      font-weight: var(--w-med);
+      letter-spacing: -.01em;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(190,0,0,.24);
+      transition: transform .12s ease, box-shadow .18s ease, background .18s ease;
+    }
+    .btn:hover:not(:disabled) { background: var(--brand-deep, #9E0000); }
+    .btn:active:not(:disabled) { transform: scale(.99); }
+    .btn:disabled { background: var(--surface-sunk); color: var(--text-dim); box-shadow: none; cursor: default; }
+
+    .kaki { margin-top: 16px; text-align: center; font-size: 13.5px; color: var(--text-dim); }
+    .kaki a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); padding-bottom: 1px; }
+    .kaki a:hover { border-bottom-color: var(--brand); color: var(--brand); }
 
     .err {
       font-size: 13px;
-      color: var(--brand-deep);
+      color: var(--brand-deep, #9E0000);
       background: var(--brand-wash);
       border: 1px solid var(--brand-line);
-      border-radius: var(--r-sm);
+      border-radius: 10px;
       padding: 10px 12px;
+      margin-bottom: 14px;
       line-height: 1.45;
     }
-    [hidden] { display: none !important; }
 
-    .foot {
-      text-align: center;
-      font-size: 11.5px;
-      color: var(--fg-dim);
-      line-height: 1.6;
+    /* ---- Memeriksa sesi ---- */
+    /* [hidden] bawaan browser memakai display:none, dan aturan display apa pun
+       di bawahnya mengalahkannya. Tanpa baris kedua, indikator ini tetap tampil
+       setelah formulirnya muncul. */
+    .memuat[hidden] { display: none; }
+    .memuat {
+      display: flex; align-items: center; gap: 11px;
+      font-size: 14px; color: var(--text-dim);
+      min-height: 240px;
     }
-    .foot a { color: var(--brand); text-decoration: none; }
-    .foot a:hover { color: var(--brand-deep); }
-
-    .spinner {
-      display: grid; place-items: center; gap: 12px;
-      padding: 30px 0; text-align: center;
-      color: var(--fg-dim); font-size: 13px;
-    }
-    .spinner-dot {
-      width: 26px; height: 26px;
-      border: 2px solid var(--line);
+    .titik {
+      width: 16px; height: 16px; flex: none;
+      border: 2px solid var(--border);
       border-top-color: var(--brand);
       border-radius: 50%;
-      animation: spin .8s linear infinite;
+      animation: putar .7s linear infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes putar { to { transform: rotate(360deg); } }
+
+    /* ---- Layar sempit: panel jadi pita di atas formulir ------------------
+       Rasio dilonggarkan ke 16:9. Wordmark menempati y 47,8%–59,4%, dan pada
+       16:9 yang terlihat adalah y 21,9%–78,1% — masih utuh. */
+    @media (max-width: 860px) {
+      .kartu {
+        grid-template-columns: 1fr;
+        gap: 26px;
+        padding: 20px;
+        border-radius: 24px;
+        max-width: 460px;
+      }
+      .panel-gambar { aspect-ratio: 16 / 9; min-height: 0; }
+      .sisi { max-width: none; padding: 0 2px 4px; }
+      /* Panel gambar sudah membawa wordmark dan kini duduk tepat di atas
+         formulir. Menampilkan logo kedua berjarak beberapa piksel darinya
+         membuat keduanya terbaca sebagai kesalahan, bukan komposisi. */
+      .tanda { display: none; }
+      h1 { font-size: 29px; }
+      .garis { margin: 22px 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn, input { transition: none; }
+      .btn:active:not(:disabled) { transform: none; }
+      .titik { animation-duration: 2s; }
+    }
   </style>
 </head>
 <body>
-  <div class="shell">
 
-    <div class="brand">
-      <img src="assets/logo.png" alt="Underrated Barbershop" class="brandmark brandmark--xl" />
-      <p>Sistem Kasir &amp; Membership</p>
+  <div class="kartu">
+
+    <div class="panel-gambar">
+      <picture>
+        <source srcset="assets/login-panel.webp" type="image/webp" />
+        <img src="assets/login-panel.jpg" alt="Underrated Barbershop" width="1200" height="1200" />
+      </picture>
     </div>
 
-    <!-- Memeriksa sesi yang mungkin masih tersimpan -->
-    <div class="spinner" id="viewLoading">
-      <div class="spinner-dot"></div>
-      <div>Memeriksa sesi…</div>
-    </div>
+    <div class="sisi">
+      <img src="assets/logo.png" alt="" class="tanda" aria-hidden="true" />
 
-    <!-- Pemilihan peran -->
-    <div class="roles" id="viewRoles" hidden>
-      <button class="role-card" data-role="owner">
-        <span class="role-icon"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M3 8.5l3.6 2.6L12 4.5l5.4 6.6L21 8.5l-1.7 9.1a1.4 1.4 0 0 1-1.4 1.1H6.1a1.4 1.4 0 0 1-1.4-1.1L3 8.5Z"/></svg></span>
-        <span class="role-text">
-          <span class="role-name">Owner</span>
-          <span class="role-desc">Laporan, data pegawai, pengaturan &mdash; akses penuh</span>
-        </span>
-        <span class="role-arrow"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M5 12h13M12.5 6.5 18.5 12l-6 5.5"/></svg></span>
-      </button>
+      <!-- Memeriksa sesi yang mungkin masih tersimpan -->
+      <div class="memuat" id="viewLoading">
+        <div class="titik"></div>
+        <div>Memeriksa sesi&hellip;</div>
+      </div>
 
-      <a class="role-card" href="/pos" data-role="kasir">
-        <span class="role-icon"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><path d="M2.5 10h19M6.5 14.5h4"/></svg></span>
-        <span class="role-text">
-          <span class="role-name">Kasir</span>
-          <span class="role-desc">Masuk dengan PIN di perangkat outlet</span>
-        </span>
-        <span class="role-arrow"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M5 12h13M12.5 6.5 18.5 12l-6 5.5"/></svg></span>
-      </a>
+      <form id="viewLogin" hidden autocomplete="on">
+        <h1>Masuk</h1>
+        <p class="sub">Owner dan capster masuk di sini. Kasir cukup memakai PIN di perangkat outlet.</p>
 
-      <button class="role-card" data-role="capster">
-        <span class="role-icon"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="18" r="2.6"/><path d="M7.9 16.1 19.5 4.5M16.1 16.1 4.5 4.5"/></svg></span>
-        <span class="role-text">
-          <span class="role-name">Capster</span>
-          <span class="role-desc">Lihat kinerja Anda sendiri hari ini</span>
-        </span>
-        <span class="role-arrow"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M5 12h13M12.5 6.5 18.5 12l-6 5.5"/></svg></span>
-      </button>
-    </div>
+        <div class="garis"></div>
 
-    <!-- Formulir akun (owner & capster) -->
-    <form class="panel" id="viewLogin" hidden autocomplete="on">
-      <div class="panel-top">
-        <button type="button" class="btn-back" id="btnBack" aria-label="Kembali">←</button>
-        <div>
-          <div class="panel-title" id="loginTitle">Masuk</div>
-          <div class="panel-sub" id="loginSub"></div>
+        <div class="err" id="loginErr" hidden></div>
+
+        <div class="medan">
+          <label class="label" for="inpEmail">Email</label>
+          <input type="email" id="inpEmail" name="email" autocomplete="username"
+                 placeholder="nama@underrated.com" required />
         </div>
-      </div>
 
-      <div class="field">
-        <label class="label" for="inpEmail">Email</label>
-        <input type="email" id="inpEmail" name="email" autocomplete="username" required />
-      </div>
-      <div class="field">
-        <label class="label" for="inpPass">Kata Sandi</label>
-        <input type="password" id="inpPass" name="password" autocomplete="current-password" required />
-      </div>
+        <div class="medan">
+          <label class="label" for="inpPass">Kata sandi</label>
+          <input type="password" id="inpPass" name="password" autocomplete="current-password"
+                 placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required />
+        </div>
 
-      <div class="err" id="loginErr" hidden></div>
-      <button type="submit" class="btn-primary" id="btnLogin">Masuk</button>
-    </form>
+        <button type="submit" class="btn" id="btnLogin">Masuk</button>
 
-    <div class="foot" id="footNote" hidden>
-      Kasir tidak memakai email &mdash; cukup PIN di perangkat outlet.<br />
-      Lupa kata sandi atau PIN? Hubungi owner.
+        <div class="kaki">
+          Bertugas sebagai kasir? <a href="/pos">Buka POS</a>
+        </div>
+      </form>
     </div>
+
   </div>
 
   <script src="vendor/supabase.js"></script>
@@ -291,10 +288,14 @@
     /* =========================================================================
        HALAMAN MASUK — pintu tunggal, perutean berdasarkan peran
 
-       Kartu peran hanya membantu orang memilih; kewenangan TIDAK pernah
-       diambil dari pilihan itu. Setelah login, tujuan ditentukan dari
-       kolom role di tabel profiles — dan tiap halaman tujuan memeriksa
-       ulang perannya sendiri, dengan RLS di database sebagai lapis terakhir.
+       Sebelumnya ada tiga kartu peran di layar ini. Kartu itu tidak pernah
+       menentukan kewenangan — tujuan selalu diambil dari kolom role di tabel
+       profiles — sehingga satu-satunya kegunaan nyatanya hanyalah tautan ke
+       /pos. Tautan itu kini berdiri sendiri di bawah tombol, dan layarnya
+       menjadi satu formulir tanpa kehilangan fungsi apa pun.
+
+       Tiap halaman tujuan tetap memeriksa ulang perannya sendiri, dengan RLS
+       di basis data sebagai lapis terakhir.
        ========================================================================= */
 
     const TUJUAN = {
@@ -304,37 +305,14 @@
       kasir:      '/pos'
     };
 
-    const SALINAN = {
-      owner:   { judul: 'Masuk sebagai Owner',   sub: 'Akses penuh ke seluruh sistem' },
-      capster: { judul: 'Masuk sebagai Capster', sub: 'Kinerja Anda sendiri, hari ini dan bulan ini' }
-    };
-
     const $ = id => document.getElementById(id);
     const errEl = $('loginErr');
-    let peranDipilih = 'owner';
 
     function tampilkan(view) {
-      ['viewLoading', 'viewRoles', 'viewLogin'].forEach(v => { $(v).hidden = v !== view; });
-      $('footNote').hidden = view === 'viewLoading';
+      ['viewLoading', 'viewLogin'].forEach(v => { $(v).hidden = v !== view; });
     }
 
-    function bukaFormulir(peran) {
-      peranDipilih = peran;
-      errEl.hidden = true;
-      $('loginTitle').textContent = SALINAN[peran].judul;
-      $('loginSub').textContent = SALINAN[peran].sub;
-      tampilkan('viewLogin');
-      $('inpEmail').focus();
-    }
-
-    document.querySelectorAll('.role-card[data-role]').forEach(el => {
-      if (el.tagName === 'A') return;   // kartu kasir adalah tautan biasa ke /pos
-      el.addEventListener('click', () => bukaFormulir(el.dataset.role));
-    });
-
-    $('btnBack').addEventListener('click', () => { errEl.hidden = true; tampilkan('viewRoles'); });
-
-    /** Arahkan berdasarkan peran sebenarnya di basis data, bukan kartu yang ditekan. */
+    /** Arahkan berdasarkan peran sebenarnya di basis data. */
     function arahkan(peran) {
       const tujuan = TUJUAN[peran];
       if (!tujuan) {
@@ -371,22 +349,15 @@
       }
 
       const { profile } = await sbLoadProfile(data.user);
-
-      // Beri tahu bila orangnya memilih kartu yang keliru — tetap diarahkan
-      // ke tempat yang benar sesuai perannya.
-      if (profile.role !== peranDipilih && SALINAN[profile.role]) {
-        errEl.textContent = `Akun ini terdaftar sebagai ${profile.role}. Mengalihkan…`;
-        errEl.hidden = false;
-      }
       arahkan(profile.role);
     });
 
     // Sesi yang masih hidup langsung diteruskan, tanpa login ulang
     (async function boot() {
       const { data: { session } } = await sb.auth.getSession();
-      if (!session) { tampilkan('viewRoles'); return; }
+      if (!session) { tampilkan('viewLogin'); return; }
       const { profile } = await sbLoadProfile(session.user);
-      if (!arahkan(profile.role)) tampilkan('viewRoles');
+      if (!arahkan(profile.role)) tampilkan('viewLogin');
     })();
   </script>
 </body>
