@@ -109,7 +109,7 @@ setoran kas, HPP & laba produk, rekap absensi, dan persetujuan cuti.
 
 Seluruh data berikut masih **contoh** dan wajib diganti:
 
-- [ ] Daftar layanan dan harga final — `/pos` → Pengaturan
+- [x] ~~Daftar layanan dan harga final~~ — sudah terpasang dari klien
 - [ ] Daftar capster — `/pos` → Pengaturan
 - [ ] Nama kasir dan **PIN masing-masing** — PIN contoh `1234/5678/9012`
       berurutan dan mudah ditebak
@@ -151,6 +151,14 @@ ditandai agar terlihat orang, bukan diulang diam-diam selamanya.
 
 **Foto absensi tidak dapat ditimpa atau dihapus** oleh siapa pun, termasuk
 owner. Bukti yang dapat diganti belakangan bukan lagi bukti.
+
+**Hash PIN tidak pernah keluar dari basis data.** Hak baca kolom `pin_hash`
+dicabut dari seluruh peran API; `select=*` pada tabel `cashiers` sengaja
+ditolak. Sebelumnya hash ikut terkirim ke sesi owner, dan dengan bcrypt biaya 6
+seluruh PIN 4 digit dapat dipulihkan luring dalam 92 detik — melewati pembatas
+5 percobaan per menit sepenuhnya. Yang rusak bukan kerahasiaan owner melainkan
+kemampuan sistem membuktikan siapa melakukan apa: bila PIN Ahmad dapat
+dipulihkan, transaksi dapat dibuat atas namanya. Biaya bcrypt kini 11.
 
 **Merah dipakai hemat.** Merah #BE0000 diambil dari bintang pada logo dan
 hanya muncul di aksi utama, penanda posisi, dan angka yang menjadi kesimpulan
