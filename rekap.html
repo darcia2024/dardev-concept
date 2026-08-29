@@ -689,6 +689,50 @@
       </div>
     </div>
 
+    <!-- Catatan absensi satu per satu, supaya bisa dihapus per baris -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Catatan Absensi Harian</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Bulan berjalan. Menghapus catatan tidak menghapus fotonya &mdash; foto tetap tersimpan.
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="absenRowTable">
+          <thead>
+            <tr>
+              <th>Tanggal</th><th>Karyawan</th><th>Masuk</th><th>Pulang</th>
+              <th>Status</th><th>Terlambat</th><th>Jarak</th><th>Foto</th><th style="width:44px;"></th>
+            </tr>
+          </thead>
+          <tbody id="absenRowBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Arsip absensi terhapus -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Absensi yang Dihapus</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Fotonya tetap ada di penyimpanan &mdash; yang hilang catatannya, bukan buktinya
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="arsipAbsenTable">
+          <thead>
+            <tr><th>Dihapus</th><th>Karyawan</th><th>Tanggal</th><th>Status</th>
+                <th>Foto</th><th>Alasan</th></tr>
+          </thead>
+          <tbody id="arsipAbsenBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="table-panel">
       <div class="table-controls">
         <div>
@@ -923,6 +967,8 @@
       await loadAbsensi();
       await muatArsip();
       await muatKelolaAkun();
+      await muatAbsenBaris();
+      await muatArsipAbsen();
       await loadCuti();
     }
 
@@ -1443,6 +1489,97 @@
           + '<td>' + escapeHtml(r.cashier_name || '-') + '</td>'
           + '<td style="font-size:12.5px; color:var(--fg-dim);">' + escapeHtml(r.alasan || '—') + '</td>'
           + '<td style="font-family:var(--mono); text-align:right;">' + formatRupiah(r.final_amount) + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       CATATAN ABSENSI PER BARIS
+
+       attendance_report() memberi rekap per karyawan — bagus untuk dibaca,
+       tetapi tidak memberi cara menunjuk satu catatan untuk dihapus. Tabel ini
+       memakai attendance_rows() yang mengembalikan barisnya satu per satu.
+       ═══════════════════════════════════════════════════════════════════════ */
+    async function muatAbsenBaris() {
+      const tb = document.getElementById('absenRowBody');
+      const { data, error } = await sb.rpc('attendance_rows');
+      if (error) {
+        tb.innerHTML = '<tr><td colspan="9" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
+        return;
+      }
+      const rows = data || [];
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="9" class="empty-row">Belum ada catatan absensi bulan ini.</td></tr>';
+        return;
+      }
+      const jam = function (t) {
+        return t ? new Date(t).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '-';
+      };
+      tb.innerHTML = rows.map(function (r) {
+        const telat = (r.terlambat_menit || 0) > 0;
+        return '<tr>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + r.business_date + '</td>'
+          + '<td><strong>' + escapeHtml(r.capster_name) + '</strong></td>'
+          + '<td style="font-family:var(--mono);">' + jam(r.check_in_time) + '</td>'
+          + '<td style="font-family:var(--mono);">' + jam(r.check_out_time) + '</td>'
+          + '<td>' + escapeHtml(r.status || '-') + '</td>'
+          + '<td style="font-family:var(--mono); color:' + (telat ? 'var(--clay)' : 'var(--fg-dim)') + ';">'
+          + (telat ? r.terlambat_menit + ' mnt' : '—') + '</td>'
+          + '<td style="font-family:var(--mono); font-size:12px; color:var(--fg-dim);">'
+          + (r.jarak_m === null || r.jarak_m === undefined ? '—' : r.jarak_m + ' m') + '</td>'
+          + '<td style="font-size:12px; color:' + (r.ada_foto ? 'var(--sage)' : 'var(--fg-dim)') + ';">'
+          + (r.ada_foto ? 'ada' : 'tidak ada') + '</td>'
+          + '<td><button class="btn-hapus" data-hapus-absen="' + r.id + '" '
+          + 'data-nama="' + escapeHtml(r.capster_name) + '" data-tgl="' + r.business_date + '" '
+          + 'title="Hapus catatan absensi ini">&#215;</button></td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    document.getElementById('absenRowBody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-hapus-absen]');
+      if (!btn) return;
+
+      const nama = btn.dataset.nama, tgl = btn.dataset.tgl;
+      if (!confirm('Hapus catatan absensi ' + nama + ' tanggal ' + tgl + '?\n\nFoto selfie-nya TETAP tersimpan dan tidak ikut terhapus. Yang hilang hanya catatan kehadirannya di laporan.')) return;
+      const alasan = prompt('Alasan penghapusan (tersimpan di arsip):', 'Data testing');
+      if (alasan === null) return;
+
+      btn.disabled = true;
+      const { data, error } = await sb.rpc('delete_attendance', { p_id: btn.dataset.hapusAbsen, p_alasan: alasan });
+      btn.disabled = false;
+      if (error) { alert('Gagal menghapus: ' + error.message); return; }
+
+      const r = Array.isArray(data) ? data[0] : data;
+      alert('Catatan absensi ' + nama + ' tanggal ' + tgl + ' dihapus.'
+            + (r && r.foto_disimpan ? '\n\nFotonya tetap tersimpan di penyimpanan.' : ''));
+
+      await muatAbsenBaris();
+      await muatArsipAbsen();
+      await loadAbsensi();
+    });
+
+    async function muatArsipAbsen() {
+      const tb = document.getElementById('arsipAbsenBody');
+      const { data, error } = await sb.rpc('deleted_attendances_list', { p_limit: 50 });
+      if (error) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">Gagal memuat arsip: ' + escapeHtml(error.message) + '</td></tr>';
+        return;
+      }
+      const rows = data || [];
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">Belum ada catatan absensi yang dihapus.</td></tr>';
+        return;
+      }
+      tb.innerHTML = rows.map(function (r) {
+        return '<tr>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + new Date(r.dihapus_pada).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) + '</td>'
+          + '<td>' + escapeHtml(r.capster_name || '-') + '</td>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + r.business_date + '</td>'
+          + '<td>' + escapeHtml(r.status || '-') + '</td>'
+          + '<td style="font-size:12px; color:' + (r.punya_foto ? 'var(--sage)' : 'var(--fg-dim)') + ';">'
+          + (r.punya_foto ? 'masih tersimpan' : '—') + '</td>'
+          + '<td style="font-size:12.5px; color:var(--fg-dim);">' + escapeHtml(r.alasan || '—') + '</td>'
           + '</tr>';
       }).join('');
     }

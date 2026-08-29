@@ -66,6 +66,9 @@ memanggil API secara langsung.
 | Kinerja dirinya sendiri | — | ✅ | ✅ |
 | Absensi & cuti dirinya | — | ✅ | ✅ |
 | Absensi & cuti semua orang | — | — | ✅ |
+| Foto selfie absensi | — | miliknya | ✅ |
+| Hapus transaksi & absensi | — | — | ✅ |
+| Ganti sandi capster & PIN kasir | — | — | ✅ |
 
 ---
 
@@ -169,6 +172,29 @@ ditandai agar terlihat orang, bukan diulang diam-diam selamanya.
 **Foto absensi tidak dapat ditimpa atau dihapus** oleh siapa pun, termasuk
 owner. Bukti yang dapat diganti belakangan bukan lagi bukti.
 
+**Catatan absensi boleh dihapus, fotonya tidak.** Owner perlu membersihkan data
+uji, sementara foto harus tetap berlaku sebagai bukti. Keduanya didamaikan
+dengan memisahkan dua hal yang selama ini dianggap satu: barisnya data
+operasional dan boleh hilang, berkas fotonya tetap tinggal di penyimpanan.
+Arsip `deleted_attendances` menyimpan seluruh isi baris beserta jalur fotonya,
+sehingga bila suatu hari ada sengketa "saya masuk hari itu", barisnya masih ada
+di arsip dan fotonya masih ada di bucket — keduanya dapat dipertemukan kembali.
+Yang hilang hanya kemudahan membacanya, bukan buktinya.
+
+**Penghapusan transaksi adalah pembatalan, bukan DELETE.** Satu transaksi
+menyentuh item, buku besar poin, saldo member, dan klaim reward. Menghapus
+barisnya saja meninggalkan poin yang tidak pernah dibelanjakan dan saldo yang
+tidak cocok dengan riwayatnya. `delete_transaction()` mengunci baris member,
+menarik poin yang diperoleh, mengembalikan poin yang ditukar, mengurangi
+kunjungan dan belanja, menghitung ulang tier, melepaskan klaim reward, lalu
+mengarsipkan sebelum menghapus.
+
+**Sandi capster diganti lewat fungsi, bukan service_role.** Menulis ke
+auth.users lewat API menuntut service_role — kunci yang melewati seluruh RLS
+dan karena itu tidak boleh ada di frontend. `owner_set_capster_password()`
+menjadi jalan sempit penggantinya: satu hal saja yang bisa dilakukannya, hanya
+terhadap akun ber-role capster, dan hanya oleh owner.
+
 **Kasir tidak di-seed dari berkas SQL.** Seed lama menanam PIN 1234/5678/9012
 yang berurutan dan sering tertinggal sampai hari buka. Menggantinya dengan PIN
 sungguhan di berkas yang sama justru lebih buruk — PIN itu akan hidup di
@@ -241,7 +267,7 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | `assets/logo.png` · `logo-putih.png` | Logo Underrated Barbershop (gelap & putih) |
 | `vendor/` | Library Supabase & QR, di-host sendiri |
 | `supabase_schema.sql` | Skema dasar |
-| `supabase_migration_02..10_*.sql` | Migrasi berurutan; jalankan sesuai nomor |
+| `supabase_migration_02..13_*.sql` | Migrasi berurutan; jalankan sesuai nomor |
 
 Kunci di `sb-app.js` adalah *publishable key* yang memang dirancang untuk
 publik. Yang menjaga data adalah RLS. **Jangan pernah** menaruh `service_role`
