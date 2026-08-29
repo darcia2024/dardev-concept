@@ -28,6 +28,7 @@ Sistem memakai tiga cara masuk yang berbeda, dan perbedaannya disengaja.
 | **Owner** | Email + kata sandi | Akses penuh; perlu kredensial sungguhan. |
 | **Perangkat POS** | Email + kata sandi, **sekali saat setup** | Yang menjaga basis data adalah autentikasi perangkat, bukan PIN. |
 | **Kasir** | **PIN pribadi** | Kasir tidak mengetik email/sandi tiap mulai kerja. PIN menentukan *siapa yang bertugas*, bukan membuka basis data. |
+| | | *Kasir dan capster adalah orang yang sama.* Nama sengaja diseragamkan agar laporan tidak menampilkan dua daftar nama untuk tiga orang. |
 | **Capster** | Email + kata sandi | Dibuka dari ponsel pribadi, yang tidak boleh punya izin membuat transaksi. |
 | **Pelanggan** | Tautan kartu berisi kode | Pelanggan tidak akan membuat akun. |
 
@@ -111,8 +112,8 @@ Seluruh data berikut masih **contoh** dan wajib diganti:
 
 - [x] ~~Daftar layanan dan harga final~~ — sudah terpasang dari klien
 - [x] ~~Daftar capster~~ — Cena, Lukman, Wanda sudah terpasang beserta akunnya
-- [ ] Nama kasir dan **PIN masing-masing** — PIN contoh `1234/5678/9012`
-      berurutan dan mudah ditebak
+- [x] ~~Nama kasir dan PIN masing-masing~~ — Cena, Lukman, Wanda; PIN acak
+      6 digit menggantikan contoh `1234/5678/9012`
 - [ ] Alamat dan **koordinat outlet** — dipakai validasi radius absensi
 - [ ] Katalog produk beserta **harga modal** — `/rekap` → HPP & Laba Produk
 - [ ] Daftar reward dan biaya poinnya
@@ -152,6 +153,13 @@ ditandai agar terlihat orang, bukan diulang diam-diam selamanya.
 **Foto absensi tidak dapat ditimpa atau dihapus** oleh siapa pun, termasuk
 owner. Bukti yang dapat diganti belakangan bukan lagi bukti.
 
+**Kasir tidak di-seed dari berkas SQL.** Seed lama menanam PIN 1234/5678/9012
+yang berurutan dan sering tertinggal sampai hari buka. Menggantinya dengan PIN
+sungguhan di berkas yang sama justru lebih buruk — PIN itu akan hidup di
+riwayat Git selamanya dan tidak bisa dicabut dengan mengeditnya. Kasir kini
+hanya dibuat lewat dashboard owner. Pemasangan baru mendapati daftar kasir
+kosong, dan POS menolak bertransaksi sampai orangnya didaftarkan.
+
 **Hash PIN tidak pernah keluar dari basis data.** Hak baca kolom `pin_hash`
 dicabut dari seluruh peran API; `select=*` pada tabel `cashiers` sengaja
 ditolak. Sebelumnya hash ikut terkirim ke sesi owner, dan dengan bcrypt biaya 6
@@ -186,6 +194,14 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 - **Tautan kartu member adalah kredensialnya.** Siapa pun yang memegang tautan
   dapat melihat poin dan riwayat pelanggan tersebut. Karena itu nomor WhatsApp
   disamarkan, dan penukaran reward tetap harus divalidasi kasir di meja.
+- **Tidak ada pemisahan tugas.** Orang yang memotong rambut juga yang
+  memasukkan transaksi dan memegang uangnya. Ini wajar untuk barbershop
+  bertiga, tetapi menentukan apa yang sanggup dideteksi sistem: setoran kas
+  buta menangkap **salah hitung**, bukan **transaksi yang tidak pernah
+  dimasukkan**. Yang mendekati kontrol untuk hal itu adalah membandingkan
+  jumlah transaksi tiap capster dengan hari kerjanya di rekap absensi —
+  keduanya ada di `/rekap`, tetapi pembacaannya tetap pekerjaan owner, bukan
+  sesuatu yang dihitung sistem.
 - **Sistem memerlukan internet.** Kasir tetap dapat melayani saat sinyal putus
   (transaksi masuk antrean dan terkirim otomatis), tetapi perubahan master
   data, tutup kas, dan absensi memerlukan koneksi.
