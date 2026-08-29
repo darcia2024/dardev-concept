@@ -120,6 +120,66 @@
     .center-msg { min-height:100dvh; display:grid; place-items:center; padding:28px; text-align:center; }
     [hidden] { display:none !important; }
 
+    /* ---------- Tab bar ---------- */
+    main { padding-bottom:104px; }
+    .tabpanel { display:flex; flex-direction:column; gap:16px; }
+    .tabpanel[hidden] { display:none !important; }
+
+    .tabbar {
+      position:fixed; left:0; right:0; bottom:0; z-index:60;
+      background:rgba(15,18,23,.94); backdrop-filter:blur(12px);
+      border-top:1px solid var(--line);
+      display:grid; grid-template-columns:repeat(5,1fr);
+      padding:7px 6px calc(7px + env(safe-area-inset-bottom));
+    }
+    .tabbtn {
+      background:none; border:none; cursor:pointer; font-family:inherit;
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      padding:6px 2px; color:var(--fg-dim); transition:color .15s ease;
+    }
+    .tabbtn .ic { font-size:18px; line-height:1; }
+    .tabbtn .lb { font-size:10px; font-weight:600; letter-spacing:.01em; }
+    .tabbtn.is-on { color:var(--brass); }
+    .tabbtn.is-qr .ic {
+      width:42px; height:42px; margin-top:-16px; border-radius:50%;
+      background:var(--brass); color:var(--ink);
+      display:grid; place-items:center; font-size:19px;
+      box-shadow:0 5px 16px rgba(201,162,106,.34);
+    }
+    .tabbtn.is-qr.is-on .ic { background:var(--fg); }
+
+    /* ---------- Produk ---------- */
+    .prod { display:flex; gap:12px; align-items:flex-start; background:var(--ink-inset);
+            border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:13px; }
+    .prod-main { flex:1; min-width:0; }
+    .prod-name { font-size:13.5px; font-weight:700; line-height:1.35; }
+    .prod-desc { font-size:11.5px; color:var(--fg-dim); line-height:1.5; margin-top:3px; }
+    .prod-price { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--brass); margin-top:6px; }
+    .meter { display:flex; align-items:center; gap:7px; margin-top:5px; }
+    .meter-lb { font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--fg-dim); width:42px; flex:none; }
+    .meter-dots { display:flex; gap:3px; }
+    .meter-dot { width:7px; height:7px; border-radius:50%; background:var(--line); }
+    .meter-dot.on { background:var(--brass-deep); }
+
+    /* ---------- Outlet ---------- */
+    .outlet { background:var(--ink-inset); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:14px; display:flex; flex-direction:column; gap:9px; }
+    .outlet-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+    .outlet-name { font-size:14px; font-weight:700; line-height:1.35; }
+    .outlet-addr { font-size:12px; color:var(--fg-dim); line-height:1.5; margin-top:3px; }
+    .open-pill { flex:none; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;
+                 padding:4px 9px; border-radius:99px; border:1px solid; white-space:nowrap; }
+    .open-pill.buka { color:var(--sage); border-color:var(--sage); }
+    .open-pill.tutup { color:var(--clay); border-color:var(--clay); }
+    .outlet-acts { display:flex; gap:8px; }
+    .outlet-acts a {
+      flex:1; text-align:center; text-decoration:none; font-size:12.5px; font-weight:600;
+      padding:9px; border-radius:var(--r-sm); border:1px solid var(--line); color:var(--fg);
+    }
+    .outlet-acts a.primary { background:var(--brass); color:var(--ink); border-color:var(--brass); }
+    .cap-chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .cap-chip { font-size:11.5px; background:var(--ink-card); border:1px solid var(--line);
+                border-radius:99px; padding:4px 10px; color:var(--fg-mid); }
+
     .toast {
       position:fixed; left:50%; bottom:22px; transform:translate(-50%,140%);
       background:var(--fg); color:var(--ink); padding:11px 18px; border-radius:99px;
@@ -137,6 +197,8 @@
   <div class="center-msg" id="errorView" hidden></div>
 
   <main id="cardView" hidden>
+    <!-- ===================== HOME ===================== -->
+    <div class="tabpanel" id="tabHome">
     <!-- Kartu -->
     <section class="card-hero">
       <div class="card-top">
@@ -161,13 +223,6 @@
       </div>
     </section>
 
-    <!-- QR -->
-    <section class="qr-card">
-      <div class="qr-box" id="qrBox"></div>
-      <div class="qr-code-text" id="mCode">—</div>
-      <div class="qr-hint">Tunjukkan kode ini ke kasir sebelum membayar<br />agar poin Anda tercatat.</div>
-    </section>
-
     <!-- Statistik -->
     <section class="panel">
       <div class="stat-row">
@@ -176,6 +231,30 @@
       </div>
     </section>
 
+    <!-- Riwayat -->
+    <section class="panel">
+      <div class="panel-head"><h2>✂️ Riwayat Kunjungan</h2><span id="histCount"></span></div>
+      <div id="histList"></div>
+    </section>
+    </div><!-- /tabHome -->
+
+    <!-- ===================== SCAN QR ===================== -->
+    <div class="tabpanel" id="tabQR" hidden>
+      <section class="qr-card">
+        <div class="qr-box" id="qrBox"></div>
+        <div class="qr-code-text" id="mCode">—</div>
+        <div class="qr-hint">Tunjukkan kode ini ke kasir <strong>sebelum membayar</strong><br />agar poin Anda tercatat.</div>
+      </section>
+      <section class="panel">
+        <div style="font-size:12.5px; color:var(--fg-mid); line-height:1.65;">
+          Kasir dapat memindai QR ini atau mengetik kodenya. Bila Anda lupa membuka
+          halaman ini, sebutkan saja nomor WhatsApp Anda — poin tetap tercatat.
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================== REWARD ===================== -->
+    <div class="tabpanel" id="tabReward" hidden>
     <!-- Klaim aktif -->
     <section class="panel" id="claimPanel" hidden>
       <div class="panel-head"><h2>🎟️ Kode Klaim Anda</h2><span>tunjukkan ke kasir</span></div>
@@ -188,12 +267,43 @@
       <div style="display:flex; flex-direction:column; gap:9px;" id="rewardList"></div>
     </section>
 
-    <!-- Riwayat -->
-    <section class="panel">
-      <div class="panel-head"><h2>✂️ Riwayat Kunjungan</h2><span id="histCount"></span></div>
-      <div id="histList"></div>
-    </section>
+    </div><!-- /tabReward -->
+
+    <!-- ===================== PRODUCT ===================== -->
+    <div class="tabpanel" id="tabProduct" hidden>
+      <section class="panel">
+        <div class="panel-head"><h2>🧴 Produk Grooming</h2><span id="prodCount"></span></div>
+        <div style="display:flex; flex-direction:column; gap:9px;" id="prodList">
+          <div class="empty">Memuat katalog…</div>
+        </div>
+        <div style="font-size:11.5px; color:var(--fg-dim); line-height:1.55; border-top:1px solid var(--line-soft); padding-top:11px;">
+          Produk dibeli langsung di outlet. Tanyakan ke kasir saat Anda datang.
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================== STORE ===================== -->
+    <div class="tabpanel" id="tabStore" hidden>
+      <section class="panel">
+        <div class="panel-head"><h2>📍 Lokasi Outlet</h2><span id="outletCount"></span></div>
+        <div style="display:flex; flex-direction:column; gap:11px;" id="outletList">
+          <div class="empty">Memuat lokasi…</div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>💈 Capster Bertugas</h2><span id="capCount"></span></div>
+        <div class="cap-chips" id="capList"></div>
+      </section>
+    </div>
   </main>
+
+  <nav class="tabbar" id="tabbar">
+    <button class="tabbtn is-on" data-tab="tabHome"><span class="ic">🏠</span><span class="lb">Home</span></button>
+    <button class="tabbtn" data-tab="tabReward"><span class="ic">🎁</span><span class="lb">Reward</span></button>
+    <button class="tabbtn is-qr" data-tab="tabQR"><span class="ic">▣</span><span class="lb">Scan</span></button>
+    <button class="tabbtn" data-tab="tabProduct"><span class="ic">🧴</span><span class="lb">Product</span></button>
+    <button class="tabbtn" data-tab="tabStore"><span class="ic">📍</span><span class="lb">Store</span></button>
+  </nav>
 
   <div class="toast" id="toast"></div>
 
@@ -353,6 +463,107 @@
       const c = Array.isArray(data) ? data[0] : data;
       toast(`Berhasil! Kode klaim ${c.claim_code} — tunjukkan ke kasir.`);
       await muat();
+    });
+
+    /* -------------------------------------------------------------------------
+       TAB
+
+       Katalog produk dan lokasi outlet dimuat sekali saat tabnya pertama
+       dibuka, bukan di awal. Kartu dipakai dari ponsel pelanggan dengan kuota
+       terbatas; tidak ada gunanya menarik dua daftar yang mungkin tidak
+       pernah dilihat.
+       ------------------------------------------------------------------------- */
+
+    const sudahDimuat = { tabProduct: false, tabStore: false };
+
+    function meter(label, nilai) {
+      if (nilai == null) return '';
+      const dots = Array.from({ length: 5 }, (_, i) =>
+        `<span class="meter-dot ${i < nilai ? 'on' : ''}"></span>`).join('');
+      return `<div class="meter"><span class="meter-lb">${label}</span><span class="meter-dots">${dots}</span></div>`;
+    }
+
+    async function muatProduk() {
+      const wrap = $('prodList');
+      const { data, error } = await sb.rpc('member_products');
+      if (error) {
+        wrap.innerHTML = `<div class="empty" style="color:var(--clay);">Gagal memuat katalog: ${esc(error.message)}</div>`;
+        return;
+      }
+      const rows = data || [];
+      $('prodCount').textContent = rows.length ? rows.length + ' produk' : '';
+      if (!rows.length) { wrap.innerHTML = '<div class="empty">Belum ada produk terdaftar.</div>'; return; }
+      wrap.innerHTML = rows.map(p => `
+        <div class="prod">
+          <div class="prod-main">
+            <div class="prod-name">${esc(p.name)}</div>
+            ${p.description ? `<div class="prod-desc">${esc(p.description)}</div>` : ''}
+            ${meter('Hold', p.hold_level)}
+            ${meter('Shine', p.shine_level)}
+            <div class="prod-price">${rupiah(p.price)}</div>
+          </div>
+        </div>`).join('');
+      sudahDimuat.tabProduct = true;
+    }
+
+    async function muatOutlet() {
+      const wrap = $('outletList');
+      const [outletRes, capRes] = await Promise.all([
+        sb.rpc('member_outlets'),
+        sb.rpc('member_capsters')
+      ]);
+      if (outletRes.error) {
+        wrap.innerHTML = `<div class="empty" style="color:var(--clay);">Gagal memuat lokasi: ${esc(outletRes.error.message)}</div>`;
+        return;
+      }
+      const rows = outletRes.data || [];
+      $('outletCount').textContent = rows.length ? rows.length + ' outlet' : '';
+      if (!rows.length) {
+        wrap.innerHTML = '<div class="empty">Belum ada outlet terdaftar.</div>';
+      } else {
+        wrap.innerHTML = rows.map(o => {
+          const maps = (o.latitude != null && o.longitude != null)
+            ? `https://www.google.com/maps/search/?api=1&query=${o.latitude},${o.longitude}`
+            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.name + ' ' + (o.address || ''))}`;
+          return `
+          <div class="outlet">
+            <div class="outlet-top">
+              <div>
+                <div class="outlet-name">${esc(o.name)}</div>
+                <div class="outlet-addr">${esc(o.address || 'Alamat belum diisi')}</div>
+              </div>
+              <span class="open-pill ${o.sedang_buka ? 'buka' : 'tutup'}">${o.sedang_buka ? 'Buka' : 'Tutup'}</span>
+            </div>
+            <div style="font-family:var(--mono); font-size:11.5px; color:var(--fg-dim);">
+              ${String(o.open_time).slice(0,5)}–${String(o.close_time).slice(0,5)} &middot; ${esc(o.catatan)}
+            </div>
+            <div class="outlet-acts">
+              <a class="primary" href="${maps}" target="_blank" rel="noopener">🗺️ Petunjuk Arah</a>
+              ${o.phone ? `<a href="https://wa.me/${esc(o.phone)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      const caps = capRes.data || [];
+      $('capCount').textContent = caps.length ? caps.length + ' orang' : '';
+      $('capList').innerHTML = caps.length
+        ? caps.map(c => `<span class="cap-chip">${esc(c.name)}</span>`).join('')
+        : '<div class="empty">Belum ada capster terdaftar.</div>';
+      sudahDimuat.tabStore = true;
+    }
+
+    function bukaTab(id) {
+      document.querySelectorAll('.tabpanel').forEach(el => { el.hidden = el.id !== id; });
+      document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('is-on', b.dataset.tab === id));
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      if (id === 'tabProduct' && !sudahDimuat.tabProduct) muatProduk().catch(() => {});
+      if (id === 'tabStore'   && !sudahDimuat.tabStore)   muatOutlet().catch(() => {});
+    }
+
+    document.getElementById('tabbar').addEventListener('click', (e) => {
+      const btn = e.target.closest('.tabbtn');
+      if (btn) bukaTab(btn.dataset.tab);
     });
 
     async function muat() {
