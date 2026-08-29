@@ -1291,6 +1291,11 @@
        BARBER POS - PHASE 0 CORE LOGIC (ZERO DATA LOSS PERSISTENCE)
        ========================================================================= */
 
+    // Katalog produk retail — dijual berdampingan dengan layanan.
+    // Kasir tidak pernah menerima harga modalnya (lihat pos_products()).
+    let products = [];
+    const KATEGORI_PRODUK = 'Produk';
+
     // Kunci cache offline. Sumber kebenaran ada di Supabase; localStorage
     // hanya menyimpan salinan master data + antrean transaksi (lihat sb-app.js).
     const STORAGE_KEY_SERVICES = 'barber_services_v1';
@@ -1325,6 +1330,13 @@
       services = (svcRes.data || []).map(mapService);
       capsters = capRes.data || [];
 
+      // Produk dimuat terpisah lewat RPC agar harga modal tidak ikut terkirim
+      try {
+        const { data: prod } = await sb.rpc('pos_products');
+        products = prod || [];
+        localStorage.setItem('barber_products_v1', JSON.stringify(products));
+      } catch { products = []; }
+
       localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(services));
       localStorage.setItem(STORAGE_KEY_CAPSTERS, JSON.stringify(capsters));
     }
@@ -1334,7 +1346,8 @@
       try {
         services = JSON.parse(localStorage.getItem(STORAGE_KEY_SERVICES)) || [];
         capsters = JSON.parse(localStorage.getItem(STORAGE_KEY_CAPSTERS)) || [];
-      } catch { services = []; capsters = []; }
+        products = JSON.parse(localStorage.getItem('barber_products_v1')) || [];
+      } catch { services = []; capsters = []; products = []; }
     }
 
     function persistCache() {
@@ -1422,19 +1435,27 @@
       const container = document.getElementById('servicesContainer');
       container.innerHTML = '';
 
-      // Layanan nonaktif tidak boleh muncul di katalog kasir
+      // Kategori Produk menampilkan katalog retail, bukan layanan.
+      // Keduanya masuk keranjang yang sama, dibedakan oleh item_type.
       const active = services.filter(s => s.is_active !== false);
-      const filtered = filterCat === 'ALL'
-        ? active
-        : active.filter(s => (s.category || '').toLowerCase() === filterCat.toLowerCase());
+      const filtered = filterCat === KATEGORI_PRODUK
+        ? products.map(p => ({
+            id: p.id, product_id: p.id, name: p.name, category: p.category,
+            price: Number(p.price), duration: null, item_type: 'produk'
+          }))
+        : filterCat === 'ALL'
+          ? active
+          : active.filter(s => (s.category || '').toLowerCase() === filterCat.toLowerCase());
 
       if (filtered.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'svc-empty';
         empty.style.gridColumn = '1 / -1';
-        empty.textContent = services.length === 0
-          ? 'Belum ada layanan. Buka ⚙️ Pengaturan untuk menambahkan.'
-          : 'Tidak ada layanan aktif pada kategori ini.';
+        empty.textContent = filterCat === KATEGORI_PRODUK
+          ? 'Belum ada produk retail terdaftar.'
+          : services.length === 0
+            ? 'Belum ada layanan. Buka ⚙️ Pengaturan untuk menambahkan.'
+            : 'Tidak ada layanan aktif pada kategori ini.';
         container.appendChild(empty);
         return;
       }
@@ -1447,7 +1468,7 @@
           <div class="check-indicator">✓</div>
           <div class="service-head">
             <span class="service-name">${escapeHtml(s.name)}</span>
-            <span class="service-dur">${s.duration} mnt</span>
+            <span class="service-dur">${s.item_type === 'produk' ? 'produk' : s.duration + ' mnt'}</span>
           </div>
           <div class="service-price">${formatRupiah(s.price)}</div>
         `;
@@ -1481,13 +1502,23 @@
         if (c && !cats.some(x => x.toLowerCase() === c.toLowerCase())) cats.push(c);
       });
 
-      // Filter aktif ikut hilang bila kategorinya sudah tidak ada
-      if (currentFilterCat !== 'ALL' && !cats.some(c => c.toLowerCase() === currentFilterCat.toLowerCase())) {
+      // Filter aktif ikut hilang bila kategorinya sudah tidak ada.
+      // KATEGORI_PRODUK bukan kategori layanan, jadi harus dikecualikan —
+      // tanpa ini pilihan Produk langsung terlempar kembali ke Semua.
+      if (currentFilterCat !== 'ALL' &&
+          currentFilterCat !== KATEGORI_PRODUK &&
+          !cats.some(c => c.toLowerCase() === currentFilterCat.toLowerCase())) {
         currentFilterCat = 'ALL';
       }
+      if (currentFilterCat === KATEGORI_PRODUK && !products.length) currentFilterCat = 'ALL';
 
-      container.innerHTML = [{ cat: 'ALL', label: 'Semua' }]
-        .concat(cats.map(c => ({ cat: c, label: c })))
+      const daftar = [{ cat: 'ALL', label: 'Semua' }]
+        .concat(cats.map(c => ({ cat: c, label: c })));
+      // Produk retail diletakkan di ujung agar tidak menggeser kebiasaan
+      // kasir yang sehari-hari memilih layanan lebih dulu.
+      if (products.length) daftar.push({ cat: KATEGORI_PRODUK, label: '🧴 Produk' });
+
+      container.innerHTML = daftar
         .map(o => `<div class="cat-pill ${o.cat === currentFilterCat ? 'active' : ''}" data-cat="${escapeHtml(o.cat)}">${escapeHtml(o.label)}</div>`)
         .join('');
     }
@@ -1850,7 +1881,10 @@
         p_capster_name: selectedCapster.name,
         p_cashier_id: kasirAktif.id,
         p_items: selectedServices.map(s => ({
-          service_id: s.id, name: s.name, category: s.category, price: s.price
+          item_type: s.item_type || 'layanan',
+          service_id: s.item_type === 'produk' ? null : s.id,
+          product_id: s.item_type === 'produk' ? s.id : null,
+          name: s.name, category: s.category, price: s.price
         })),
         p_subtotal: subtotal,
         p_final_amount: totalAmount,
