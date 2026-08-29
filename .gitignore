@@ -3,3 +3,6 @@
 
 # PIN kasir tidak pernah boleh masuk repositori
 pin_kasir.txt
+
+# Kredensial tidak masuk repositori
+KREDENSIAL.md
