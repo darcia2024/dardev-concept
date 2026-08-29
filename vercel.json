@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/masuk.html"
+    },
+    {
+      "source": "/perencanaan",
+      "destination": "/perencanaan.html"
+    },
+    {
+      "source": "/blueprint",
+      "destination": "/perencanaan.html"
+    },
+    {
       "source": "/finalpenawaran",
       "destination": "/finalpenawaran.html"
     },
