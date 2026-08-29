@@ -689,6 +689,51 @@
       </div>
     </div>
 
+    <!-- Daftar member -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Data Member</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Menghapus member tidak menghapus omzetnya &mdash; transaksinya tetap tercatat
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="memberTable">
+          <thead>
+            <tr>
+              <th>Nama</th><th>WhatsApp</th><th>Tier</th><th>Poin</th>
+              <th>Kunjungan</th><th style="text-align:right;">Total Belanja</th>
+              <th>Transaksi</th><th>Terakhir</th><th style="width:44px;"></th>
+            </tr>
+          </thead>
+          <tbody id="memberTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Arsip member terhapus -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Member yang Dihapus</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Transaksinya tetap ada di laporan, hanya keanggotaannya yang dilepas
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="arsipMemberTable">
+          <thead>
+            <tr><th>Dihapus</th><th>Nama</th><th>WhatsApp</th><th>Poin Saat Dihapus</th>
+                <th>Transaksi Dilepas</th><th>Alasan</th></tr>
+          </thead>
+          <tbody id="arsipMemberBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Catatan absensi satu per satu, supaya bisa dihapus per baris -->
     <div class="table-panel">
       <div class="table-controls">
@@ -969,6 +1014,8 @@
       await muatKelolaAkun();
       await muatAbsenBaris();
       await muatArsipAbsen();
+      await muatMember();
+      await muatArsipMember();
       await loadCuti();
     }
 
@@ -1489,6 +1536,96 @@
           + '<td>' + escapeHtml(r.cashier_name || '-') + '</td>'
           + '<td style="font-size:12.5px; color:var(--fg-dim);">' + escapeHtml(r.alasan || '—') + '</td>'
           + '<td style="font-family:var(--mono); text-align:right;">' + formatRupiah(r.final_amount) + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       DATA MEMBER
+
+       Menghapus member sengaja TIDAK menghapus transaksinya. Uangnya benar-benar
+       masuk dan notanya benar-benar terbit; yang dilepas hanya keanggotaannya.
+       Nama dan nomor sudah tersimpan pada baris transaksi itu sendiri, jadi
+       laporan omzet bulan yang sudah lewat tidak berubah hanya karena seorang
+       member dihapus hari ini.
+       ═══════════════════════════════════════════════════════════════════════ */
+    async function muatMember() {
+      const tb = document.getElementById('memberTableBody');
+      const { data, error } = await sb.rpc('owner_members_list', { p_limit: 200 });
+      if (error) {
+        tb.innerHTML = '<tr><td colspan="9" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
+        return;
+      }
+      const rows = data || [];
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="9" class="empty-row">Belum ada member.</td></tr>';
+        return;
+      }
+      tb.innerHTML = rows.map(function (m) {
+        return '<tr>'
+          + '<td><strong>' + escapeHtml(m.name || '-') + '</strong></td>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(m.phone_wa || '-') + '</td>'
+          + '<td>' + escapeHtml(m.tier || '-') + '</td>'
+          + '<td style="font-family:var(--mono);">' + (m.points_balance || 0) + '</td>'
+          + '<td style="font-family:var(--mono);">' + (m.visit_count || 0) + '</td>'
+          + '<td style="font-family:var(--mono); text-align:right;">' + formatRupiah(m.total_spend || 0) + '</td>'
+          + '<td style="font-family:var(--mono);">' + (m.jumlah_transaksi || 0) + '</td>'
+          + '<td style="font-family:var(--mono); font-size:12px; color:var(--fg-dim);">' + (m.terakhir || '—') + '</td>'
+          + '<td><button class="btn-hapus" data-hapus-member="' + m.member_id + '" '
+          + 'data-nama="' + escapeHtml(m.name || '') + '" data-tx="' + (m.jumlah_transaksi || 0) + '" '
+          + 'title="Hapus member ini">&#215;</button></td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    document.getElementById('memberTableBody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-hapus-member]');
+      if (!btn) return;
+
+      const nama = btn.dataset.nama || '(tanpa nama)';
+      const jml = Number(btn.dataset.tx || 0);
+      // Jumlah transaksinya disebut di konfirmasi supaya owner tahu persis apa
+      // yang terputus — dan apa yang justru TIDAK ikut hilang.
+      if (!confirm('Hapus member ' + nama + '?\n\n'
+        + (jml ? jml + ' transaksinya TETAP tercatat di laporan omzet, hanya dilepas dari keanggotaan.\n\n' : '')
+        + 'Poin, riwayat poin, dan kode reward miliknya akan hilang. Tindakan ini tidak bisa dibatalkan.')) return;
+      const alasan = prompt('Alasan penghapusan (tersimpan di arsip):', 'Data testing');
+      if (alasan === null) return;
+
+      btn.disabled = true;
+      const { data, error } = await sb.rpc('delete_member', { p_member_id: btn.dataset.hapusMember, p_alasan: alasan });
+      btn.disabled = false;
+      if (error) { alert('Gagal menghapus: ' + error.message); return; }
+
+      const r = Array.isArray(data) ? data[0] : data;
+      alert('Member ' + nama + ' dihapus.'
+        + (r && Number(r.transaksi_dilepas) ? '\n\n' + r.transaksi_dilepas + ' transaksi tetap ada di laporan.' : ''));
+
+      await muatMember();
+      await muatArsipMember();
+      await loadData();
+    });
+
+    async function muatArsipMember() {
+      const tb = document.getElementById('arsipMemberBody');
+      const { data, error } = await sb.rpc('deleted_members_list', { p_limit: 50 });
+      if (error) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">Gagal memuat arsip: ' + escapeHtml(error.message) + '</td></tr>';
+        return;
+      }
+      const rows = data || [];
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">Belum ada member yang dihapus.</td></tr>';
+        return;
+      }
+      tb.innerHTML = rows.map(function (r) {
+        return '<tr>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + new Date(r.dihapus_pada).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) + '</td>'
+          + '<td>' + escapeHtml(r.name || '-') + '</td>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(r.phone_wa || '-') + '</td>'
+          + '<td style="font-family:var(--mono);">' + (r.points_balance || 0) + '</td>'
+          + '<td style="font-family:var(--mono);">' + (r.jumlah_transaksi || 0) + '</td>'
+          + '<td style="font-size:12.5px; color:var(--fg-dim);">' + escapeHtml(r.alasan || '—') + '</td>'
           + '</tr>';
       }).join('');
     }
