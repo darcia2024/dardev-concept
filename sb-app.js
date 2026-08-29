@@ -230,6 +230,12 @@ const SB_PIN_CSS = `
   }
   .sb-pin-key:active { background: var(--brand, #BE0000); color: #fff; border-color: var(--brand, #BE0000); }
   .sb-pin-key.is-muted { font-size: 15px; color: var(--text-dim, #767D87); }
+  /* OK menyala begitu panjang PIN mencukupi. Tanpa penanda ini kasir tidak
+     punya isyarat kapan ketikannya sudah boleh dikirim, karena panjang PIN
+     tidak seragam antar-kasir. */
+  .sb-pin-key.is-siap {
+    color: #fff; background: var(--brand, #BE0000); border-color: var(--brand, #BE0000);
+  }
   .sb-pin-err {
     font-size: 13px; color: var(--brand, #BE0000); text-align: center;
     min-height: 18px; line-height: 1.4;
@@ -300,6 +306,8 @@ async function sbRequirePin(paksa) {
     const n = Math.max(4, buffer.length);
     dotsEl.innerHTML = Array.from({ length: n }, (_, i) =>
       `<div class="sb-pin-dot${i < buffer.length ? ' is-filled' : ''}"></div>`).join('');
+    const okBtn = padEl.querySelector('[data-key="ok"]');
+    if (okBtn) okBtn.classList.toggle('is-siap', buffer.length >= 4);
   };
   paint();
   backdrop.classList.add('is-open');
@@ -344,7 +352,17 @@ async function sbRequirePin(paksa) {
       else if (k === 'ok') return kirim();
       else if (buffer.length < 8) buffer += k;
       paint();
-      if (buffer.length === 4) kirim();   // PIN 4 digit langsung dikirim
+      // Dulu baris ini mengirim begitu buffer mencapai 4 digit. Itu benar
+      // selama seluruh PIN 4 digit, dan diam-diam rusak begitu ada PIN yang
+      // lebih panjang: ketikan terkirim di digit keempat, ditolak, lalu
+      // buffer dikosongkan — digit kelima tidak pernah sempat masuk, dan
+      // PIN yang benar pun mustahil diketik. Tiap tembakan itu juga
+      // menambah hitungan gagal, sehingga lima kali mencoba mengunci
+      // perangkat 60 detik. Panjang PIN tidak seragam (upsert_cashier
+      // menerima 4 sampai 8 digit) sehingga pad tidak dapat menebaknya;
+      // pengiriman kini menunggu OK, kecuali pada 8 digit yang memang
+      // tidak menyisakan kemungkinan ketikan lain.
+      if (buffer.length === 8) kirim();
     };
 
     const onPad = (e) => {
