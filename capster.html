@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#08090b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Kinerja Saya &mdash; Capster</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --ink:          #08090b;
+      --ink-raised:   #0f1217;
+      --ink-card:     #14171d;
+      --ink-inset:    #0b0d11;
+      --line:         #242832;
+      --line-soft:    #191c23;
+      --fg:           #f2f3f5;
+      --fg-mid:       #a9afba;
+      --fg-dim:       #757c8a;
+      --brass:        #c9a26a;
+      --brass-deep:   #8d7047;
+      --brass-wash:   rgba(201, 162, 106, 0.12);
+      --sage:         #7fae8c;
+      --clay:         #c9756a;
+      --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono: 'Space Grotesk', monospace;
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--ink);
+      color: var(--fg);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.5;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--ink-raised);
+      border-bottom: 1px solid var(--line);
+      padding: 13px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    .who { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .avatar {
+      width: 38px; height: 38px; flex: none;
+      background: var(--brass); color: var(--ink);
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-family: var(--mono); font-weight: 800; font-size: 15px;
+    }
+    .who-text { min-width: 0; }
+    .who-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
+    .who-role {
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--fg-dim);
+    }
+    .btn {
+      background: var(--ink-card); border: 1px solid var(--line);
+      color: var(--fg); padding: 7px 12px; border-radius: var(--r-sm);
+      font-size: 12.5px; font-weight: 600; font-family: inherit;
+      cursor: pointer; white-space: nowrap;
+    }
+    .btn:hover { border-color: var(--brass); color: var(--brass); }
+
+    main {
+      flex: 1; width: 100%; max-width: 720px; margin: 0 auto;
+      padding: 18px; display: flex; flex-direction: column; gap: 16px;
+    }
+    main > * { min-width: 0; }
+
+    .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .kpi {
+      background: var(--ink-card); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 16px;
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .kpi.is-lead {
+      border-color: var(--brass-deep);
+      background: linear-gradient(135deg, var(--brass-wash), var(--ink-card) 62%);
+    }
+    .kpi-label {
+      font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--fg-dim);
+    }
+    .kpi-val { font-family: var(--mono); font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+    .kpi.is-lead .kpi-val { color: var(--brass); }
+    .kpi-sub { font-size: 11.5px; color: var(--fg-dim); }
+
+    .card {
+      background: var(--ink-card); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 16px;
+      display: flex; flex-direction: column; gap: 13px;
+    }
+    .card-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 10px; border-bottom: 1px solid var(--line-soft); padding-bottom: 10px;
+    }
+    .card-head h2 { font-size: 14.5px; font-weight: 700; }
+    .card-head span { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); }
+
+    .rows { display: flex; flex-direction: column; gap: 7px; }
+    .row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--ink-inset); border: 1px solid var(--line-soft);
+      border-radius: var(--r-sm); padding: 11px 13px;
+    }
+    .row-time {
+      font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+      flex: none; width: 46px;
+    }
+    .row-main { flex: 1; min-width: 0; }
+    .row-name { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+    .row-inv { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); }
+    .row-amt { font-family: var(--mono); font-size: 13.5px; font-weight: 700; flex: none; }
+
+    /* Grafik batang sederhana untuk tren harian */
+    .bars { display: flex; flex-direction: column; gap: 8px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-day {
+      font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+      flex: none; width: 52px;
+    }
+    .bar-track { flex: 1; height: 20px; background: var(--ink-inset); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--brass-deep); border-radius: 4px; min-width: 2px; }
+    .bar-val {
+      font-family: var(--mono); font-size: 11.5px; flex: none;
+      width: 76px; text-align: right; color: var(--fg-mid);
+    }
+
+    .empty { text-align: center; color: var(--fg-dim); font-size: 13px; padding: 22px 10px; line-height: 1.55; }
+
+    .note {
+      font-size: 11.5px; color: var(--fg-dim); line-height: 1.55;
+      border-top: 1px solid var(--line-soft); padding-top: 11px;
+    }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 380px) {
+      .kpi-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="who">
+      <div class="avatar" id="avatar">–</div>
+      <div class="who-text">
+        <div class="who-name" id="capsterName">Memuat…</div>
+        <div class="who-role">Capster &middot; <span id="todayLabel"></span></div>
+      </div>
+    </div>
+    <button class="btn" id="btnSignOut">Keluar</button>
+  </header>
+
+  <main id="mainArea" hidden>
+    <div class="kpi-row">
+      <div class="kpi is-lead">
+        <div class="kpi-label">Pelanggan Hari Ini</div>
+        <div class="kpi-val" id="kpiHeads">0</div>
+        <div class="kpi-sub" id="kpiServices">0 layanan dikerjakan</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Kontribusi Omzet</div>
+        <div class="kpi-val" id="kpiRevenue">Rp 0</div>
+        <div class="kpi-sub">Dari layanan yang Anda kerjakan</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>✂️ Layanan Hari Ini</h2>
+        <span id="lblServiceCount"></span>
+      </div>
+      <div class="rows" id="serviceRows"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>📈 30 Hari Terakhir</h2>
+        <span id="lblMonthTotal"></span>
+      </div>
+      <div class="bars" id="dailyBars"></div>
+      <div class="note">
+        Angka di halaman ini hanya milik Anda. Bila ada pelanggan yang Anda layani
+        tetapi tidak muncul di sini, beri tahu kasir &mdash; kemungkinan transaksinya
+        tercatat atas nama capster lain.
+      </div>
+    </div>
+  </main>
+
+  <div class="empty" id="blockedArea" hidden></div>
+
+  <script src="vendor/supabase.js"></script>
+  <script src="sb-app.js"></script>
+
+  <script>
+    /* =========================================================================
+       HALAMAN CAPSTER — "Kinerja Saya"
+
+       Seluruh data diambil lewat RPC yang menyaring berdasarkan auth.uid()
+       di server (my_capster_daily, my_capster_services). Halaman ini tidak
+       pernah menerima angka capster lain maupun omzet outlet, dan tidak
+       menampilkan nama atau nomor pelanggan — capster tidak membutuhkannya
+       untuk mengetahui kinerjanya, dan itu data pribadi orang lain.
+       ========================================================================= */
+
+    const $ = id => document.getElementById(id);
+
+    function rupiah(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function tampilkanDitolak(pesan) {
+      $('mainArea').hidden = true;
+      const el = $('blockedArea');
+      el.hidden = false;
+      el.innerHTML = pesan + '<br /><br /><a href="/masuk" style="color:var(--brass);">&larr; Kembali ke halaman masuk</a>';
+    }
+
+    function renderLayanan(rows) {
+      const wrap = $('serviceRows');
+      if (!rows.length) {
+        wrap.innerHTML = '<div class="empty">Belum ada layanan yang tercatat hari ini.</div>';
+        $('lblServiceCount').textContent = '';
+        return;
+      }
+      $('lblServiceCount').textContent = rows.length + ' layanan';
+      wrap.innerHTML = rows.map(r => `
+        <div class="row">
+          <div class="row-time">${new Date(r.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })}</div>
+          <div class="row-main">
+            <div class="row-name">${escapeHtml(r.service_name)}</div>
+            <div class="row-inv">${escapeHtml(r.invoice_no)}</div>
+          </div>
+          <div class="row-amt">${rupiah(r.price)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderHarian(rows) {
+      const wrap = $('dailyBars');
+      if (!rows.length) {
+        wrap.innerHTML = '<div class="empty">Belum ada riwayat pada 30 hari terakhir.</div>';
+        $('lblMonthTotal').textContent = '';
+        return;
+      }
+      const totalOmzet = rows.reduce((a, r) => a + Number(r.revenue), 0);
+      const totalKepala = rows.reduce((a, r) => a + Number(r.heads), 0);
+      $('lblMonthTotal').textContent = `${totalKepala} pelanggan · ${rupiah(totalOmzet)}`;
+
+      const maks = Math.max(...rows.map(r => Number(r.revenue)), 1);
+      wrap.innerHTML = rows.map(r => {
+        const nilai = Number(r.revenue);
+        const tgl = new Date(r.business_date + 'T00:00:00');
+        return `
+        <div class="bar-row">
+          <div class="bar-day">${tgl.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, (nilai / maks) * 100)}%"></div></div>
+          <div class="bar-val">${rupiah(nilai)}</div>
+        </div>`;
+      }).join('');
+    }
+
+    $('btnSignOut').addEventListener('click', async () => {
+      await sb.auth.signOut();
+      location.replace('/masuk');
+    });
+
+    (async function boot() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { location.replace('/masuk'); return; }
+
+      const { profile } = await sbLoadProfile(session.user);
+
+      // Pemeriksaan peran di klien hanya untuk memberi pesan yang jelas.
+      // Penjaga sesungguhnya ada di RPC dan RLS: akun non-capster tidak
+      // tertaut ke baris capsters mana pun, sehingga tidak mendapat data.
+      if (profile.role !== 'capster') {
+        tampilkanDitolak(`Halaman ini khusus capster. Akun Anda terdaftar sebagai <strong>${escapeHtml(profile.role)}</strong>.`);
+        return;
+      }
+
+      const { data: meRows, error: meErr } = await sb.rpc('me_capster');
+      const me = Array.isArray(meRows) ? meRows[0] : meRows;
+      if (meErr || !me) {
+        tampilkanDitolak('Akun Anda belum ditautkan ke data capster. Minta owner menautkannya.');
+        return;
+      }
+
+      $('capsterName').textContent = me.name;
+      $('avatar').textContent = me.name.charAt(0).toUpperCase();
+      $('todayLabel').textContent = new Date().toLocaleDateString('id-ID',
+        { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' });
+      $('mainArea').hidden = false;
+
+      async function muat() {
+        const [harianRes, layananRes] = await Promise.all([
+          sb.rpc('my_capster_daily'),
+          sb.rpc('my_capster_services')
+        ]);
+
+        // Kegagalan tidak boleh tampil sebagai angka nol — capster akan
+        // mengira dirinya tidak melayani siapa pun, padahal datanya gagal dimuat.
+        if (harianRes.error || layananRes.error) {
+          const pesan = (harianRes.error || layananRes.error).message;
+          $('kpiHeads').textContent = '—';
+          $('kpiRevenue').textContent = '—';
+          $('kpiServices').textContent = 'gagal dimuat';
+          $('serviceRows').innerHTML =
+            '<div class="empty" style="color:var(--clay);">Gagal memuat data: ' +
+            escapeHtml(pesan) + '<br />Coba muat ulang halaman.</div>';
+          return;
+        }
+
+        const harian = harianRes.data || [];
+        const layanan = layananRes.data || [];
+
+        const hariIni = sbJakartaToday();
+        const b = harian.find(r => r.business_date === hariIni);
+        $('kpiHeads').textContent = b ? b.heads : 0;
+        $('kpiServices').textContent = (b ? b.services_done : 0) + ' layanan dikerjakan';
+        $('kpiRevenue').textContent = rupiah(b ? b.revenue : 0);
+
+        renderLayanan(layanan);
+        renderHarian(harian);
+      }
+
+      await muat();
+
+      // Transaksi masuk dari perangkat kasir, bukan dari halaman ini
+      setInterval(() => { if (SBConn.online) muat(); }, 60000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && SBConn.online) muat();
+      });
+    })();
+  </script>
+</body>
+</html>
