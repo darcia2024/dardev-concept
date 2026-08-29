@@ -374,8 +374,12 @@
       if (aturanKerja) {
         $('jamKerja').textContent = String(aturanKerja.jam_masuk).slice(0,5)
           + '–' + String(aturanKerja.jam_pulang).slice(0,5);
-        $('absenNote').textContent = 'Absen hanya diterima dalam radius '
-          + aturanKerja.radius_absen_m + ' meter dari outlet, dengan foto selfie. '
+        // Keterangan mengikuti aturan yang sedang berlaku. Menyebut radius
+        // padahal pengecekannya dimatikan membuat layar ini berbohong, dan
+        // capster akan mengira absennya gagal karena posisi.
+        $('absenNote').textContent = (aturanKerja.wajib_lokasi
+            ? 'Absen hanya diterima dalam radius ' + aturanKerja.radius_absen_m + ' meter dari outlet, dengan foto selfie. '
+            : 'Absen memerlukan foto selfie. Pengecekan lokasi sedang dimatikan. ')
           + 'Waktu diambil dari server.';
       }
 
@@ -469,11 +473,19 @@
           return;
         }
 
-        btn.textContent = 'Membaca lokasi…';
-        const loc = await ambilLokasi();
-        if (aksi === 'in' && !loc) {
-          alert('Lokasi tidak terbaca. Izinkan akses lokasi di browser lalu coba lagi.');
-          return;
+        // Lokasi hanya diminta bila aturannya memang menuntut. Sebelumnya
+        // gerbang ini ditanam di kode, sehingga mematikan wajib_lokasi di
+        // basis data tidak berpengaruh apa pun: server sudah menerima, tetapi
+        // halaman ini menolak duluan dan server tidak pernah dipanggil.
+        const perluLokasi = !aturanKerja || aturanKerja.wajib_lokasi !== false;
+        let loc = null;
+        if (perluLokasi) {
+          btn.textContent = 'Membaca lokasi…';
+          loc = await ambilLokasi();
+          if (aksi === 'in' && !loc) {
+            alert('Lokasi tidak terbaca. Izinkan akses lokasi di browser lalu coba lagi.');
+            return;
+          }
         }
 
         btn.textContent = 'Mengunggah foto…';
@@ -481,7 +493,7 @@
 
         btn.textContent = 'Menyimpan…';
         const res = aksi === 'in'
-          ? await sb.rpc('clock_in',  { p_selfie_url: path, p_lat: loc.lat, p_lng: loc.lng })
+          ? await sb.rpc('clock_in',  { p_selfie_url: path, p_lat: loc ? loc.lat : null, p_lng: loc ? loc.lng : null })
           : await sb.rpc('clock_out', { p_selfie_url: path, p_lat: loc ? loc.lat : null, p_lng: loc ? loc.lng : null });
 
         if (res.error) { alert(res.error.message); return; }
@@ -558,6 +570,14 @@
     async function muatAbsenDanCuti() {
       if (!aturanKerja) {
         const r = await sb.from('work_rules').select('*').maybeSingle();
+        // Kegagalan di sini tidak boleh diam. Aturan kerja yang menentukan
+        // apakah lokasi diwajibkan; bila gagal dimuat, halaman jatuh ke
+        // "wajib lokasi" demi aman — dan capster akan terhalang tanpa tahu
+        // sebabnya kalau tidak ada yang memberi tahu.
+        if (r.error) {
+          $('absenNote').textContent = 'Aturan kerja gagal dimuat (' + r.error.message
+            + '). Absen tetap bisa dicoba, tetapi lokasi akan diminta.';
+        }
         aturanKerja = r.data || null;
       }
       await Promise.all([muatAbsen(), muatCuti()]);
