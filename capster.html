@@ -241,6 +241,9 @@
           <div class="absen-sub" id="absenSub"></div>
         </div>
       </div>
+      <!-- capture="user" membuka kamera depan langsung di ponsel;
+           di laptop ia jatuh kembali menjadi pemilih berkas biasa. -->
+      <input type="file" id="inpSelfie" accept="image/*" capture="user" hidden />
       <button class="btn-absen" id="btnAbsen" disabled>Memuat…</button>
       <div class="absen-note" id="absenNote"></div>
     </div>
@@ -322,6 +325,7 @@
        ------------------------------------------------------------------------- */
 
     let aturanKerja = null;
+    let meCapster = null;
 
     function jamWIB(iso) {
       return new Date(iso).toLocaleTimeString('id-ID',
@@ -379,32 +383,96 @@
       }
     }
 
+    /** Minta satu foto dari kamera. Mengembalikan File, atau null bila batal. */
+    function mintaSelfie() {
+      return new Promise(function (resolve) {
+        const inp = $('inpSelfie');
+        inp.value = '';
+        // Bila pengguna menutup kamera tanpa memotret, tidak ada event apa pun.
+        // Fokus yang kembali ke halaman dipakai untuk melepas penantian.
+        let selesai = false;
+        function onChange() {
+          if (selesai) return;
+          selesai = true;
+          cleanup();
+          resolve(inp.files && inp.files[0] ? inp.files[0] : null);
+        }
+        function onFocus() {
+          setTimeout(function () {
+            if (selesai) return;
+            if (!inp.files || !inp.files.length) { selesai = true; cleanup(); resolve(null); }
+          }, 900);
+        }
+        function cleanup() {
+          inp.removeEventListener('change', onChange);
+          window.removeEventListener('focus', onFocus);
+        }
+        inp.addEventListener('change', onChange);
+        window.addEventListener('focus', onFocus);
+        inp.click();
+      });
+    }
+
+    /** Unggah selfie ke bucket privat. Jalur diawali id capster — kebijakan
+        Storage menolak unggahan ke folder milik orang lain. */
+    async function unggahSelfie(file, aksi) {
+      const ext = (file.type === 'image/png') ? 'png'
+                : (file.type === 'image/webp') ? 'webp' : 'jpg';
+      const path = meCapster.id + '/' + sbJakartaToday() + '-' + aksi + '.' + ext;
+      const res = await sb.storage.from('absensi').upload(path, file, {
+        contentType: file.type || 'image/jpeg',
+        upsert: false          // foto absensi tidak boleh ditimpa
+      });
+      if (res.error) throw res.error;
+      return path;
+    }
+
     $('btnAbsen').addEventListener('click', async function () {
       const btn = $('btnAbsen');
       const aksi = btn.dataset.aksi;
       if (!aksi) return;
 
       const label = btn.textContent;
-      btn.disabled = true; btn.textContent = 'Membaca lokasi…';
-      const loc = await ambilLokasi();
+      btn.disabled = true;
 
-      if (aksi === 'in' && !loc) {
-        btn.disabled = false; btn.textContent = label;
-        alert('Lokasi tidak terbaca. Izinkan akses lokasi di browser lalu coba lagi.');
-        return;
+      try {
+        btn.textContent = 'Membuka kamera…';
+        const foto = await mintaSelfie();
+        if (!foto) {
+          alert('Foto selfie wajib diambil sebelum absen.');
+          return;
+        }
+        if (foto.size > 3 * 1024 * 1024) {
+          alert('Ukuran foto melebihi 3 MB. Ambil ulang dengan resolusi lebih kecil.');
+          return;
+        }
+
+        btn.textContent = 'Membaca lokasi…';
+        const loc = await ambilLokasi();
+        if (aksi === 'in' && !loc) {
+          alert('Lokasi tidak terbaca. Izinkan akses lokasi di browser lalu coba lagi.');
+          return;
+        }
+
+        btn.textContent = 'Mengunggah foto…';
+        const path = await unggahSelfie(foto, aksi === 'in' ? 'masuk' : 'pulang');
+
+        btn.textContent = 'Menyimpan…';
+        const res = aksi === 'in'
+          ? await sb.rpc('clock_in',  { p_selfie_url: path, p_lat: loc.lat, p_lng: loc.lng })
+          : await sb.rpc('clock_out', { p_selfie_url: path, p_lat: loc ? loc.lat : null, p_lng: loc ? loc.lng : null });
+
+        if (res.error) { alert(res.error.message); return; }
+        await muatAbsen();
+      } catch (err) {
+        // Foto sudah terunggah tetapi absen gagal tersimpan tidak menjadi
+        // masalah: berkas yatim tidak dirujuk baris mana pun, dan menghapusnya
+        // memerlukan izin hapus yang sengaja tidak diberikan.
+        alert('Gagal absen: ' + (err.message || err));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
       }
-
-      // Selfie diwakili penanda; unggahan berkas menyusul bersama Storage.
-      const selfie = 'selfie/' + Date.now() + '.jpg';
-      btn.textContent = 'Menyimpan…';
-
-      const res = aksi === 'in'
-        ? await sb.rpc('clock_in',  { p_selfie_url: selfie, p_lat: loc.lat, p_lng: loc.lng })
-        : await sb.rpc('clock_out', { p_selfie_url: selfie, p_lat: loc ? loc.lat : null, p_lng: loc ? loc.lng : null });
-
-      btn.disabled = false; btn.textContent = label;
-      if (res.error) { alert(res.error.message); return; }
-      await muatAbsen();
     });
 
     function renderCuti(rows) {
@@ -543,6 +611,7 @@
         return;
       }
 
+      meCapster = me;          // dipakai sebagai awalan jalur unggah selfie
       $('capsterName').textContent = me.name;
       $('avatar').textContent = me.name.charAt(0).toUpperCase();
       $('todayLabel').textContent = new Date().toLocaleDateString('id-ID',
