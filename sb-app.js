@@ -98,7 +98,7 @@ const SB_LOGIN_CSS = `
   .sb-conn-pill.is-pending { color: var(--warn, #8A5A00); border-color: var(--warn, #8A5A00); }
 `;
 
-function sbInjectAuthUI(subtitle) {
+function sbInjectAuthUI(subtitle, judul) {
   const style = document.createElement('style');
   style.textContent = SB_LOGIN_CSS;
   document.head.appendChild(style);
@@ -111,7 +111,7 @@ function sbInjectAuthUI(subtitle) {
       <div class="sb-auth-brand">
         <img src="assets/logo.png" alt="Underrated Barbershop" class="sb-auth-logo" />
         <div>
-          <div class="sb-auth-title">Masuk untuk melanjutkan</div>
+          <div class="sb-auth-title">${judul}</div>
           <div class="sb-auth-sub">${subtitle}</div>
         </div>
       </div>
@@ -135,8 +135,17 @@ function sbInjectAuthUI(subtitle) {
  * Menahan halaman sampai pengguna terautentikasi.
  * Mengembalikan { user, profile } setelah login berhasil.
  */
-async function sbRequireAuth(subtitle) {
-  const backdrop = sbInjectAuthUI(subtitle || 'Sistem Kasir & Membership');
+/**
+ * Menahan halaman sampai perangkat terautentikasi.
+ * @param {string} subtitle - keterangan kecil di bawah judul
+ * @param {string} [judul]  - judul gerbang. Layar POS memakai kalimat yang
+ *   menyebut ini pendaftaran perangkat, bukan login harian: kasir sudah
+ *   diberi tahu bahwa mereka cukup memakai PIN, sehingga judul "Masuk untuk
+ *   melanjutkan" membuat mereka mengira sistemnya salah atau mereka salah
+ *   diberi tahu. Layar ini hanya muncul sekali per perangkat.
+ */
+async function sbRequireAuth(subtitle, judul) {
+  const backdrop = sbInjectAuthUI(subtitle || 'Sistem Kasir & Membership', judul || 'Masuk untuk melanjutkan');
   const form = document.getElementById('sbAuthForm');
   const errEl = document.getElementById('sbAuthErr');
   const btn = document.getElementById('sbAuthBtn');

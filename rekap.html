@@ -1325,7 +1325,7 @@
     document.getElementById('btnSignOut').addEventListener('click', sbSignOut);
 
     (async function boot() {
-      const { profile } = await sbRequireAuth('Dashboard Rekap Owner');
+      const { profile } = await sbRequireAuth('Khusus akun owner', 'Masuk ke Dashboard Owner');
 
       // Laporan omzet dan data pelanggan adalah wilayah owner. Perangkat kasir
       // ditolak di sini — dan RLS di database menolaknya lagi, sehingga
