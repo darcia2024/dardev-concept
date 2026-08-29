@@ -999,7 +999,18 @@
       font-variant-numeric: tabular-nums; letter-spacing: -.02em;
       color: var(--ok);
     }
-    .total-box { padding: 0; }
+    /* theme.css memberi .total-box dasar abu, garis tepi, dan padding 14px.
+       Override sebelumnya hanya menghapus paddingnya, sehingga kotaknya tetap
+       ada tetapi menjadi rapat — dan angka 34px dengan line-height 1.1 menyembul
+       melewati garis tepinya sendiri. Yang keliru bukan paddingnya melainkan
+       kotaknya: zona uang di bawahnya sudah punya permukaan sendiri, jadi kotak
+       di dalam kotak hanya menambah garis tanpa menambah arti. */
+    .total-box {
+      padding: 0;
+      background: none;
+      border: none;
+      border-radius: 0;
+    }
     .total-label {
       font-family: var(--sans); font-size: 13.5px; font-weight: var(--w-reg);
       text-transform: none; letter-spacing: 0; color: var(--text-mid);
@@ -1010,7 +1021,10 @@
       color: var(--text);            /* bukan merah: harga muncul puluhan kali dalam
                                         satu layar, dan mewarnainya merah menghapus
                                         arti merah sebagai peringatan */
-      line-height: 1.1;
+      /* 1.1 memotong terlalu rapat: pada Plus Jakarta Sans ukuran 34px, glif
+         angka menyembul keluar kotak barisnya sendiri. Tidak terdeteksi oleh
+         pemeriksaan kotak elemen, tetapi terlihat jelas oleh mata. */
+      line-height: 1.25;
     }
 
     .btn-submit-order {
@@ -1076,6 +1090,137 @@
       padding: 14px;
     }
     .redeem-box[hidden] { display: none; }
+
+    /* ==========================================================================
+       HEADER KASIR — hierarki, bukan deretan tombol seragam
+
+       Sebelumnya lima kendali tampil dengan bobot yang persis sama: Tutup Kas,
+       Pengaturan, Rekap Omzet, Lepas Perangkat, ditambah pil koneksi dan chip
+       kasir. Padahal frekuensi dan akibatnya jauh berbeda — Tutup Kas dipakai
+       sekali sehari, Lepas Perangkat sekali seumur perangkat dan melepas
+       pendaftarannya. Menyamakan tampilan keduanya berarti menyerahkan
+       pembedaannya sepenuhnya kepada ingatan kasir di jam sibuk.
+
+       Sekarang: identitas di kiri, status di tengah, tindakan di kanan dengan
+       tiga tingkat — chip kasir (paling sering ditekan), Tutup Kas (harian),
+       lalu kendali owner dan pelepasan perangkat yang sengaja diredam dan
+       dipisahkan garis.
+       ========================================================================== */
+    header.pos-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-soft);
+      padding: 0 20px;
+      min-height: 60px;
+      gap: 16px;
+      box-shadow: 0 1px 2px rgba(22,24,28,.03);
+    }
+
+    /* ---- Identitas ---- */
+    .brand-wrap { display: flex; align-items: center; gap: 13px; min-width: 0; }
+    .brandmark { height: 24px; }
+    .brand-titles { display: flex; align-items: center; }
+    .brand-titles .mode-tag {
+      font-family: var(--sans);
+      font-size: 12.5px;
+      font-weight: var(--w-med);
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--text-mid);
+      padding-left: 13px;
+      border-left: 1px solid var(--border);
+      gap: 0;
+    }
+    /* Titik hijau di sini kembar dengan titik pada indikator koneksi, dan yang
+       ini tidak menandakan apa pun — ia selalu hijau. Dua titik dalam satu
+       header membuat yang benar-benar berarti kehilangan bobotnya. */
+    .mode-tag::before { display: none; }
+
+    /* ---- Kelompok kanan ---- */
+    .header-nav-actions {
+      display: flex; align-items: center; gap: 8px; min-width: 0;
+    }
+
+    /* Status koneksi: kabar, bukan tombol. Tanpa kotak agar tidak ikut
+       mengundang ditekan — tidak ada yang bisa dilakukan padanya. */
+    .sb-conn-pill {
+      border: none !important;
+      background: transparent !important;
+      padding: 0 4px !important;
+      font-size: 12px;
+      letter-spacing: .04em;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .sb-conn-pill::before {
+      content: ""; width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor; flex: none;
+    }
+
+    /* Tingkat 1 — kasir bertugas. Paling sering ditekan (ganti shift) dan
+       satu-satunya yang menjawab "transaksi ini atas nama siapa". */
+    .sb-cashier-chip {
+      background: var(--surface-sunk) !important;
+      border: 1px solid var(--border) !important;
+      height: 38px; padding: 0 15px !important;
+      font-size: 13.5px !important;
+      border-radius: 99px !important;
+      gap: 8px;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .sb-cashier-chip:hover { border-color: var(--brand-line) !important; background: var(--surface) !important; }
+    .sb-cashier-chip .dot { width: 7px; height: 7px; }
+
+    /* Tingkat 2 — tindakan harian */
+    .btn-hdr {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      height: 38px; padding: 0 15px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: var(--w-med);
+      transition: border-color .15s ease, background .15s ease, color .15s ease;
+    }
+    .btn-hdr:hover { border-color: var(--text-dim); background: var(--surface-tint); }
+
+    /* Tingkat 3 — milik owner. Hadir seperlunya, tidak menuntut perhatian.
+       Bagi kasir keduanya memang tersembunyi. */
+    #btnOpenSettings, #lnkRekap {
+      background: transparent;
+      border-color: transparent;
+      color: var(--text-mid);
+    }
+    #btnOpenSettings:hover, #lnkRekap:hover {
+      background: var(--surface-sunk); border-color: transparent; color: var(--text);
+    }
+
+    /* Tingkat 4 — melepas pendaftaran perangkat. Sekali seumur perangkat, dan
+       akibatnya kasir tidak bisa berjualan sampai owner datang. Diberi garis
+       pemisah supaya tidak terbaca sebagai kelanjutan Tutup Kas, dan diredam
+       supaya tidak menarik jari yang sedang bergegas. */
+    #btnSignOut {
+      background: transparent;
+      border-color: transparent;
+      color: var(--text-dim);
+      font-weight: var(--w-reg);
+      margin-left: 6px;
+      position: relative;
+    }
+    #btnSignOut::before {
+      content: "";
+      position: absolute; left: -7px; top: 9px; bottom: 9px;
+      width: 1px; background: var(--border);
+    }
+    #btnSignOut:hover {
+      background: var(--brand-wash); border-color: transparent; color: var(--brand);
+    }
+
+    @media (max-width: 980px) {
+      header.pos-header { padding: 10px 14px; min-height: 0; }
+      .brand-titles .mode-tag { display: none; }
+      .header-nav-actions { gap: 6px; }
+      .btn-hdr { padding: 0 12px; font-size: 13px; }
+    }
+
   </style>
 </head>
 <body>
@@ -1085,7 +1230,7 @@
     <div class="brand-wrap">
       <img src="assets/logo.png" alt="Underrated Barbershop" class="brandmark" id="hdrOutletName" />
       <div class="brand-titles">
-        <div class="mode-tag">Kasir &middot; Mode Opening</div>
+        <div class="mode-tag">Kasir</div>
       </div>
     </div>
     <div class="header-nav-actions">
