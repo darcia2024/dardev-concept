@@ -46,10 +46,57 @@ Sistem Manajemen Membership Digital, Kasir POS & Loyalitas 5-Tier berbasis Web P
 
 ## 🛠️ Spesifikasi Arsitektur Teknologi
 
-* **Frontend:** Next.js (App Router) + Tailwind CSS (PWA Mobile-First)
-* **Database & Auth:** Supabase (PostgreSQL with Row Level Security & RBAC)
+* **Frontend:** HTML statis mobile-first (Fase 0). Library Supabase di-*host* sendiri di `vendor/`, bukan CDN, agar kasir tetap jalan bila jaringan luar terganggu.
+* **Database & Auth:** Supabase (PostgreSQL 17) — Row Level Security aktif di seluruh tabel, akses anonim ditolak penuh.
 * **Hosting:** Vercel Global Edge Network
-* **Keamanan:** UUID anti-double spend, ledger audit mutasi saldo poin, dan daily automated backup.
+* **Keamanan:** Login wajib untuk kasir & owner, `client_uuid` unik sebagai kunci idempotensi antrean offline, nomor nota dibuat server (anti-bentrok multi perangkat), dan seluruh batas hari memakai zona `Asia/Jakarta`.
+
+### Berkas inti Fase 0
+
+| Berkas | Peran |
+| :--- | :--- |
+| `supabase_schema.sql` | Skema dasar: tabel, RLS, fungsi `next_invoice_no()` & RPC `create_transaction()`. |
+| `supabase_migration_02_akses.sql` | Sistem akses Owner & Kasir: tabel `cashiers`, PIN ter-hash, RLS per peran. |
+| `supabase_migration_03_tutup_kas.sql` | Tutup kas harian: setoran tunai kasir (hitungan buta) & rekonsiliasi owner. |
+| `sb-app.js` | Lapisan data bersama: konfigurasi, gerbang login, antrean offline, indikator koneksi. |
+| `vendor/supabase.js` | Library Supabase yang di-*host* sendiri. |
+| `pos.html` | POS kasir. |
+| `rekap.html` | Dashboard owner. |
+
+### Sistem Akses Owner & Kasir
+
+| Peran | Cara masuk | Akses |
+| :--- | :--- | :--- |
+| **Owner** | Email + kata sandi | Seluruh sistem: POS, laporan, data pegawai, layanan, pelanggan, pengaturan |
+| **Perangkat POS** | Email + kata sandi, **sekali saat setup** oleh owner | Hanya katalog layanan & capster + mencatat transaksi |
+| **Kasir** | **PIN pribadi**, tanpa email/kata sandi | POS, atas nama dirinya sendiri |
+
+Alur kasir: buka POS → masukkan PIN → sistem mengenali → mulai transaksi.
+Ganti kasir cukup menekan nama kasir di kanan atas, tanpa keluar dari perangkat.
+
+Setiap transaksi mencatat **nama kasir, ID kasir, waktu, nomor transaksi, total, dan metode pembayaran**,
+sehingga selisih kas dapat ditelusuri ke orangnya.
+
+#### Tutup Kas Harian
+
+Selesai bertugas, kasir menghitung fisik uang tunai dan menyetorkan angkanya lewat tombol
+**💰 Tutup Kas**. Owner melihat perbandingannya di dashboard dan menyesuaikan bila ada selisih.
+
+> **Hitungan buta:** layar kasir tidak pernah menampilkan berapa yang seharusnya ada.
+> Bila kasir dapat melihat angka sistem, hitungan fisiknya berhenti menjadi kontrol —
+> siapa pun tinggal mengetik ulang angka yang sudah tertera. Ekspektasi dihitung di
+> server saat penyetoran, dan tabel setoran tidak dapat dibaca perangkat kasir sama sekali.
+
+Setoran hanya bisa dikirim sekali per kasir per hari. Angka asli kasir tidak pernah
+ditimpa — penyesuaian owner disimpan di kolom terpisah agar jejak auditnya utuh.
+
+> **Mengapa PIN tidak dipakai sebagai kredensial database:** PIN 4 digit hanya 10.000
+> kemungkinan dan akan habis ditebak dalam hitungan detik bila menjadi satu-satunya
+> penjaga. Karena itu **perangkat** yang diautentikasi (sekali, oleh owner), sementara
+> **PIN** hanya menentukan kasir mana yang bertugas. PIN disimpan sebagai hash bcrypt,
+> diverifikasi di server, dan dibatasi 5 percobaan per menit.
+
+> **Catatan kunci:** `sb-app.js` memuat *publishable key* yang memang dirancang untuk publik dan aman berada di HTML. Yang menjaga data adalah RLS di database. **Jangan pernah** menaruh `service_role` atau `sb_secret_...` di berkas frontend.
 
 ---
 
@@ -61,6 +108,10 @@ Buka terminal di direktori proyek dan jalankan web server:
 # Menggunakan Python built-in server
 python -m http.server 3000
 ```
+
+> Server bawaan Python bersifat *single-thread* dan dapat memutus transfer berkas besar
+> (`vendor/supabase.js`). Bila `pos.html` gagal memuat, pakai server lain — misalnya
+> `npx serve -l 3000`.
 
 Akses melalui browser:
 * **Slide Presentasi Scope & Arsitektur:** `http://localhost:3000/index.html`
