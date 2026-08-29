@@ -373,7 +373,7 @@ INSERT INTO services (name, category, price, duration_minutes) VALUES
 ON CONFLICT (lower(name)) DO NOTHING;
 
 INSERT INTO capsters (name, phone) VALUES
-('Alex',  '6281298765431'),
-('Reza',  '6281298765432'),
-('Dimas', '6281298765433')
+('Cena',   '6281297754581'),
+('Lukman', '6283170353824'),
+('Wanda',  '6282119614135')
 ON CONFLICT (lower(name)) DO NOTHING;
