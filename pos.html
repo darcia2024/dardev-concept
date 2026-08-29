@@ -1009,6 +1009,17 @@
           </div>
         </div>
 
+        <!-- Validasi kode klaim reward yang ditunjukkan pelanggan -->
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <label class="sb-auth-label" for="inpClaimCode">Kode Klaim Reward (opsional)</label>
+          <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
+            <input type="text" id="inpClaimCode" class="input-field" placeholder="cth: RWFQJQU5"
+                   autocomplete="off" style="text-transform:uppercase; font-family:var(--mono);" />
+            <button type="button" id="btnValidateClaim" class="btn-hdr" style="font-size:12px; white-space:nowrap;">Periksa</button>
+          </div>
+          <div class="svc-err" id="claimResult" hidden></div>
+        </div>
+
         <!-- Tukar Poin — hanya muncul bila member punya saldo cukup -->
         <div id="redeemBox" hidden style="background:var(--ink-inset); border:1px solid var(--brass-deep); border-radius:var(--r-sm); padding:12px; display:flex; flex-direction:column; gap:9px;">
           <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
@@ -1707,6 +1718,57 @@
       return document.getElementById('redeemErr').hidden ? poinDitukar() : 0;
     }
 
+    /* -------------------------------------------------------------------------
+       VALIDASI KODE KLAIM REWARD
+
+       Klaim dibuat pelanggan dari kartunya, tetapi hadiahnya baru berpindah
+       setelah kasir memeriksa kodenya di sini. Pemeriksaan menandai kode
+       terpakai secara permanen, sehingga satu klaim tidak dapat ditebus dua
+       kali walau tautan kartunya disebarkan.
+       ------------------------------------------------------------------------- */
+
+    document.getElementById('btnValidateClaim').addEventListener('click', async () => {
+      const el = document.getElementById('inpClaimCode');
+      const hasil = document.getElementById('claimResult');
+      const kode = el.value.trim().toUpperCase();
+
+      if (!kode) { hasil.hidden = true; return; }
+      if (!kasirAktif || !kasirAktif.id) {
+        kasirAktif = await sbRequirePin(true);
+        document.getElementById('lblCashierName').textContent = kasirAktif.name;
+      }
+      if (!SBConn.online) {
+        hasil.textContent = 'Sedang offline. Kode klaim tidak dapat diperiksa.';
+        hasil.hidden = false; return;
+      }
+
+      const btn = document.getElementById('btnValidateClaim');
+      btn.disabled = true; btn.textContent = 'Memeriksa…';
+
+      const { data, error } = await sb.rpc('validate_claim', {
+        p_claim_code: kode, p_cashier_id: kasirAktif.id
+      });
+
+      btn.disabled = false; btn.textContent = 'Periksa';
+
+      if (error) {
+        hasil.style.color = 'var(--clay)';
+        hasil.textContent = error.message || 'Kode klaim tidak berlaku.';
+        hasil.hidden = false;
+        return;
+      }
+
+      const c = Array.isArray(data) ? data[0] : data;
+      hasil.style.color = 'var(--sage)';
+      hasil.textContent = `✓ ${c.reward_name} — atas nama ${c.member_name}. ` +
+        (Number(c.discount_value) > 0
+          ? `Kurangi tagihan ${formatRupiah(c.discount_value)} secara manual.`
+          : 'Serahkan hadiahnya ke pelanggan.');
+      hasil.hidden = false;
+      el.value = '';
+      showToast('Klaim tervalidasi: ' + c.reward_name);
+    });
+
     document.getElementById('inpRedeemPoints').addEventListener('input', hitungDiskon);
 
     document.getElementById('btnRedeemMax').addEventListener('click', () => {
@@ -1832,12 +1894,21 @@
         cash_paid: cashPaid,
         cash_change: cashChange,
         created_at: res.tx ? res.tx.created_at : now.toISOString(),
+        member_code: null,   // diisi setelah transaksi tersimpan (lihat di bawah)
         points_earned: res.tx ? res.tx.points_earned : 0,
         points_balance: res.tx ? res.tx.points_balance : null,
         discount_points: res.tx ? Number(res.tx.discount_points) : 0,
         tier_naik: res.tx ? res.tx.tier_naik : false,
         queued: !!res.queued
       };
+
+      // Kode kartu untuk tautan di struk WhatsApp
+      if (res.tx && res.tx.id && phoneWa !== '-') {
+        try {
+          const { data: kode } = await sb.rpc('tx_member_code', { p_tx_id: res.tx.id });
+          tx.member_code = kode || null;
+        } catch { /* tautan kartu dilewati, struk tetap terkirim */ }
+      }
 
       transactions.unshift(tx);
       updateConnPill();
@@ -1882,7 +1953,23 @@
           `Layanan: ${tx.services.map(s => s.name).join(', ')}\n` +
           `------------------------------\n` +
           `*TOTAL: ${formatRupiah(tx.final_amount)}* (${tx.payment_method})\n\n` +
-          `Terima kasih sudah potong rambut hari ini! Poin loyalitas Anda otomatis tercatat di sistem.`
+          (tx.points_earned > 0 ? `Poin didapat: +${tx.points_earned} (saldo ${tx.points_balance})
+` : '') +
+          `------------------------------
+
+` +
+          // Tautan kartu inilah cara pelanggan menerima kartu membernya —
+          // tidak ada pendaftaran akun, cukup menyimpan tautan ini.
+          (tx.member_code
+            ? `Kartu member Anda:
+${location.origin}/kartu?c=${tx.member_code}
+
+` +
+              `Simpan tautan itu untuk melihat poin, menukar reward, dan menunjukkan QR saat datang lagi.
+
+`
+            : '') +
+          `Terima kasih sudah potong rambut hari ini!`
         );
         document.getElementById('btnSendWaReceipt').href = `https://wa.me/${tx.member_phone}?text=${waMsg}`;
         document.getElementById('btnSendWaReceipt').style.display = 'flex';
