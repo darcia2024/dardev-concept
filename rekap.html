@@ -639,6 +639,32 @@
 
     </div>
 
+    <!-- Kalkulator HPP & Laba Produk -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 700;">&#129514; HPP &amp; Laba Produk</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Laba penjualan lampau memakai HPP saat transaksi terjadi &mdash; revisi harga beli tidak mengubahnya
+          </p>
+        </div>
+        <button class="btn-filter-date" id="btnSimulasiHpp" style="border-color:var(--brass); color:var(--brass);">
+          Simulasi Harga
+        </button>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="hppTable">
+          <thead>
+            <tr>
+              <th>Produk</th><th>HPP</th><th>Harga Jual</th><th>Margin</th>
+              <th>Diskon Aman</th><th>Saran Harga</th><th>Terjual</th><th>Laba Kotor</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="hppTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Rekonsiliasi Setoran Tunai Kasir -->
     <div class="table-panel">
       <div class="table-controls">
@@ -757,6 +783,7 @@
 
       renderDashboard();
       await loadClosings();
+      await loadHpp();
     }
 
     /* -------------------------------------------------------------------------
@@ -855,6 +882,126 @@
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
+
+    /* -------------------------------------------------------------------------
+       HPP & LABA PRODUK
+
+       Dua angka yang sengaja dipisahkan:
+         * HPP dan margin SEKARANG  -> untuk menetapkan harga ke depan
+         * Laba penjualan LAMPAU    -> memakai HPP saat transaksi terjadi
+       Menggabungkan keduanya membuat laporan bulan lalu berubah setiap kali
+       harga supplier direvisi.
+       ------------------------------------------------------------------------- */
+
+    let hppData = [];
+
+    async function loadHpp() {
+      const { data, error } = await sb.rpc('hpp_report');
+      if (error) {
+        document.getElementById('hppTableBody').innerHTML =
+          '<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--clay); font-size:13px;">Gagal memuat: '
+          + escapeHtml(error.message) + '</td></tr>';
+        return;
+      }
+      hppData = data || [];
+      renderHpp();
+    }
+
+    function renderHpp() {
+      const tb = document.getElementById('hppTableBody');
+      if (!hppData.length) {
+        tb.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:22px; color:var(--fg-dim); font-size:13px;">Belum ada produk terdaftar.</td></tr>';
+        return;
+      }
+      tb.innerHTML = hppData.map(function (p) {
+        const m = Number(p.margin_persen);
+        // Margin tipis perlu terlihat sebelum owner memutuskan diskon
+        const warna = m >= 35 ? 'var(--sage)' : m >= 20 ? 'var(--brass)' : 'var(--clay)';
+        const saran = p.harga_jual_disarankan;
+        const beda = saran != null && Math.abs(Number(saran) - Number(p.sell_price)) > 1;
+        return ''
+          + '<tr>'
+          + '<td><strong>' + escapeHtml(p.name) + '</strong>'
+          + '<span style="display:block; font-size:11px; color:var(--fg-dim); font-family:var(--mono);">'
+          + 'beli ' + formatRupiah(p.buy_price) + ' + kirim ' + formatRupiah(p.shipping_per_unit)
+          + ' + kemasan ' + formatRupiah(p.packaging_cost) + ' + overhead ' + formatRupiah(p.overhead_cost)
+          + '</span></td>'
+          + '<td style="font-family:var(--mono);">' + formatRupiah(p.hpp) + '</td>'
+          + '<td style="font-family:var(--mono);">' + formatRupiah(p.sell_price) + '</td>'
+          + '<td style="font-family:var(--mono); color:' + warna + '; font-weight:700;">'
+          + formatRupiah(p.margin_rp) + '<br /><span style="font-size:11px;">' + m + '%</span></td>'
+          + '<td style="font-family:var(--mono); color:var(--brass);">maks ' + p.diskon_aman_persen + '%'
+          + '<br /><span style="font-size:11px; color:var(--fg-dim);">' + formatRupiah(p.diskon_aman_rp) + '</span></td>'
+          + '<td style="font-family:var(--mono); color:' + (beda ? 'var(--brass)' : 'var(--fg-dim)') + ';">'
+          + (saran != null ? formatRupiah(saran) : '&mdash;')
+          + '<span style="display:block; font-size:10.5px; color:var(--fg-dim);">target ' + p.target_margin_percent + '%</span></td>'
+          + '<td style="font-family:var(--mono);">' + p.terjual + '</td>'
+          + '<td style="font-family:var(--mono); font-weight:700;">' + formatRupiah(p.laba_kotor) + '</td>'
+          + '<td><button class="btn-filter-date" data-hpp="' + escapeHtml(p.id) + '">Ubah</button></td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    document.getElementById('hppTableBody').addEventListener('click', async function (e) {
+      const btn = e.target.closest('[data-hpp]');
+      if (!btn) return;
+      const p = hppData.find(function (x) { return x.id === btn.dataset.hpp; });
+      if (!p) return;
+
+      function angka(label, nilai) {
+        const v = prompt(label, String(Number(nilai)));
+        return v === null ? null : Number(v);
+      }
+      const beli = angka(p.name + '\n\nHarga beli dari supplier (Rp):', p.buy_price);
+      if (beli === null) return;
+      const kirim = angka('Ongkos kirim per unit (Rp):', p.shipping_per_unit); if (kirim === null) return;
+      const kemas = angka('Biaya kemasan / label (Rp):', p.packaging_cost); if (kemas === null) return;
+      const over = angka('Alokasi overhead (Rp):', p.overhead_cost); if (over === null) return;
+      const jual = angka('Harga jual (Rp):', p.sell_price); if (jual === null) return;
+      const target = angka('Target margin (persen):', p.target_margin_percent); if (target === null) return;
+
+      const semua = [beli, kirim, kemas, over, jual, target];
+      if (semua.some(function (n) { return !Number.isFinite(n) || n < 0; })) {
+        alert('Semua nilai harus berupa angka dan tidak negatif.');
+        return;
+      }
+
+      const res = await sb.rpc('upsert_product', {
+        p_id: p.id, p_name: p.name, p_sell: jual, p_buy: beli, p_shipping: kirim,
+        p_packaging: kemas, p_overhead: over, p_target_margin: target
+      });
+      if (res.error) { alert('Gagal menyimpan: ' + res.error.message); return; }
+      await loadHpp();
+    });
+
+    document.getElementById('btnSimulasiHpp').addEventListener('click', async function () {
+      const beli = Number(prompt('Simulasi harga jual\n\nHarga beli dari supplier (Rp):', '42000'));
+      if (!Number.isFinite(beli)) return;
+      const kirim = Number(prompt('Ongkos kirim per unit (Rp):', '1500'));
+      const kemas = Number(prompt('Biaya kemasan / label (Rp):', '500'));
+      const over = Number(prompt('Alokasi overhead (Rp):', '1000'));
+      const target = Number(prompt('Target margin (persen):', '40'));
+      const poin = Number(prompt('Bila member menukar poin senilai (Rp), isi 0 bila tidak:', '0'));
+
+      const res = await sb.rpc('hpp_simulate', {
+        p_buy: beli, p_shipping: kirim, p_packaging: kemas,
+        p_overhead: over, p_target_margin: target, p_diskon_poin: poin
+      });
+      if (res.error) { alert(res.error.message); return; }
+      const r = Array.isArray(res.data) ? res.data[0] : res.data;
+      alert(
+        'HASIL SIMULASI\n\n'
+        + 'HPP per unit      : ' + formatRupiah(r.hpp) + '\n'
+        + 'Harga jual        : ' + formatRupiah(r.harga_jual) + ' (target ' + target + '%)\n'
+        + 'Margin kotor      : ' + formatRupiah(r.margin_rp) + ' (' + r.margin_persen + '%)\n'
+        + 'Batas diskon aman : maks ' + r.diskon_aman_persen + '% (' + formatRupiah(r.diskon_aman_rp) + ')'
+        + (poin > 0
+            ? '\n\nBila poin ditukar ' + formatRupiah(poin) + ':\n'
+              + 'Sisa margin       : ' + formatRupiah(r.sisa_margin_rp) + ' (' + r.sisa_margin_persen + '%)\n'
+              + 'Masih untung      : ' + (r.masih_untung ? 'YA' : 'TIDAK - rugi')
+            : '')
+      );
+    });
 
     function showLoadError(err) {
       const el = document.getElementById('syncStamp');
