@@ -483,6 +483,35 @@
       .kpi-card, .panel-box, .table-panel { border-color: #ccc; background: #fff; color: #000; }
       .kpi-value, .pay-amount, .capster-omzet { color: #000 !important; }
     }
+    /* =====================================================================
+       PONSEL — di akhir stylesheet supaya menimpa aturan dasar di atasnya.
+       Owner membuka dashboard ini dari HP, jadi tidak boleh ada geser samping.
+       ===================================================================== */
+    .panel-box > *,
+    .rekap-container > * { min-width: 0; }
+
+    /* Tanpa ini, .table-scroll sebagai flex item memakai min-width:auto dan
+       melar mengikuti min-width:700px tabelnya, bukan menggulung di dalam. */
+    .table-scroll { min-width: 0; }
+
+    @media (max-width: 600px) {
+      header.rekap-header {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px 14px;
+      }
+      .header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+      }
+      .control-strip { gap: 10px; }
+      .date-filter-group, .export-group { width: 100%; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .kpi-card { padding: 14px; }
+      .kpi-value { font-size: 20px; }
+      .kpi-label { font-size: 10px; }
+    }
   </style>
 </head>
 <body>
@@ -495,12 +524,16 @@
         <h1>Dashboard Rekap Owner</h1>
         <div class="owner-tag">
           <span class="live-dot"></span>
-          <span>Live Sync &middot; Fase 0 Active</span>
+          <span id="ownerName">Owner</span>
+          <span>&middot;</span>
+          <span id="syncStamp">Memuat…</span>
         </div>
       </div>
     </div>
     <div class="header-actions">
+      <span class="sb-conn-pill" id="connPill">MEMERIKSA</span>
       <a href="/pos" class="btn-nav is-gold">💳 Buka POS Kasir</a>
+      <button class="btn-nav" id="btnSignOut">Keluar</button>
     </div>
   </header>
 
@@ -606,6 +639,35 @@
 
     </div>
 
+    <!-- Rekonsiliasi Setoran Tunai Kasir -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 700;">💰 Setoran Tunai Kasir</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Kasir menghitung tanpa melihat angka sistem &mdash; selisih di bawah adalah selisih sesungguhnya
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="closingTable">
+          <thead>
+            <tr>
+              <th>Kasir</th>
+              <th>Trx Tunai</th>
+              <th>Seharusnya</th>
+              <th>Dihitung Kasir</th>
+              <th>Selisih</th>
+              <th>Penyesuaian</th>
+              <th>Catatan</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="closingTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Live Transaction Logs Table -->
     <div class="table-panel">
       <div class="table-controls">
@@ -640,14 +702,15 @@
 
   </main>
 
+  <!-- Library di-host sendiri, bukan CDN: dashboard harus tetap terbuka
+       walau jaringan luar terganggu. -->
+  <script src="vendor/supabase.js"></script>
+  <script src="sb-app.js"></script>
+
   <script>
     /* =========================================================================
        BARBER REKAP OWNER - PHASE 0 CORE LOGIC
        ========================================================================= */
-
-    const STORAGE_KEY_TRANSACTIONS = 'barber_transactions_v1';
-    const STORAGE_KEY_MEMBERS = 'barber_members_v1';
-    const STORAGE_KEY_CAPSTERS = 'barber_capsters_v1';
 
     let rawTransactions = [];
     let membersData = {};
@@ -659,30 +722,157 @@
       return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
     }
 
-    function loadData() {
-      const storedTx = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
-      rawTransactions = storedTx ? JSON.parse(storedTx) : [];
+    /** Ambil transaksi langsung dari Supabase — inilah yang membuat owner
+        bisa membuka rekap dari ponselnya sendiri, bukan hanya dari perangkat
+        kasir. Rentang hari memakai business_date (WIB), bukan UTC. */
+    async function loadData() {
+      const today = sbJakartaToday();
+      const since = new Date(Date.now() - 30 * 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
-      const storedM = localStorage.getItem(STORAGE_KEY_MEMBERS);
-      membersData = storedM ? JSON.parse(storedM) : {};
+      const [txRes, capRes, memRes] = await Promise.all([
+        sb.from('transactions')
+          .select('*, transaction_items(service_name, price)')
+          .gte('business_date', since)
+          .order('created_at', { ascending: false }),
+        sb.from('capsters').select('id, name, is_active'),
+        sb.from('members').select('phone_wa, name, tier, visit_count, total_spend')
+      ]);
 
-      const storedC = localStorage.getItem(STORAGE_KEY_CAPSTERS);
-      capstersData = storedC ? JSON.parse(storedC) : [];
+      if (txRes.error) { showLoadError(txRes.error); return; }
+
+      // Samakan bentuk dengan yang dipahami komponen dashboard
+      rawTransactions = (txRes.data || []).map(t => ({
+        ...t,
+        services: (t.transaction_items || []).map(i => ({ name: i.service_name, price: Number(i.price) })),
+        subtotal: Number(t.subtotal),
+        final_amount: Number(t.final_amount)
+      }));
+
+      capstersData = capRes.data || [];
+      membersData = {};
+      (memRes.data || []).forEach(m => { membersData[m.phone_wa] = m; });
+
+      document.getElementById('syncStamp').textContent =
+        'Diperbarui ' + new Date().toLocaleTimeString('id-ID', { hour12: false, timeZone: 'Asia/Jakarta' });
 
       renderDashboard();
+      await loadClosings();
+    }
+
+    /* -------------------------------------------------------------------------
+       SETORAN TUNAI KASIR
+       Selisih dihitung server dari perbandingan hitungan fisik kasir dengan
+       transaksi tunai miliknya. Angka asli kasir tidak pernah ditimpa —
+       penyesuaian owner disimpan terpisah agar jejaknya utuh.
+       ------------------------------------------------------------------------- */
+
+    let closingsData = [];
+
+    async function loadClosings() {
+      const tgl = selectedDateFilter === 'YESTERDAY'
+        ? new Date(Date.now() - 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+        : sbJakartaToday();
+
+      let q = sb.from('cash_closings_view')
+        .select('id, cashier_name, tx_count, expected_amount, counted_amount, difference, difference_after_adjust, status_selisih, owner_adjustment, cashier_notes, owner_notes, reviewed_at')
+        .order('cashier_name', { ascending: true });
+      if (selectedDateFilter !== 'ALL') q = q.eq('business_date', tgl);
+
+      const { data, error } = await q;
+      if (error) return;
+      closingsData = data || [];
+      renderClosings();
+    }
+
+    function renderClosings() {
+      const tb = document.getElementById('closingTableBody');
+      if (closingsData.length === 0) {
+        tb.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:22px; color:var(--fg-dim); font-size:13px;">Belum ada setoran kas pada periode ini.</td></tr>';
+        return;
+      }
+      const warna = { sesuai: 'var(--sage)', lebih: 'var(--brass)', kurang: 'var(--clay)' };
+      tb.innerHTML = closingsData.map(c => {
+        const sisa = Number(c.difference_after_adjust);
+        const beres = sisa === 0;
+        return `
+        <tr>
+          <td><strong>${escapeHtml(c.cashier_name)}</strong></td>
+          <td style="font-family:var(--mono);">${c.tx_count}</td>
+          <td style="font-family:var(--mono);">${formatRupiah(c.expected_amount)}</td>
+          <td style="font-family:var(--mono);">${formatRupiah(c.counted_amount)}</td>
+          <td style="font-family:var(--mono); font-weight:700; color:${warna[c.status_selisih] || 'var(--fg)'};">
+            ${Number(c.difference) > 0 ? '+' : ''}${formatRupiah(c.difference)}
+          </td>
+          <td style="font-family:var(--mono); color:${Number(c.owner_adjustment) ? 'var(--brass)' : 'var(--fg-dim)'};">
+            ${Number(c.owner_adjustment) ? (Number(c.owner_adjustment) > 0 ? '+' : '') + formatRupiah(c.owner_adjustment) : '—'}
+          </td>
+          <td style="max-width:220px; font-size:12px; color:var(--fg-mid);">
+            ${c.cashier_notes ? escapeHtml(c.cashier_notes) : '<span style="color:var(--fg-dim);">—</span>'}
+            ${c.owner_notes ? `<br /><span style="color:var(--brass); font-size:11.5px;">Owner: ${escapeHtml(c.owner_notes)}</span>` : ''}
+          </td>
+          <td>
+            <button class="btn-filter-date" data-review="${c.id}"
+                    style="${c.reviewed_at ? 'opacity:.6;' : 'border-color:var(--brass); color:var(--brass);'}">
+              ${c.reviewed_at ? (beres ? '✓ Beres' : 'Ubah') : 'Sesuaikan'}
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('closingTableBody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-review]');
+      if (!btn) return;
+      const row = closingsData.find(c => c.id === btn.dataset.review);
+      if (!row) return;
+
+      const kurang = Number(row.difference);
+      const saran = kurang === 0 ? '0' : String(-kurang);
+      const nilai = prompt(
+        `Setoran ${row.cashier_name}\n\n` +
+        `Seharusnya   : ${formatRupiah(row.expected_amount)}\n` +
+        `Dihitung     : ${formatRupiah(row.counted_amount)}\n` +
+        `Selisih      : ${kurang > 0 ? '+' : ''}${formatRupiah(kurang)}\n\n` +
+        `Masukkan penyesuaian (rupiah). Isi ${saran} untuk menutup selisih, atau 0 bila selisih diterima apa adanya.`,
+        saran
+      );
+      if (nilai === null) return;
+      const adj = Number(nilai);
+      if (!Number.isFinite(adj)) return alert('Penyesuaian harus berupa angka.');
+
+      const catatan = prompt('Catatan owner (opsional) — alasan penyesuaian:', row.owner_notes || '');
+      if (catatan === null) return;
+
+      const { error } = await sb.rpc('review_cash_closing', {
+        p_id: row.id, p_adjustment: adj, p_notes: catatan || null
+      });
+      if (error) return alert('Gagal menyimpan: ' + error.message);
+      await loadClosings();
+    });
+
+    function escapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function showLoadError(err) {
+      const el = document.getElementById('syncStamp');
+      el.textContent = 'Gagal memuat: ' + (err.message || err);
+      el.style.color = 'var(--clay)';
     }
 
     // Filter transactions based on date filter and search
     function getFilteredTransactions() {
-      const now = new Date();
-      const todayStr = now.toISOString().slice(0, 10);
-      
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().slice(0, 10);
+      // business_date sudah dihitung server dalam zona Asia/Jakarta, sehingga
+      // transaksi dini hari tidak lagi jatuh ke tanggal sebelumnya seperti
+      // bila memakai toISOString() yang berbasis UTC.
+      const todayStr = sbJakartaToday();
+      const yesterdayStr = new Date(Date.now() - 864e5)
+        .toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
       return rawTransactions.filter(tx => {
-        const txDate = tx.created_at ? tx.created_at.slice(0, 10) : '';
+        const txDate = tx.business_date || (tx.created_at || '').slice(0, 10);
 
         if (selectedDateFilter === 'TODAY' && txDate !== todayStr) return false;
         if (selectedDateFilter === 'YESTERDAY' && txDate !== yesterdayStr) return false;
@@ -742,10 +932,17 @@
       document.getElementById('kpiTotalMembers').textContent = totalMembersCount;
 
       // Update Payment Breakdown DOM
-      ['Tunai', 'QRIS', 'EDC', 'Transfer'].forEach(m => {
-        document.getElementById(`sumPay${m}`).textContent = formatRupiah(payBreakdown[m].sum);
-        document.getElementById(`countPay${m}`).textContent = `${payBreakdown[m].count} trx`;
-      });
+      // Nama metode dan akhiran id tidak sama persis ('QRIS' vs 'Qris'),
+      // jadi pasangannya ditulis eksplisit — menyusun id lewat interpolasi
+      // menghasilkan elemen null dan menghentikan sisa render.
+      [['Tunai', 'Tunai'], ['QRIS', 'Qris'], ['EDC', 'Edc'], ['Transfer', 'Transfer']]
+        .forEach(([method, idSuffix]) => {
+          const sumEl = document.getElementById('sumPay' + idSuffix);
+          const cntEl = document.getElementById('countPay' + idSuffix);
+          if (!sumEl || !cntEl) return;
+          sumEl.textContent = formatRupiah(payBreakdown[method].sum);
+          cntEl.textContent = `${payBreakdown[method].count} trx`;
+        });
 
       // Update Capster Performance DOM
       const capContainer = document.getElementById('capsterPerfContainer');
@@ -821,7 +1018,7 @@
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `Rekap_Barber_${selectedDateFilter}_${new Date().toISOString().slice(0,10)}.csv`);
+      link.setAttribute('download', `Rekap_Barber_${selectedDateFilter}_${sbJakartaToday()}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -843,16 +1040,62 @@
       renderDashboard();
     });
 
-    // Auto sync across tabs via Storage Event
-    window.addEventListener('storage', (e) => {
-      if (e.key === STORAGE_KEY_TRANSACTIONS || e.key === STORAGE_KEY_MEMBERS) {
-        loadData();
-      }
-    });
+    /* =========================================================================
+       BOOT
+       ========================================================================= */
 
-    // Initial Load & Auto-polling
-    loadData();
-    setInterval(loadData, 8000);
+    document.getElementById('btnSignOut').addEventListener('click', sbSignOut);
+
+    (async function boot() {
+      const { profile } = await sbRequireAuth('Dashboard Rekap Owner');
+
+      // Laporan omzet dan data pelanggan adalah wilayah owner. Perangkat kasir
+      // ditolak di sini — dan RLS di database menolaknya lagi, sehingga
+      // pemeriksaan ini tidak berdiri sendiri sebagai satu-satunya penjaga.
+      if (profile.role !== 'owner') {
+        document.body.innerHTML = `
+          <div style="min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center;">
+            <div style="max-width:360px;display:flex;flex-direction:column;gap:14px;">
+              <div style="font-size:17px;font-weight:700;">Halaman khusus owner</div>
+              <div style="font-size:14px;color:var(--fg-mid);line-height:1.6;">
+                Perangkat ini terdaftar sebagai <strong>${(profile.full_name || 'perangkat kasir')}</strong>,
+                bukan akun owner. Laporan omzet hanya dapat dibuka dengan akun owner.
+              </div>
+              <a href="/pos" style="color:var(--brass);font-weight:600;">&larr; Kembali ke POS Kasir</a>
+            </div>
+          </div>`;
+        return;
+      }
+
+      document.getElementById('ownerName').textContent = profile.full_name || 'Owner';
+
+      sbRenderConnPill(document.getElementById('connPill'));
+
+      await loadData();
+
+      // Transaksi masuk dari perangkat kasir, bukan dari tab ini, jadi rekap
+      // menarik ulang berkala. Saat tab tersembunyi lajunya diperlambat untuk
+      // menghemat kuota — tapi tidak pernah dihentikan: sebagian browser
+      // melaporkan visibilityState 'hidden' terus-menerus, dan dashboard yang
+      // berhenti menyegar diri lebih berbahaya daripada beberapa KB data.
+      let lastPoll = Date.now();
+      setInterval(() => {
+        if (!SBConn.online) return;
+        const idle = document.visibilityState === 'hidden';
+        const jeda = idle ? 60000 : 15000;
+        if (Date.now() - lastPoll < jeda) return;
+        lastPoll = Date.now();
+        loadData();
+      }, 5000);
+
+      // Owner membuka kembali tab -> segarkan seketika
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && SBConn.online) {
+          lastPoll = Date.now();
+          loadData();
+        }
+      });
+    })();
   </script>
 </body>
 </html>

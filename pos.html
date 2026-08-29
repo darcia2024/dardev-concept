@@ -162,6 +162,14 @@
       }
     }
 
+    /* Item grid/flex bawaannya min-width:auto, sehingga menolak menyusut di
+       bawah lebar isinya — panel kiri lalu menahan seluruh halaman dan kasir
+       terpaksa menggeser layar ke samping. */
+    .pos-main > *,
+    .pos-left-panel > *,
+    .section-box > * { min-width: 0; }
+
+
     /* Left Panel: Catalog & Capster */
     .pos-left-panel {
       display: flex;
@@ -712,6 +720,92 @@
       border: 1px solid var(--line);
       border-radius: var(--r-sm);
     }
+
+    /* ---------- Master Layanan: editor ---------- */
+    .svc-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: var(--ink-inset);
+      border: 1px solid var(--brass-deep);
+      border-radius: var(--r-sm);
+    }
+    .svc-form[hidden] { display: none; }
+    .svc-form-row {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 8px;
+    }
+    .svc-form .input-field {
+      font-size: 13.5px;
+      padding: 8px 10px;
+    }
+    .svc-form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: var(--brass);
+      border-color: var(--brass);
+      color: var(--ink);
+    }
+    .svc-err {
+      font-size: 12px;
+      color: var(--clay);
+      line-height: 1.4;
+    }
+    .svc-err[hidden] { display: none; }
+    .svc-sub {
+      display: block;
+      font-size: 11px;
+      color: var(--fg-dim);
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+    #tableServicesSetting tr.is-off td { opacity: 0.45; }
+    .row-actions {
+      display: flex;
+      gap: 4px;
+      justify-content: flex-end;
+    }
+    .row-actions button {
+      background: var(--ink-card);
+      border: 1px solid var(--line);
+      color: var(--fg-mid);
+      border-radius: var(--r-sm);
+      width: 26px;
+      height: 26px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .row-actions button:hover {
+      color: var(--fg);
+      border-color: var(--brass-deep);
+    }
+    .row-actions button[data-act="del"]:hover {
+      color: var(--clay);
+      border-color: var(--clay);
+    }
+    .row-actions button.is-on { color: var(--sage); }
+    .svc-empty {
+      text-align: center;
+      color: var(--fg-dim);
+      font-size: 12px;
+      padding: 18px 10px !important;
+    }
+    .svc-meta {
+      margin-top: 6px;
+      font-size: 11.5px;
+      color: var(--fg-dim);
+      font-family: var(--mono);
+    }
     table.sm-table {
       width: 100%;
       border-collapse: collapse;
@@ -753,6 +847,36 @@
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
+    /* =====================================================================
+       PONSEL — ditempatkan di akhir stylesheet supaya benar-benar menimpa
+       aturan dasar di atasnya (media query tidak menambah specificity).
+       ===================================================================== */
+    @media (max-width: 600px) {
+      header.pos-header {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px 14px;
+      }
+      .header-nav-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+      }
+
+      /* Judul dan strip kategori berhenti berebut satu baris */
+      .section-title-bar {
+        flex-wrap: wrap;
+        row-gap: 10px;
+      }
+      .cat-pills { width: 100%; }
+
+      /* Dua kolom supaya kasir tidak menggulung terlalu jauh saat antre */
+      .services-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+      .capster-grid  { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+      .service-card  { padding: 12px; }
+      .service-name  { font-size: 13px; line-height: 1.3; }
+      .service-price { font-size: 15px; }
+    }
   </style>
 </head>
 <body>
@@ -767,8 +891,14 @@
       </div>
     </div>
     <div class="header-nav-actions">
-      <button class="btn-hdr" id="btnOpenSettings" title="Kelola Layanan & Capster">⚙️ Pengaturan</button>
-      <a href="/rekap" class="btn-hdr is-accent" title="Buka Dashboard Owner">📊 Rekap Omzet</a>
+      <span class="sb-conn-pill" id="connPill" title="Status koneksi ke server">MEMERIKSA</span>
+      <button class="sb-cashier-chip" id="chipCashier" title="Ganti kasir bertugas">
+        <span class="dot"></span><span id="lblCashierName">—</span>
+      </button>
+      <button class="btn-hdr" id="btnOpenClosing" title="Setor hitungan uang tunai akhir shift">💰 Tutup Kas</button>
+      <button class="btn-hdr" id="btnOpenSettings" title="Kelola Layanan & Capster" hidden>⚙️ Pengaturan</button>
+      <a href="/rekap" class="btn-hdr is-accent" id="lnkRekap" title="Buka Dashboard Owner" hidden>📊 Rekap Omzet</a>
+      <button class="btn-hdr" id="btnSignOut" title="Keluar dari perangkat">Keluar</button>
     </div>
   </header>
 
@@ -793,12 +923,8 @@
       <section class="section-box">
         <div class="section-title-bar">
           <h2><span class="step-badge">02</span> Pilih Layanan Cukur</h2>
+          <!-- Diisi renderCategoryPills() dari master layanan -->
           <div class="cat-pills" id="categoryPills">
-            <div class="cat-pill active" data-cat="ALL">Semua</div>
-            <div class="cat-pill" data-cat="Haircut">Haircut</div>
-            <div class="cat-pill" data-cat="Treatment">Treatment</div>
-            <div class="cat-pill" data-cat="Grooming">Grooming</div>
-            <div class="cat-pill" data-cat="Package">Package</div>
           </div>
         </div>
         <div class="services-grid" id="servicesContainer">
@@ -972,33 +1098,149 @@
 
       <!-- Edit Services -->
       <div>
-        <h4 style="font-size: 13px; color: var(--brass); margin-bottom: 6px;">Master Layanan</h4>
+        <div class="section-title-bar" style="margin-bottom: 8px;">
+          <h4 style="font-size: 13px; color: var(--brass); margin: 0;">Master Layanan</h4>
+          <button id="btnAddService" class="btn-hdr" style="font-size: 11.5px; padding: 5px 10px;">+ Tambah Layanan</button>
+        </div>
+
+        <div class="svc-form" id="serviceFormWrap" hidden>
+          <input type="text" id="inpSvcName" class="input-field" placeholder="Nama layanan — cth: Gentleman Haircut" autocomplete="off" />
+          <div class="svc-form-row">
+            <input type="text" id="inpSvcCategory" class="input-field" list="svcCategoryList" placeholder="Kategori" autocomplete="off" />
+            <datalist id="svcCategoryList"></datalist>
+            <input type="number" id="inpSvcDuration" class="input-field" placeholder="Durasi (mnt)" min="1" step="5" />
+          </div>
+          <input type="number" id="inpSvcPrice" class="input-field" placeholder="Harga (Rp)" min="0" step="1000" />
+          <div class="svc-err" id="svcFormError" hidden></div>
+          <div class="svc-form-actions">
+            <button id="btnCancelService" class="btn-hdr" style="font-size: 12px;">Batal</button>
+            <button id="btnSaveService" class="btn-hdr btn-primary" style="font-size: 12px;">Simpan</button>
+          </div>
+        </div>
+
         <div class="settings-table-wrap">
           <table class="sm-table" id="tableServicesSetting">
             <thead>
-              <tr><th>Nama Layanan</th><th>Kategori</th><th>Harga (Rp)</th></tr>
+              <tr><th>Layanan</th><th>Harga (Rp)</th><th style="width: 92px; text-align: right;">Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
+        <div class="svc-meta" id="svcSummary"></div>
       </div>
 
       <!-- Edit Capsters -->
       <div>
-        <h4 style="font-size: 13px; color: var(--brass); margin-bottom: 6px;">Master Capster</h4>
+        <div class="section-title-bar" style="margin-bottom: 8px;">
+          <h4 style="font-size: 13px; color: var(--brass); margin: 0;">Master Capster</h4>
+          <button id="btnAddCapster" class="btn-hdr" style="font-size: 11.5px; padding: 5px 10px;">+ Tambah Capster</button>
+        </div>
+
+        <div class="svc-form" id="capsterFormWrap" hidden>
+          <input type="text" id="inpCapName" class="input-field" placeholder="Nama capster — cth: Alex" autocomplete="off" />
+          <input type="tel" id="inpCapPhone" class="input-field" placeholder="No. WhatsApp — 0812xxxx (opsional)" autocomplete="off" />
+          <div class="svc-err" id="capFormError" hidden></div>
+          <div class="svc-form-actions">
+            <button id="btnCancelCapster" class="btn-hdr" style="font-size: 12px;">Batal</button>
+            <button id="btnSaveCapster" class="btn-hdr btn-primary" style="font-size: 12px;">Simpan</button>
+          </div>
+        </div>
+
         <div class="settings-table-wrap">
           <table class="sm-table" id="tableCapstersSetting">
             <thead>
-              <tr><th>Nama Capster</th><th>Telepon</th></tr>
+              <tr><th>Nama Capster</th><th>WhatsApp</th><th style="width: 92px; text-align: right;">Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
+        <div class="svc-meta" id="capSummary"></div>
+      </div>
+
+      <!-- Master Kasir — PIN pribadi tiap kasir (khusus owner) -->
+      <div id="cashierSection">
+        <div class="section-title-bar" style="margin-bottom: 8px;">
+          <h4 style="font-size: 13px; color: var(--brass); margin: 0;">Master Kasir &amp; PIN</h4>
+          <button id="btnAddCashier" class="btn-hdr" style="font-size: 11.5px; padding: 5px 10px;">+ Tambah Kasir</button>
+        </div>
+
+        <div class="svc-form" id="cashierFormWrap" hidden>
+          <input type="text" id="inpCsrName" class="input-field" placeholder="Nama kasir — cth: Ahmad" autocomplete="off" />
+          <input type="text" id="inpCsrPin" class="input-field" inputmode="numeric" pattern="[0-9]*"
+                 placeholder="PIN 4–8 digit" autocomplete="off" />
+          <div class="svc-err" id="csrFormError" hidden></div>
+          <div class="svc-form-actions">
+            <button id="btnCancelCashier" class="btn-hdr" style="font-size: 12px;">Batal</button>
+            <button id="btnSaveCashier" class="btn-hdr btn-primary" style="font-size: 12px;">Simpan</button>
+          </div>
+        </div>
+
+        <div class="settings-table-wrap">
+          <table class="sm-table" id="tableCashiersSetting">
+            <thead>
+              <tr><th>Nama Kasir</th><th>PIN</th><th style="width: 92px; text-align: right;">Aksi</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="svc-meta" id="csrSummary"></div>
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--fg-dim);">
-        <span>Data tersimpan lokal & sinkron otomatis.</span>
-        <button id="btnResetDefaultData" class="btn-hdr" style="font-size: 11px; color: var(--clay);">Reset ke Default</button>
+        <span>Tersimpan di server — tampil sama di semua perangkat.</span>
+        <button id="btnReloadMaster" class="btn-hdr" style="font-size: 11px;">↻ Muat Ulang</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TUTUP KAS MODAL — setoran tunai akhir shift oleh kasir.
+       Sengaja TIDAK menampilkan total transaksi hari ini: bila kasir melihat
+       angka yang diharapkan sistem, hitungan fisiknya berhenti menjadi kontrol. -->
+  <div class="modal-backdrop" id="closingModal">
+    <div class="receipt-modal-card" style="max-width: 420px;">
+      <div class="section-title-bar">
+        <h2>💰 Tutup Kas Hari Ini</h2>
+        <button id="btnCloseClosing" style="background:none; border:none; color:var(--fg-dim); font-size:18px; cursor:pointer;">✕</button>
+      </div>
+
+      <div id="closingFormWrap">
+        <p style="font-size: 13.5px; color: var(--fg-mid); line-height: 1.6; margin-bottom: 14px;">
+          Hitung seluruh <strong style="color:var(--fg);">uang tunai</strong> yang Anda pegang hari ini,
+          lalu tulis jumlahnya. Pembayaran QRIS, EDC, dan transfer tidak ikut dihitung.
+        </p>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <label class="sb-auth-label" for="inpCountedCash">Jumlah Uang Tunai (Rp)</label>
+            <input type="number" id="inpCountedCash" class="input-field" inputmode="numeric"
+                   placeholder="Contoh: 1250000" min="0" step="1000" style="margin-top:6px; font-size:18px; font-family:var(--mono);" />
+          </div>
+          <div>
+            <label class="sb-auth-label" for="inpClosingNotes">Catatan (opsional)</label>
+            <input type="text" id="inpClosingNotes" class="input-field"
+                   placeholder="cth: ada uang receh kurang" style="margin-top:6px;" />
+          </div>
+          <div class="svc-err" id="closingError" hidden></div>
+          <p style="font-size:12px; color:var(--fg-dim); line-height:1.55;">
+            Setoran hanya bisa dikirim <strong>sekali per hari</strong>. Bila keliru, hubungi owner.
+          </p>
+          <button id="btnSubmitClosing" class="btn-hdr btn-primary" style="width:100%; padding:12px; font-size:14px;">
+            Kirim Setoran
+          </button>
+        </div>
+      </div>
+
+      <div id="closingDoneWrap" hidden style="display:flex; flex-direction:column; gap:12px; text-align:center; padding:8px 0;">
+        <div style="font-size:34px;">✓</div>
+        <div style="font-size:15px; font-weight:700;">Setoran terkirim</div>
+        <div style="font-size:13.5px; color:var(--fg-mid); line-height:1.6;">
+          <span id="lblClosingCashier"></span> menyetorkan
+          <strong style="color:var(--brass); font-family:var(--mono);" id="lblClosingAmount"></strong>
+          <br /><span style="font-size:12px; color:var(--fg-dim);" id="lblClosingTime"></span>
+        </div>
+        <div style="font-size:12.5px; color:var(--fg-dim); line-height:1.55;">
+          Owner akan memeriksa dan menyesuaikan bila ada selisih.
+        </div>
       </div>
     </div>
   </div>
@@ -1006,31 +1248,20 @@
   <!-- Global Toast Notification -->
   <div id="toastBox" class="toast-box">Transaksi Berhasil Disimpan</div>
 
+  <!-- Library di-host sendiri, bukan CDN: kasir tidak boleh ikut mati
+       bila jaringan luar terganggu di hari pembukaan. -->
+  <script src="vendor/supabase.js"></script>
+  <script src="sb-app.js"></script>
+
   <script>
     /* =========================================================================
        BARBER POS - PHASE 0 CORE LOGIC (ZERO DATA LOSS PERSISTENCE)
        ========================================================================= */
 
+    // Kunci cache offline. Sumber kebenaran ada di Supabase; localStorage
+    // hanya menyimpan salinan master data + antrean transaksi (lihat sb-app.js).
     const STORAGE_KEY_SERVICES = 'barber_services_v1';
     const STORAGE_KEY_CAPSTERS = 'barber_capsters_v1';
-    const STORAGE_KEY_TRANSACTIONS = 'barber_transactions_v1';
-    const STORAGE_KEY_MEMBERS = 'barber_members_v1';
-
-    // Default Seed Data
-    const DEFAULT_SERVICES = [
-      { id: 'srv_1', name: 'Gentleman Haircut (Wash + Style)', category: 'Haircut', duration: 45, price: 50000 },
-      { id: 'srv_2', name: 'Express Haircut', category: 'Haircut', duration: 30, price: 35000 },
-      { id: 'srv_3', name: 'Hair Wash, Massage & Tonic', category: 'Treatment', duration: 20, price: 25000 },
-      { id: 'srv_4', name: 'Beard Trim & Hot Towel Shave', category: 'Grooming', duration: 25, price: 35000 },
-      { id: 'srv_5', name: 'Kids Haircut (Under 12)', category: 'Haircut', duration: 30, price: 40000 },
-      { id: 'srv_6', name: 'Complete VIP Grooming Package', category: 'Package', duration: 60, price: 90000 }
-    ];
-
-    const DEFAULT_CAPSTERS = [
-      { id: 'cap_1', name: 'Alex', phone: '081298765431' },
-      { id: 'cap_2', name: 'Reza', phone: '081298765432' },
-      { id: 'cap_3', name: 'Dimas', phone: '081298765433' }
-    ];
 
     // State Variables
     let services = [];
@@ -1043,25 +1274,76 @@
     let selectedPaymentMethod = 'Tunai';
 
     // Initialize State from Storage
-    function initData() {
-      const storedServices = localStorage.getItem(STORAGE_KEY_SERVICES);
-      services = storedServices ? JSON.parse(storedServices) : [...DEFAULT_SERVICES];
-      if (!storedServices) localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(services));
-
-      const storedCapsters = localStorage.getItem(STORAGE_KEY_CAPSTERS);
-      capsters = storedCapsters ? JSON.parse(storedCapsters) : [...DEFAULT_CAPSTERS];
-      if (!storedCapsters) localStorage.setItem(STORAGE_KEY_CAPSTERS, JSON.stringify(capsters));
-
-      const storedTransactions = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
-      transactions = storedTransactions ? JSON.parse(storedTransactions) : [];
-
-      const storedMembers = localStorage.getItem(STORAGE_KEY_MEMBERS);
-      members = storedMembers ? JSON.parse(storedMembers) : {};
+    // Kolom database bernama duration_minutes; UI memakai `duration`.
+    function mapService(row) {
+      return { ...row, duration: row.duration_minutes };
     }
+
+    /** Master data diambil dari Supabase, lalu disalin ke localStorage
+        sebagai cadangan supaya kasir tetap bisa melayani saat sinyal putus. */
+    async function initData() {
+      const [svcRes, capRes] = await Promise.all([
+        sb.from('services').select('*').order('category', { ascending: true }).order('name', { ascending: true }),
+        sb.from('capsters').select('*').order('name', { ascending: true })
+      ]);
+      if (svcRes.error) throw svcRes.error;
+      if (capRes.error) throw capRes.error;
+
+      services = (svcRes.data || []).map(mapService);
+      capsters = capRes.data || [];
+
+      localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(services));
+      localStorage.setItem(STORAGE_KEY_CAPSTERS, JSON.stringify(capsters));
+    }
+
+    /** Dipakai bila pemuatan awal gagal (outlet sedang offline). */
+    function initDataFromCache() {
+      try {
+        services = JSON.parse(localStorage.getItem(STORAGE_KEY_SERVICES)) || [];
+        capsters = JSON.parse(localStorage.getItem(STORAGE_KEY_CAPSTERS)) || [];
+      } catch { services = []; capsters = []; }
+    }
+
+    function persistCache() {
+      localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(services));
+      localStorage.setItem(STORAGE_KEY_CAPSTERS, JSON.stringify(capsters));
+    }
+
+    /** Master data hanya boleh diubah saat online — jika tidak, dua perangkat
+        bisa menyimpan daftar layanan yang berbeda tanpa ketahuan. */
+    function requireOnline(showError) {
+      if (SBConn.online) return true;
+      showError('Sedang offline. Perubahan master data butuh koneksi.');
+      return false;
+    }
+
+    // 0812xxx -> 62812xxx, samakan dengan format nomor member
+    function normalizePhone(raw) {
+      let digits = String(raw || '').replace(/\D/g, '');
+      if (!digits) return '';
+      if (digits.startsWith('0')) digits = '62' + digits.substring(1);
+      else if (digits.startsWith('8')) digits = '62' + digits;
+      return digits;
+    }
+
+    // Bentuk data kini dijamin skema database (NOT NULL + DEFAULT),
+    // sehingga normalisasi sisi klien tidak lagi diperlukan.
+    const persistServices = persistCache;
+    const persistCapsters = persistCache;
 
     // Helper: Currency Formatter
     function formatRupiah(num) {
       return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+    }
+
+    // Helper: nama layanan diketik owner, jangan sampai merusak markup
+    function escapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     // Render Capsters
@@ -1069,14 +1351,28 @@
       const container = document.getElementById('capsterContainer');
       container.innerHTML = '';
 
-      capsters.forEach(c => {
+      // Capster nonaktif (libur/cuti/resign) disembunyikan dari pilihan kasir
+      const activeCapsters = capsters.filter(c => c.is_active !== false);
+
+      if (activeCapsters.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'svc-empty';
+        empty.style.gridColumn = '1 / -1';
+        empty.textContent = capsters.length === 0
+          ? 'Belum ada capster. Buka ⚙️ Pengaturan untuk menambahkan.'
+          : 'Tidak ada capster aktif. Aktifkan lewat ⚙️ Pengaturan.';
+        container.appendChild(empty);
+        return;
+      }
+
+      activeCapsters.forEach(c => {
         const isSel = selectedCapster && selectedCapster.id === c.id;
         const initial = c.name.charAt(0).toUpperCase();
         const card = document.createElement('div');
         card.className = `capster-card ${isSel ? 'is-selected' : ''}`;
         card.innerHTML = `
-          <div class="capster-avatar">${initial}</div>
-          <div class="capster-name">${c.name}</div>
+          <div class="capster-avatar">${escapeHtml(initial)}</div>
+          <div class="capster-name">${escapeHtml(c.name)}</div>
         `;
         card.onclick = () => {
           selectedCapster = c;
@@ -1093,9 +1389,22 @@
       const container = document.getElementById('servicesContainer');
       container.innerHTML = '';
 
-      const filtered = filterCat === 'ALL' 
-        ? services 
-        : services.filter(s => s.category.toLowerCase() === filterCat.toLowerCase());
+      // Layanan nonaktif tidak boleh muncul di katalog kasir
+      const active = services.filter(s => s.is_active !== false);
+      const filtered = filterCat === 'ALL'
+        ? active
+        : active.filter(s => (s.category || '').toLowerCase() === filterCat.toLowerCase());
+
+      if (filtered.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'svc-empty';
+        empty.style.gridColumn = '1 / -1';
+        empty.textContent = services.length === 0
+          ? 'Belum ada layanan. Buka ⚙️ Pengaturan untuk menambahkan.'
+          : 'Tidak ada layanan aktif pada kategori ini.';
+        container.appendChild(empty);
+        return;
+      }
 
       filtered.forEach(s => {
         const isSel = selectedServices.some(item => item.id === s.id);
@@ -1104,7 +1413,7 @@
         card.innerHTML = `
           <div class="check-indicator">✓</div>
           <div class="service-head">
-            <span class="service-name">${s.name}</span>
+            <span class="service-name">${escapeHtml(s.name)}</span>
             <span class="service-dur">${s.duration} mnt</span>
           </div>
           <div class="service-price">${formatRupiah(s.price)}</div>
@@ -1128,14 +1437,35 @@
     }
 
     let currentFilterCat = 'ALL';
-    // Setup Category Pills
-    document.querySelectorAll('.cat-pill').forEach(pill => {
-      pill.addEventListener('click', (e) => {
-        document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
-        pill.classList.add('active');
-        currentFilterCat = pill.dataset.cat;
-        renderServices(currentFilterCat);
+
+    // Pill kategori dibangun dari data layanan, bukan daftar tetap —
+    // kategori dari daftar harga klien bisa apa saja.
+    function renderCategoryPills() {
+      const container = document.getElementById('categoryPills');
+      const cats = [];
+      services.filter(s => s.is_active !== false).forEach(s => {
+        const c = (s.category || '').trim();
+        if (c && !cats.some(x => x.toLowerCase() === c.toLowerCase())) cats.push(c);
       });
+
+      // Filter aktif ikut hilang bila kategorinya sudah tidak ada
+      if (currentFilterCat !== 'ALL' && !cats.some(c => c.toLowerCase() === currentFilterCat.toLowerCase())) {
+        currentFilterCat = 'ALL';
+      }
+
+      container.innerHTML = [{ cat: 'ALL', label: 'Semua' }]
+        .concat(cats.map(c => ({ cat: c, label: c })))
+        .map(o => `<div class="cat-pill ${o.cat === currentFilterCat ? 'active' : ''}" data-cat="${escapeHtml(o.cat)}">${escapeHtml(o.label)}</div>`)
+        .join('');
+    }
+
+    // Delegasi: pill di-render ulang tiap kali master layanan berubah
+    document.getElementById('categoryPills').addEventListener('click', (e) => {
+      const pill = e.target.closest('.cat-pill');
+      if (!pill) return;
+      currentFilterCat = pill.dataset.cat;
+      renderCategoryPills();
+      renderServices(currentFilterCat);
     });
 
     // Update Cart View and Bill
@@ -1160,8 +1490,8 @@
         html += `
           <div class="cart-row">
             <div class="item-info">
-              <span><strong>${s.name}</strong></span>
-              <span class="item-capster">Capster: ${selectedCapster ? selectedCapster.name : '<em>(Belum dipilih)</em>'}</span>
+              <span><strong>${escapeHtml(s.name)}</strong></span>
+              <span class="item-capster">Capster: ${selectedCapster ? escapeHtml(selectedCapster.name) : '<em>(Belum dipilih)</em>'}</span>
             </div>
             <span class="item-price">${formatRupiah(s.price)}</span>
           </div>
@@ -1224,24 +1554,62 @@
     const nameInput = document.getElementById('inpCustName');
     const badgeEl = document.getElementById('memberStatusBadge');
 
+    // Pencarian member menembak database supaya pelanggan yang didaftarkan
+    // di perangkat lain tetap dikenali. Ditunda 350 ms agar tiap ketikan
+    // tidak memicu satu permintaan.
+    let memberLookupTimer = null;
+    let memberLookupSeq = 0;
+
     phoneInput.addEventListener('input', (e) => {
       let raw = e.target.value.replace(/\D/g, '');
       if (raw.startsWith('0')) raw = '62' + raw.substring(1);
-      
-      if (raw.length >= 9) {
-        if (members[raw]) {
-          const m = members[raw];
-          nameInput.value = m.name;
-          badgeEl.className = 'member-status-badge is-exist';
-          badgeEl.innerHTML = `⭐ Member Terdaftar (${m.tier || 'Silver'}) &middot; Kunjungan ke-${(m.visit_count || 0) + 1}`;
-        } else {
-          badgeEl.className = 'member-status-badge is-new';
-          badgeEl.innerHTML = `✨ Pelanggan Baru (Auto Registrasi Tier Silver)`;
-        }
-      } else {
+
+      clearTimeout(memberLookupTimer);
+
+      if (raw.length < 9) {
         badgeEl.className = 'member-status-badge';
+        badgeEl.textContent = '';
+        return;
       }
+
+      // Tampilkan cache dulu supaya kasir tidak menunggu
+      if (members[raw]) applyMemberBadge(members[raw]);
+
+      memberLookupTimer = setTimeout(async () => {
+        const seq = ++memberLookupSeq;
+        if (!SBConn.online) {
+          if (!members[raw]) markNewCustomer();
+          return;
+        }
+        // Lewat RPC, bukan SELECT langsung: perangkat kasir hanya boleh
+        // mencocokkan satu nomor yang disebut pelanggan, tidak boleh
+        // mengunduh seluruh basis data pelanggan.
+        const { data, error } = await sb.rpc('lookup_member', { p_phone: raw });
+
+        // Nomor sudah berubah lagi selagi menunggu -> abaikan hasil basi
+        if (seq !== memberLookupSeq) return;
+
+        if (error) return;
+        const m = Array.isArray(data) ? data[0] : data;
+        if (m) {
+          members[raw] = m;
+          applyMemberBadge(m);
+        } else {
+          markNewCustomer();
+        }
+      }, 350);
     });
+
+    function applyMemberBadge(m) {
+      if (m.name) nameInput.value = m.name;
+      badgeEl.className = 'member-status-badge is-exist';
+      badgeEl.innerHTML = `⭐ Member Terdaftar (${escapeHtml(m.tier || 'Silver')}) &middot; Kunjungan ke-${(m.visit_count || 0) + 1}`;
+    }
+
+    function markNewCustomer() {
+      badgeEl.className = 'member-status-badge is-new';
+      badgeEl.innerHTML = `✨ Pelanggan Baru (Auto Registrasi Tier Silver)`;
+    }
 
     // Payment Method Switching
     document.querySelectorAll('.pay-btn').forEach(btn => {
@@ -1258,7 +1626,7 @@
     });
 
     // Process Transaction & Submit
-    document.getElementById('btnSubmitTransaction').addEventListener('click', () => {
+    document.getElementById('btnSubmitTransaction').addEventListener('click', async () => {
       if (!selectedCapster) {
         showToast('Pilih capster terlebih dahulu!');
         return;
@@ -1266,6 +1634,11 @@
       if (selectedServices.length === 0) {
         showToast('Pilih layanan cukur!');
         return;
+      }
+      // Tanpa kasir teridentifikasi, transaksi tidak punya penanggung jawab
+      if (!kasirAktif || !kasirAktif.id) {
+        kasirAktif = await sbRequirePin(true);
+        document.getElementById('lblCashierName').textContent = kasirAktif.name;
       }
 
       const rawPhone = phoneInput.value.trim();
@@ -1292,57 +1665,71 @@
         paymentRef = document.getElementById('inpTransferBank').value.trim() || 'BANK-TRANSFER';
       }
 
-      // Generate Invoice No
       const now = new Date();
-      const dateStr = now.toISOString().slice(2,10).replace(/-/g, '');
-      const countToday = transactions.filter(t => t.created_at.startsWith(now.toISOString().slice(0,10))).length + 1;
-      const invNo = `INV-${dateStr}-${String(countToday).padStart(3, '0')}`;
 
-      // Update or Register Member
-      if (phoneWa !== '-') {
-        if (!members[phoneWa]) {
-          members[phoneWa] = {
-            id: 'mem_' + Date.now(),
-            name: custName,
-            phone_wa: phoneWa,
-            tier: 'Silver',
-            points_balance: 0,
-            total_spend: totalAmount,
-            visit_count: 1,
-            created_at: now.toISOString()
-          };
-        } else {
-          members[phoneWa].name = custName;
-          members[phoneWa].total_spend += totalAmount;
-          members[phoneWa].visit_count += 1;
-        }
-        localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(members));
+      // Nomor nota dibuat server (next_invoice_no) agar tidak bentrok antar
+      // perangkat. client_uuid membuat pengiriman ulang antrean offline aman.
+      const payload = {
+        p_client_uuid: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()),
+        p_member_name: custName,
+        p_member_phone: phoneWa,
+        p_capster_id: selectedCapster.id,
+        p_capster_name: selectedCapster.name,
+        p_cashier_id: kasirAktif.id,
+        p_items: selectedServices.map(s => ({
+          service_id: s.id, name: s.name, category: s.category, price: s.price
+        })),
+        p_subtotal: subtotal,
+        p_final_amount: totalAmount,
+        p_payment_method: selectedPaymentMethod,
+        p_payment_ref: paymentRef || null,
+        p_cash_paid: cashPaid,
+        p_cash_change: cashChange,
+        p_created_at: now.toISOString()
+      };
+
+      const submitBtn = document.getElementById('btnSubmitTransaction');
+      const prevLabel = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan…';
+
+      const res = await sbSubmitTransaction(payload);
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = prevLabel;
+
+      if (res.error && !res.queued) {
+        showToast('Transaksi GAGAL disimpan: ' + (res.error.message || res.error));
+        return;
       }
 
-      // Create Transaction Record
-      const newTransaction = {
-        id: 'trx_' + Date.now(),
-        invoice_no: invNo,
+      // Bentuk yang dipahami nota. Saat mengantre, nomor nota belum ada —
+      // diberi penanda sementara sampai tersinkron.
+      const tx = {
+        id: res.tx ? res.tx.id : payload.p_client_uuid,
+        invoice_no: res.tx ? res.tx.invoice_no : 'MENUNGGU SINKRON',
         member_name: custName,
         member_phone: phoneWa,
-        member_tier: (members[phoneWa] && members[phoneWa].tier) ? members[phoneWa].tier : 'Silver',
-        capster_id: selectedCapster.id,
+        member_tier: res.tx ? (res.tx.member_tier || 'Silver') : 'Silver',
         capster_name: selectedCapster.name,
         services: [...selectedServices],
-        subtotal: subtotal,
+        subtotal,
         final_amount: totalAmount,
         payment_method: selectedPaymentMethod,
         payment_ref: paymentRef,
         cash_paid: cashPaid,
         cash_change: cashChange,
-        created_at: now.toISOString()
+        created_at: res.tx ? res.tx.created_at : now.toISOString(),
+        queued: !!res.queued
       };
 
-      transactions.unshift(newTransaction);
-      localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(transactions));
+      transactions.unshift(tx);
+      updateConnPill();
 
-      showToast('Transaksi ' + invNo + ' berhasil!');
-      showReceiptModal(newTransaction);
+      showToast(res.queued
+        ? 'Offline — transaksi masuk antrean, terkirim otomatis saat online.'
+        : 'Transaksi ' + tx.invoice_no + ' berhasil!');
+      showReceiptModal(tx);
     });
 
     // Show Receipt Modal
@@ -1423,34 +1810,614 @@
 
     function renderSettingsTables() {
       const srvTbody = document.querySelector('#tableServicesSetting tbody');
-      srvTbody.innerHTML = services.map(s => `
-        <tr>
-          <td><strong>${s.name}</strong></td>
-          <td>${s.category}</td>
-          <td style="font-family:var(--mono);">${formatRupiah(s.price)}</td>
-        </tr>
-      `).join('');
+
+      if (services.length === 0) {
+        srvTbody.innerHTML = '<tr><td colspan="3" class="svc-empty">Belum ada layanan. Tekan “+ Tambah Layanan”.</td></tr>';
+      } else {
+        srvTbody.innerHTML = services.map(s => `
+          <tr class="${s.is_active === false ? 'is-off' : ''}">
+            <td>
+              <strong>${escapeHtml(s.name)}</strong>
+              <span class="svc-sub">${escapeHtml(s.category || '—')} · ${s.duration} mnt${s.is_active === false ? ' · NONAKTIF' : ''}</span>
+            </td>
+            <td style="font-family:var(--mono);">${formatRupiah(s.price)}</td>
+            <td>
+              <div class="row-actions">
+                <button data-act="toggle" data-id="${s.id}" class="${s.is_active === false ? '' : 'is-on'}" title="${s.is_active === false ? 'Aktifkan' : 'Nonaktifkan'}">${s.is_active === false ? '○' : '●'}</button>
+                <button data-act="edit" data-id="${s.id}" title="Ubah">✎</button>
+                <button data-act="del" data-id="${s.id}" title="Hapus">✕</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      const activeCount = services.filter(s => s.is_active !== false).length;
+      document.getElementById('svcSummary').textContent =
+        `${services.length} layanan · ${activeCount} aktif di katalog kasir`;
+
+      const dl = document.getElementById('svcCategoryList');
+      const cats = [];
+      services.forEach(s => {
+        const c = (s.category || '').trim();
+        if (c && !cats.some(x => x.toLowerCase() === c.toLowerCase())) cats.push(c);
+      });
+      dl.innerHTML = cats.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
 
       const capTbody = document.querySelector('#tableCapstersSetting tbody');
-      capTbody.innerHTML = capsters.map(c => `
-        <tr>
-          <td><strong>${c.name}</strong></td>
-          <td style="font-family:var(--mono);">${c.phone}</td>
-        </tr>
-      `).join('');
+
+      if (capsters.length === 0) {
+        capTbody.innerHTML = '<tr><td colspan="3" class="svc-empty">Belum ada capster. Tekan “+ Tambah Capster”.</td></tr>';
+      } else {
+        capTbody.innerHTML = capsters.map(c => `
+          <tr class="${c.is_active === false ? 'is-off' : ''}">
+            <td>
+              <strong>${escapeHtml(c.name)}</strong>
+              ${c.is_active === false ? '<span class="svc-sub">NONAKTIF</span>' : ''}
+            </td>
+            <td style="font-family:var(--mono);">${c.phone ? escapeHtml(c.phone) : '—'}</td>
+            <td>
+              <div class="row-actions">
+                <button data-act="toggle" data-id="${c.id}" class="${c.is_active === false ? '' : 'is-on'}" title="${c.is_active === false ? 'Aktifkan' : 'Nonaktifkan'}">${c.is_active === false ? '○' : '●'}</button>
+                <button data-act="edit" data-id="${c.id}" title="Ubah">✎</button>
+                <button data-act="del" data-id="${c.id}" title="Hapus">✕</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      const activeCap = capsters.filter(c => c.is_active !== false).length;
+      document.getElementById('capSummary').textContent =
+        `${capsters.length} capster · ${activeCap} bertugas hari ini`;
     }
 
-    document.getElementById('btnResetDefaultData').addEventListener('click', () => {
-      if (confirm('Kembalikan daftar layanan dan capster ke bawaan awal?')) {
-        localStorage.removeItem(STORAGE_KEY_SERVICES);
-        localStorage.removeItem(STORAGE_KEY_CAPSTERS);
-        initData();
-        renderCapsters();
-        renderServices(currentFilterCat);
-        updateCartView();
-        renderSettingsTables();
-        showToast('Data master di-reset ke default.');
+    /* =========================================================================
+       MASTER LAYANAN — CRUD
+       ========================================================================= */
+
+    let editingServiceId = null;
+
+    const svcForm = document.getElementById('serviceFormWrap');
+    const svcErrorEl = document.getElementById('svcFormError');
+
+    function showSvcError(msg) {
+      svcErrorEl.textContent = msg;
+      svcErrorEl.hidden = false;
+    }
+
+    function openServiceForm(service) {
+      editingServiceId = service ? service.id : null;
+      svcErrorEl.hidden = true;
+      document.getElementById('inpSvcName').value = service ? service.name : '';
+      document.getElementById('inpSvcCategory').value = service ? (service.category || '') : '';
+      document.getElementById('inpSvcDuration').value = service ? service.duration : 30;
+      document.getElementById('inpSvcPrice').value = service ? service.price : '';
+      document.getElementById('btnSaveService').textContent = service ? 'Simpan Perubahan' : 'Tambah';
+      svcForm.hidden = false;
+      document.getElementById('inpSvcName').focus();
+    }
+
+    function closeServiceForm() {
+      editingServiceId = null;
+      svcForm.hidden = true;
+      svcErrorEl.hidden = true;
+    }
+
+    // Satu titik render setelah master layanan berubah
+    function refreshAfterServiceChange() {
+      persistServices();
+      renderCategoryPills();
+      renderServices(currentFilterCat);
+      renderSettingsTables();
+      updateCartView();
+    }
+
+    document.getElementById('btnAddService').addEventListener('click', () => {
+      if (!svcForm.hidden && editingServiceId === null) { closeServiceForm(); return; }
+      openServiceForm(null);
+    });
+
+    document.getElementById('btnCancelService').addEventListener('click', closeServiceForm);
+
+    document.getElementById('btnSaveService').addEventListener('click', async () => {
+      const name = document.getElementById('inpSvcName').value.trim();
+      const category = document.getElementById('inpSvcCategory').value.trim() || 'Lainnya';
+      const duration = parseInt(document.getElementById('inpSvcDuration').value, 10);
+      const priceRaw = document.getElementById('inpSvcPrice').value.trim();
+      const price = Number(priceRaw);
+
+      if (!name) return showSvcError('Nama layanan wajib diisi.');
+      if (priceRaw === '' || !Number.isFinite(price) || price < 0) return showSvcError('Harga wajib diisi dan tidak boleh negatif.');
+      if (!Number.isFinite(duration) || duration < 1) return showSvcError('Durasi minimal 1 menit.');
+
+      // Nama kembar bikin kasir salah pilih saat antre
+      const clash = services.some(s =>
+        s.id !== editingServiceId && s.name.trim().toLowerCase() === name.toLowerCase()
+      );
+      if (clash) return showSvcError('Sudah ada layanan dengan nama yang sama.');
+
+      if (!requireOnline(showSvcError)) return;
+
+      const btn = document.getElementById('btnSaveService');
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Menyimpan…';
+
+      try {
+        if (editingServiceId) {
+          const { data, error } = await sb.from('services')
+            .update({ name, category, price, duration_minutes: duration })
+            .eq('id', editingServiceId).select().single();
+          if (error) throw error;
+
+          const svc = services.find(s => s.id === editingServiceId);
+          if (svc) Object.assign(svc, mapService(data));
+
+          // Harga di keranjang ikut terkoreksi, jangan sampai nota memakai harga lama
+          const inCart = selectedServices.find(item => item.id === editingServiceId);
+          if (inCart) Object.assign(inCart, mapService(data));
+
+          showToast('Layanan "' + name + '" diperbarui.');
+        } else {
+          const { data, error } = await sb.from('services')
+            .insert({ name, category, price, duration_minutes: duration, is_active: true })
+            .select().single();
+          if (error) throw error;
+          services.push(mapService(data));
+          showToast('Layanan "' + name + '" ditambahkan.');
+        }
+      } catch (err) {
+        return showSvcError(err.code === '23505'
+          ? 'Sudah ada layanan dengan nama yang sama.'
+          : 'Gagal menyimpan: ' + (err.message || err));
+      } finally {
+        btn.disabled = false; btn.textContent = label;
       }
+
+      closeServiceForm();
+      refreshAfterServiceChange();
+    });
+
+    // Delegasi aksi baris tabel layanan
+    document.querySelector('#tableServicesSetting tbody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+
+      const svc = services.find(s => s.id === btn.dataset.id);
+      if (!svc) return;
+
+      if (btn.dataset.act === 'edit') {
+        openServiceForm(svc);
+        return;
+      }
+
+      if (btn.dataset.act === 'toggle') {
+        if (!SBConn.online) return showToast('Sedang offline. Perubahan master data butuh koneksi.');
+        const turningOff = svc.is_active !== false;
+        const { error } = await sb.from('services').update({ is_active: !turningOff }).eq('id', svc.id);
+        if (error) return showToast('Gagal menyimpan: ' + error.message);
+
+        if (turningOff) selectedServices = selectedServices.filter(item => item.id !== svc.id);
+        svc.is_active = !turningOff;
+        showToast('Layanan "' + svc.name + '" ' + (turningOff ? 'dinonaktifkan.' : 'diaktifkan.'));
+        refreshAfterServiceChange();
+        return;
+      }
+
+      if (btn.dataset.act === 'del') {
+        if (!SBConn.online) return showToast('Sedang offline. Perubahan master data butuh koneksi.');
+        if (!confirm('Hapus layanan "' + svc.name + '"?\n\nTransaksi lama tetap menyimpan nama layanan ini. Untuk menyembunyikannya dari kasir tanpa menghapus, pakai tombol ● (nonaktifkan).')) return;
+
+        const { error } = await sb.from('services').delete().eq('id', svc.id);
+        if (error) return showToast('Gagal menghapus: ' + error.message);
+
+        if (editingServiceId === svc.id) closeServiceForm();
+        selectedServices = selectedServices.filter(item => item.id !== svc.id);
+        services = services.filter(s => s.id !== svc.id);
+        showToast('Layanan dihapus.');
+        refreshAfterServiceChange();
+      }
+    });
+
+    /* =========================================================================
+       TUTUP KAS — setoran tunai akhir shift
+
+       Hitungan buta: layar ini tidak pernah menampilkan berapa yang seharusnya
+       ada. Ekspektasi dihitung server saat penyetoran dan hanya terbaca owner.
+       ========================================================================= */
+
+    const closingModal = document.getElementById('closingModal');
+    const closingErrEl = document.getElementById('closingError');
+
+    function tampilkanSetoranTerkirim(nama, jumlah, waktu) {
+      document.getElementById('closingFormWrap').hidden = true;
+      document.getElementById('closingDoneWrap').hidden = false;
+      document.getElementById('lblClosingCashier').textContent = nama;
+      document.getElementById('lblClosingAmount').textContent = formatRupiah(jumlah);
+      document.getElementById('lblClosingTime').textContent =
+        waktu ? new Date(waktu).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' }) + ' WIB' : '';
+    }
+
+    document.getElementById('btnOpenClosing').addEventListener('click', async () => {
+      if (!kasirAktif || !kasirAktif.id) {
+        kasirAktif = await sbRequirePin(true);
+        document.getElementById('lblCashierName').textContent = kasirAktif.name;
+      }
+      if (!SBConn.online) return showToast('Sedang offline. Setoran kas butuh koneksi.');
+
+      closingErrEl.hidden = true;
+      document.getElementById('closingFormWrap').hidden = false;
+      document.getElementById('closingDoneWrap').hidden = true;
+      document.getElementById('inpCountedCash').value = '';
+      document.getElementById('inpClosingNotes').value = '';
+
+      // Sudah menyetor hari ini? Tampilkan setorannya — tetap tanpa ekspektasi.
+      const { data } = await sb.rpc('my_closing_status', { p_cashier_id: kasirAktif.id });
+      const st = Array.isArray(data) ? data[0] : data;
+      if (st && st.sudah_setor) {
+        tampilkanSetoranTerkirim(kasirAktif.name, st.counted_amount, st.submitted_at);
+      }
+      closingModal.classList.add('is-open');
+      if (!st || !st.sudah_setor) document.getElementById('inpCountedCash').focus();
+    });
+
+    document.getElementById('btnCloseClosing').addEventListener('click', () => {
+      closingModal.classList.remove('is-open');
+    });
+
+    document.getElementById('btnSubmitClosing').addEventListener('click', async () => {
+      const raw = document.getElementById('inpCountedCash').value.trim();
+      const jumlah = Number(raw);
+      const catatan = document.getElementById('inpClosingNotes').value.trim();
+
+      if (raw === '' || !Number.isFinite(jumlah) || jumlah < 0) {
+        closingErrEl.textContent = 'Isi jumlah uang tunai yang Anda hitung.';
+        closingErrEl.hidden = false;
+        return;
+      }
+      if (!confirm(`Setor ${formatRupiah(jumlah)} sebagai hitungan tunai hari ini?\n\nSetoran hanya bisa dikirim sekali.`)) return;
+
+      const btn = document.getElementById('btnSubmitClosing');
+      btn.disabled = true; btn.textContent = 'Mengirim…';
+      try {
+        const { data, error } = await sb.rpc('submit_cash_closing', {
+          p_cashier_id: kasirAktif.id,
+          p_counted: jumlah,
+          p_notes: catatan || null
+        });
+        if (error) throw error;
+        const row = Array.isArray(data) ? data[0] : data;
+        tampilkanSetoranTerkirim(row.cashier_name, row.counted_amount, row.submitted_at);
+        showToast('Setoran kas terkirim.');
+      } catch (err) {
+        closingErrEl.textContent = err.message || String(err);
+        closingErrEl.hidden = false;
+      } finally {
+        btn.disabled = false; btn.textContent = 'Kirim Setoran';
+      }
+    });
+
+    /* =========================================================================
+       MASTER KASIR & PIN — khusus owner
+
+       PIN tidak pernah ditarik ke browser: database hanya menyimpan hash-nya
+       dan tidak ada cara membacanya kembali. Owner yang lupa PIN kasir
+       menetapkan PIN baru, bukan melihat yang lama.
+       ========================================================================= */
+
+    let cashiers = [];
+    let editingCashierId = null;
+
+    const csrForm = document.getElementById('cashierFormWrap');
+    const csrErrorEl = document.getElementById('csrFormError');
+
+    function showCsrError(msg) {
+      csrErrorEl.textContent = msg;
+      csrErrorEl.hidden = false;
+    }
+
+    async function loadCashiers() {
+      if (!isOwner) return;
+      const { data, error } = await sb.from('cashiers')
+        .select('id, name, is_active').order('name', { ascending: true });
+      if (error) return;
+      cashiers = data || [];
+      renderCashiers();
+    }
+
+    function renderCashiers() {
+      const tb = document.querySelector('#tableCashiersSetting tbody');
+      if (cashiers.length === 0) {
+        tb.innerHTML = '<tr><td colspan="3" class="svc-empty">Belum ada kasir. Tekan “+ Tambah Kasir”.</td></tr>';
+      } else {
+        tb.innerHTML = cashiers.map(c => `
+          <tr class="${c.is_active === false ? 'is-off' : ''}">
+            <td>
+              <strong>${escapeHtml(c.name)}</strong>
+              ${c.is_active === false ? '<span class="svc-sub">NONAKTIF</span>' : ''}
+            </td>
+            <td style="font-family:var(--mono); color:var(--fg-dim);">••••</td>
+            <td>
+              <div class="row-actions">
+                <button data-act="toggle" data-id="${c.id}" class="${c.is_active === false ? '' : 'is-on'}" title="${c.is_active === false ? 'Aktifkan' : 'Nonaktifkan'}">${c.is_active === false ? '○' : '●'}</button>
+                <button data-act="edit" data-id="${c.id}" title="Ubah nama / ganti PIN">✎</button>
+                <button data-act="del" data-id="${c.id}" title="Hapus">✕</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
+      const aktif = cashiers.filter(c => c.is_active !== false).length;
+      document.getElementById('csrSummary').textContent =
+        `${cashiers.length} kasir · ${aktif} aktif · PIN tersimpan terenkripsi`;
+    }
+
+    function openCashierForm(csr) {
+      editingCashierId = csr ? csr.id : null;
+      csrErrorEl.hidden = true;
+      document.getElementById('inpCsrName').value = csr ? csr.name : '';
+      document.getElementById('inpCsrPin').value = '';
+      document.getElementById('inpCsrPin').placeholder = csr
+        ? 'PIN baru (kosongkan bila tidak diubah)'
+        : 'PIN 4–8 digit';
+      document.getElementById('btnSaveCashier').textContent = csr ? 'Simpan Perubahan' : 'Tambah';
+      csrForm.hidden = false;
+      document.getElementById('inpCsrName').focus();
+    }
+
+    function closeCashierForm() {
+      editingCashierId = null;
+      csrForm.hidden = true;
+      csrErrorEl.hidden = true;
+    }
+
+    document.getElementById('btnAddCashier').addEventListener('click', () => {
+      if (!csrForm.hidden && editingCashierId === null) { closeCashierForm(); return; }
+      openCashierForm(null);
+    });
+
+    document.getElementById('btnCancelCashier').addEventListener('click', closeCashierForm);
+
+    document.getElementById('btnSaveCashier').addEventListener('click', async () => {
+      const name = document.getElementById('inpCsrName').value.trim();
+      const pin = document.getElementById('inpCsrPin').value.trim();
+
+      if (!name) return showCsrError('Nama kasir wajib diisi.');
+      if (!editingCashierId && !pin) return showCsrError('PIN wajib diisi untuk kasir baru.');
+      if (pin && !/^[0-9]{4,8}$/.test(pin)) return showCsrError('PIN harus 4 sampai 8 digit angka.');
+      if (pin && /^(\d)\1+$/.test(pin)) return showCsrError('PIN jangan angka yang sama semua — terlalu mudah ditebak.');
+      if (!requireOnline(showCsrError)) return;
+
+      const btn = document.getElementById('btnSaveCashier');
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Menyimpan…';
+      try {
+        const { error } = await sb.rpc('upsert_cashier', {
+          p_name: name,
+          p_pin: pin || null,
+          p_id: editingCashierId
+        });
+        if (error) throw error;
+        showToast(editingCashierId ? 'Kasir "' + name + '" diperbarui.' : 'Kasir "' + name + '" ditambahkan.');
+      } catch (err) {
+        return showCsrError(err.message || String(err));
+      } finally {
+        btn.disabled = false; btn.textContent = label;
+      }
+      closeCashierForm();
+      await loadCashiers();
+    });
+
+    document.querySelector('#tableCashiersSetting tbody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const csr = cashiers.find(c => c.id === btn.dataset.id);
+      if (!csr) return;
+      if (!SBConn.online) return showToast('Sedang offline. Perubahan data kasir butuh koneksi.');
+
+      if (btn.dataset.act === 'edit') { openCashierForm(csr); return; }
+
+      if (btn.dataset.act === 'toggle') {
+        const matikan = csr.is_active !== false;
+        const { error } = await sb.from('cashiers').update({ is_active: !matikan }).eq('id', csr.id);
+        if (error) return showToast('Gagal menyimpan: ' + error.message);
+        csr.is_active = !matikan;
+        // Kasir yang sedang bertugas dinonaktifkan -> minta PIN lagi
+        if (matikan && kasirAktif && kasirAktif.id === csr.id) {
+          localStorage.removeItem(SB_CASHIER_KEY);
+          kasirAktif = null;
+          document.getElementById('lblCashierName').textContent = '—';
+        }
+        showToast('Kasir "' + csr.name + '" ' + (matikan ? 'dinonaktifkan.' : 'diaktifkan.'));
+        renderCashiers();
+        return;
+      }
+
+      if (btn.dataset.act === 'del') {
+        if (!confirm('Hapus kasir "' + csr.name + '"?\n\nTransaksi lama tetap menyimpan namanya sebagai jejak pertanggungjawaban. Untuk kasir yang sekadar berhenti bertugas, pakai tombol ● (nonaktifkan).')) return;
+        const { error } = await sb.from('cashiers').delete().eq('id', csr.id);
+        if (error) return showToast('Gagal menghapus: ' + error.message);
+        if (editingCashierId === csr.id) closeCashierForm();
+        if (kasirAktif && kasirAktif.id === csr.id) {
+          localStorage.removeItem(SB_CASHIER_KEY);
+          kasirAktif = null;
+          document.getElementById('lblCashierName').textContent = '—';
+        }
+        cashiers = cashiers.filter(c => c.id !== csr.id);
+        showToast('Kasir dihapus.');
+        renderCashiers();
+      }
+    });
+
+    /* =========================================================================
+       MASTER CAPSTER — CRUD
+       ========================================================================= */
+
+    let editingCapsterId = null;
+
+    const capForm = document.getElementById('capsterFormWrap');
+    const capErrorEl = document.getElementById('capFormError');
+
+    function showCapError(msg) {
+      capErrorEl.textContent = msg;
+      capErrorEl.hidden = false;
+    }
+
+    function openCapsterForm(capster) {
+      editingCapsterId = capster ? capster.id : null;
+      capErrorEl.hidden = true;
+      document.getElementById('inpCapName').value = capster ? capster.name : '';
+      document.getElementById('inpCapPhone').value = capster ? (capster.phone || '') : '';
+      document.getElementById('btnSaveCapster').textContent = capster ? 'Simpan Perubahan' : 'Tambah';
+      capForm.hidden = false;
+      document.getElementById('inpCapName').focus();
+    }
+
+    function closeCapsterForm() {
+      editingCapsterId = null;
+      capForm.hidden = true;
+      capErrorEl.hidden = true;
+    }
+
+    // Capster terpilih hilang/nonaktif -> bersihkan pilihan supaya
+    // transaksi tidak terlanjur memakai capster yang sudah tidak bertugas
+    function clearCapsterSelectionIf(predicate) {
+      if (selectedCapster && predicate(selectedCapster)) {
+        selectedCapster = null;
+        document.getElementById('lblSelectedCapster').textContent = 'Belum dipilih';
+      }
+    }
+
+    function refreshAfterCapsterChange() {
+      persistCapsters();
+      renderCapsters();
+      renderSettingsTables();
+      updateCartView();
+    }
+
+    document.getElementById('btnAddCapster').addEventListener('click', () => {
+      if (!capForm.hidden && editingCapsterId === null) { closeCapsterForm(); return; }
+      openCapsterForm(null);
+    });
+
+    document.getElementById('btnCancelCapster').addEventListener('click', closeCapsterForm);
+
+    document.getElementById('btnSaveCapster').addEventListener('click', async () => {
+      const name = document.getElementById('inpCapName').value.trim();
+      const phone = normalizePhone(document.getElementById('inpCapPhone').value);
+
+      if (!name) return showCapError('Nama capster wajib diisi.');
+      if (phone && phone.length < 10) return showCapError('Nomor WhatsApp terlalu pendek. Kosongkan bila belum ada.');
+
+      const clash = capsters.some(c =>
+        c.id !== editingCapsterId && c.name.trim().toLowerCase() === name.toLowerCase()
+      );
+      if (clash) return showCapError('Sudah ada capster dengan nama yang sama.');
+
+      if (!requireOnline(showCapError)) return;
+
+      const btn = document.getElementById('btnSaveCapster');
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Menyimpan…';
+
+      try {
+        if (editingCapsterId) {
+          const { data, error } = await sb.from('capsters')
+            .update({ name, phone }).eq('id', editingCapsterId).select().single();
+          if (error) throw error;
+
+          const cap = capsters.find(c => c.id === editingCapsterId);
+          if (cap) Object.assign(cap, data);
+
+          // Label & baris keranjang ikut memakai nama baru
+          if (selectedCapster && selectedCapster.id === editingCapsterId) {
+            selectedCapster = cap || data;
+            document.getElementById('lblSelectedCapster').textContent = name;
+          }
+          showToast('Capster "' + name + '" diperbarui.');
+        } else {
+          const { data, error } = await sb.from('capsters')
+            .insert({ name, phone, is_active: true }).select().single();
+          if (error) throw error;
+          capsters.push(data);
+          showToast('Capster "' + name + '" ditambahkan.');
+        }
+      } catch (err) {
+        return showCapError(err.code === '23505'
+          ? 'Sudah ada capster dengan nama yang sama.'
+          : 'Gagal menyimpan: ' + (err.message || err));
+      } finally {
+        btn.disabled = false; btn.textContent = label;
+      }
+
+      closeCapsterForm();
+      refreshAfterCapsterChange();
+    });
+
+    document.querySelector('#tableCapstersSetting tbody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+
+      const cap = capsters.find(c => c.id === btn.dataset.id);
+      if (!cap) return;
+
+      if (btn.dataset.act === 'edit') {
+        openCapsterForm(cap);
+        return;
+      }
+
+      if (btn.dataset.act === 'toggle') {
+        if (!SBConn.online) return showToast('Sedang offline. Perubahan master data butuh koneksi.');
+        const turningOff = cap.is_active !== false;
+        const { error } = await sb.from('capsters').update({ is_active: !turningOff }).eq('id', cap.id);
+        if (error) return showToast('Gagal menyimpan: ' + error.message);
+
+        cap.is_active = !turningOff;
+        if (turningOff) clearCapsterSelectionIf(c => c.id === cap.id);
+        showToast('Capster "' + cap.name + '" ' + (turningOff ? 'ditandai tidak bertugas.' : 'ditandai bertugas.'));
+        refreshAfterCapsterChange();
+        return;
+      }
+
+      if (btn.dataset.act === 'del') {
+        if (!SBConn.online) return showToast('Sedang offline. Perubahan master data butuh koneksi.');
+        if (!confirm('Hapus capster "' + cap.name + '"?\n\nTransaksi lama tetap menyimpan namanya. Untuk capster yang sekadar libur, pakai tombol ● (tidak bertugas).')) return;
+
+        const { error } = await sb.from('capsters').delete().eq('id', cap.id);
+        if (error) return showToast('Gagal menghapus: ' + error.message);
+
+        if (editingCapsterId === cap.id) closeCapsterForm();
+        clearCapsterSelectionIf(c => c.id === cap.id);
+        capsters = capsters.filter(c => c.id !== cap.id);
+        showToast('Capster dihapus.');
+        refreshAfterCapsterChange();
+      }
+    });
+
+    // Master data kini tinggal di server. Yang berguna bukan lagi "reset ke
+    // bawaan", melainkan menarik ulang perubahan yang dibuat dari perangkat lain.
+    document.getElementById('btnReloadMaster').addEventListener('click', async () => {
+      if (!SBConn.online) return showToast('Sedang offline. Tidak bisa memuat ulang.');
+      closeServiceForm();
+      closeCapsterForm();
+      try {
+        await initData();
+      } catch (err) {
+        return showToast('Gagal memuat: ' + (err.message || err));
+      }
+      // Pilihan lama bisa menunjuk id yang sudah dihapus di perangkat lain
+      selectedServices = selectedServices.filter(s => services.some(x => x.id === s.id && x.is_active !== false));
+      if (selectedCapster && !capsters.some(c => c.id === selectedCapster.id && c.is_active !== false)) {
+        selectedCapster = null;
+        document.getElementById('lblSelectedCapster').textContent = 'Belum dipilih';
+      }
+      currentFilterCat = 'ALL';
+      renderCapsters();
+      renderCategoryPills();
+      renderServices(currentFilterCat);
+      updateCartView();
+      renderSettingsTables();
+      showToast('Data master dimuat ulang dari server.');
     });
 
     // Toast Utility
@@ -1469,11 +2436,70 @@
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
 
-    // Init Execution
-    initData();
-    renderCapsters();
-    renderServices();
-    updateCartView();
+    /* =========================================================================
+       BOOT
+       ========================================================================= */
+
+    let updateConnPill = () => {};
+    let kasirAktif = null;
+    let isOwner = false;
+
+    document.getElementById('btnSignOut').addEventListener('click', () => {
+      if (SBQueue.count()) {
+        if (!confirm(`Masih ada ${SBQueue.count()} transaksi menunggu sinkron.\n\nKeluar sekarang akan menahan pengiriman sampai perangkat ini didaftarkan lagi. Tetap keluar?`)) return;
+      }
+      if (!confirm('Keluar akan melepas pendaftaran perangkat ini.\n\nUntuk sekadar berganti kasir, tekan nama kasir di kanan atas. Tetap keluar?')) return;
+      sbSignOut();
+    });
+
+    // Ganti kasir bertugas — cukup PIN, tanpa keluar dari perangkat
+    document.getElementById('chipCashier').addEventListener('click', async () => {
+      kasirAktif = await sbRequirePin(true);
+      document.getElementById('lblCashierName').textContent = kasirAktif.name;
+      showToast('Kasir bertugas: ' + kasirAktif.name);
+    });
+
+    (async function boot() {
+      // Tahap 1 — perangkat: sekali saja, disiapkan owner
+      const { profile } = await sbRequireAuth('Daftarkan perangkat kasir');
+      isOwner = profile.role === 'owner';
+
+      // Data layanan, pegawai, dan laporan adalah wilayah owner
+      document.getElementById('btnOpenSettings').hidden = !isOwner;
+      document.getElementById('lnkRekap').hidden = !isOwner;
+      if (isOwner) await loadCashiers();
+      document.getElementById('hdrOutletName').title = 'Perangkat: ' + (profile.full_name || '-');
+
+      updateConnPill = sbRenderConnPill(document.getElementById('connPill'));
+
+      try {
+        await initData();
+      } catch (err) {
+        // Server tak terjangkau: layani dengan salinan master data terakhir
+        initDataFromCache();
+        showToast(services.length
+          ? 'Offline — memakai salinan data terakhir di perangkat ini.'
+          : 'Gagal memuat data dan belum ada salinan lokal. Periksa koneksi.');
+      }
+
+      renderCapsters();
+      renderCategoryPills();
+      renderServices();
+      renderSettingsTables();
+      updateCartView();
+      updateConnPill();
+
+      // Tahap 2 — kasir: PIN pribadi tiap mulai bertugas
+      kasirAktif = await sbRequirePin(false);
+      document.getElementById('lblCashierName').textContent = kasirAktif.name;
+
+      // Kirim sisa antrean dari sesi sebelumnya
+      if (SBConn.online && SBQueue.count()) {
+        const n = await sbFlushQueue();
+        updateConnPill();
+        if (n) showToast(`${n} transaksi tertunda berhasil disinkronkan.`);
+      }
+    })();
   </script>
 </body>
 </html>
