@@ -1009,6 +1009,24 @@
           </div>
         </div>
 
+        <!-- Tukar Poin — hanya muncul bila member punya saldo cukup -->
+        <div id="redeemBox" hidden style="background:var(--ink-inset); border:1px solid var(--brass-deep); border-radius:var(--r-sm); padding:12px; display:flex; flex-direction:column; gap:9px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
+            <span style="font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--brass);">Tukar Poin</span>
+            <span style="font-size:12px; color:var(--fg-dim);" id="lblPointBalance"></span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
+            <input type="number" id="inpRedeemPoints" class="input-field" inputmode="numeric"
+                   placeholder="Jumlah poin" min="0" step="1" />
+            <button type="button" id="btnRedeemMax" class="btn-hdr" style="font-size:12px; white-space:nowrap;">Maks</button>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px;">
+            <span style="color:var(--fg-dim);">Diskon poin</span>
+            <span style="font-family:var(--mono); color:var(--sage);" id="lblRedeemValue">Rp 0</span>
+          </div>
+          <div class="svc-err" id="redeemErr" hidden></div>
+        </div>
+
         <!-- Total Bill -->
         <div class="total-box">
           <span class="total-label">Total Tagihan</span>
@@ -1081,6 +1099,10 @@
         <button id="btnPrintReceipt" class="btn-close-modal" style="background: var(--fg); color: var(--ink); border: none;">
           🖨️ Cetak Nota
         </button>
+      </div>
+      <div id="rcptLoyaltyBox" hidden style="background:var(--brass-wash); border:1px solid var(--brass-deep); border-radius:var(--r-sm); padding:11px 13px; margin-bottom:12px; font-size:13px; line-height:1.6;">
+        <div id="rcptPointsLine"></div>
+        <div id="rcptTierLine" hidden style="color:var(--brass); font-weight:700; margin-top:4px;"></div>
       </div>
       <button id="btnNewTransaction" class="btn-close-modal" style="width: 100%;">
         + Transaksi Baru
@@ -1499,7 +1521,8 @@
       });
 
       container.innerHTML = html;
-      totalAmountEl.textContent = formatRupiah(subtotal);
+      // Yang dibayar pelanggan adalah subtotal dikurangi diskon poin
+      totalAmountEl.textContent = formatRupiah(Math.max(0, subtotal - nilaiDiskonSah()));
 
       // Validate submit button readiness
       const hasCapster = !!selectedCapster;
@@ -1531,7 +1554,8 @@
     }
 
     function calculateCashChange() {
-      const total = selectedServices.reduce((acc, cur) => acc + cur.price, 0);
+      const total = Math.max(0,
+        selectedServices.reduce((acc, cur) => acc + cur.price, 0) - nilaiDiskonSah());
       const given = Number(document.getElementById('inpCashGiven').value || 0);
       const changeEl = document.getElementById('lblCashChange');
       
@@ -1604,12 +1628,98 @@
       if (m.name) nameInput.value = m.name;
       badgeEl.className = 'member-status-badge is-exist';
       badgeEl.innerHTML = `⭐ Member Terdaftar (${escapeHtml(m.tier || 'Silver')}) &middot; Kunjungan ke-${(m.visit_count || 0) + 1}`;
+      memberAktif = m;
+      renderRedeemBox();
     }
 
     function markNewCustomer() {
       badgeEl.className = 'member-status-badge is-new';
       badgeEl.innerHTML = `✨ Pelanggan Baru (Auto Registrasi Tier Silver)`;
+      memberAktif = null;
+      renderRedeemBox();
     }
+
+    /* =========================================================================
+       PENUKARAN POIN
+
+       Nilai rupiah diskon dihitung ulang di server saat transaksi disimpan.
+       Angka di layar ini hanya pratinjau untuk kasir — bila keduanya berbeda,
+       yang berlaku adalah hitungan server, bukan yang tampil di sini.
+       ========================================================================= */
+
+    let memberAktif = null;
+    let loyalty = null;   // pengaturan poin, dimuat sekali saat boot
+
+    function poinDitukar() {
+      const v = parseInt(document.getElementById('inpRedeemPoints').value, 10);
+      return Number.isFinite(v) && v > 0 ? v : 0;
+    }
+
+    function nilaiDiskonPoin() {
+      if (!loyalty || !memberAktif) return 0;
+      return poinDitukar() * loyalty.rupiah_per_point_redeem;
+    }
+
+    function renderRedeemBox() {
+      const box = document.getElementById('redeemBox');
+      const punyaPoin = memberAktif && loyalty && loyalty.is_active &&
+                        (memberAktif.points_balance || 0) >= loyalty.min_redeem_points;
+      if (!punyaPoin) {
+        box.hidden = true;
+        document.getElementById('inpRedeemPoints').value = '';
+        updateCartView();
+        return;
+      }
+      box.hidden = false;
+      document.getElementById('lblPointBalance').textContent =
+        `Saldo ${memberAktif.points_balance} poin · 1 poin = ${formatRupiah(loyalty.rupiah_per_point_redeem)}`;
+      hitungDiskon();
+    }
+
+    function hitungDiskon() {
+      const errEl = document.getElementById('redeemErr');
+      const poin = poinDitukar();
+      const subtotal = selectedServices.reduce((a, s) => a + s.price, 0);
+      let pesan = '';
+
+      if (poin > 0) {
+        if (poin > memberAktif.points_balance) pesan = `Poin tidak cukup. Saldo ${memberAktif.points_balance}.`;
+        else if (poin < loyalty.min_redeem_points) pesan = `Penukaran minimal ${loyalty.min_redeem_points} poin.`;
+        else if (poin * loyalty.rupiah_per_point_redeem > subtotal * loyalty.max_redeem_percent / 100)
+          pesan = `Diskon poin maksimal ${loyalty.max_redeem_percent}% dari subtotal.`;
+      }
+
+      errEl.textContent = pesan;
+      errEl.hidden = !pesan;
+      document.getElementById('lblRedeemValue').textContent =
+        formatRupiah(pesan ? 0 : nilaiDiskonPoin());
+      updateCartView();
+    }
+
+    /** Diskon yang benar-benar berlaku — nol bila input poin tidak sah. */
+    function nilaiDiskonSah() {
+      const errEl = document.getElementById('redeemErr');
+      if (!errEl || !errEl.hidden) return 0;
+      return nilaiDiskonPoin();
+    }
+
+    function poinSahDitukar() {
+      return document.getElementById('redeemErr').hidden ? poinDitukar() : 0;
+    }
+
+    document.getElementById('inpRedeemPoints').addEventListener('input', hitungDiskon);
+
+    document.getElementById('btnRedeemMax').addEventListener('click', () => {
+      if (!memberAktif || !loyalty) return;
+      const subtotal = selectedServices.reduce((a, s) => a + s.price, 0);
+      const batasRupiah = subtotal * loyalty.max_redeem_percent / 100;
+      const maks = Math.min(
+        memberAktif.points_balance,
+        Math.floor(batasRupiah / loyalty.rupiah_per_point_redeem)
+      );
+      document.getElementById('inpRedeemPoints').value = maks >= loyalty.min_redeem_points ? maks : '';
+      hitungDiskon();
+    });
 
     // Payment Method Switching
     document.querySelectorAll('.pay-btn').forEach(btn => {
@@ -1647,7 +1757,8 @@
       const phoneWa = formattedPhone.startsWith('0') ? '62' + formattedPhone.substring(1) : (formattedPhone || '-');
 
       const subtotal = selectedServices.reduce((acc, cur) => acc + cur.price, 0);
-      const totalAmount = subtotal;
+      const poinTukar = poinSahDitukar();
+      const totalAmount = Math.max(0, subtotal - nilaiDiskonSah());
 
       // Extract payment reference
       let paymentRef = '';
@@ -1685,7 +1796,8 @@
         p_payment_ref: paymentRef || null,
         p_cash_paid: cashPaid,
         p_cash_change: cashChange,
-        p_created_at: now.toISOString()
+        p_created_at: now.toISOString(),
+        p_redeem_points: poinTukar
       };
 
       const submitBtn = document.getElementById('btnSubmitTransaction');
@@ -1720,6 +1832,10 @@
         cash_paid: cashPaid,
         cash_change: cashChange,
         created_at: res.tx ? res.tx.created_at : now.toISOString(),
+        points_earned: res.tx ? res.tx.points_earned : 0,
+        points_balance: res.tx ? res.tx.points_balance : null,
+        discount_points: res.tx ? Number(res.tx.discount_points) : 0,
+        tier_naik: res.tx ? res.tx.tier_naik : false,
         queued: !!res.queued
       };
 
@@ -1774,11 +1890,30 @@
         document.getElementById('btnSendWaReceipt').style.display = 'none';
       }
 
+      // Ringkasan poin hanya muncul untuk transaksi member
+      const kotakPoin = document.getElementById('rcptLoyaltyBox');
+      const barisTier = document.getElementById('rcptTierLine');
+      if (tx.points_earned > 0 || tx.discount_points > 0) {
+        const bagian = [];
+        if (tx.discount_points > 0) bagian.push(`Diskon poin ${formatRupiah(tx.discount_points)}`);
+        if (tx.points_earned > 0) bagian.push(`Dapat +${tx.points_earned} poin`);
+        if (tx.points_balance != null) bagian.push(`Saldo kini ${tx.points_balance} poin`);
+        document.getElementById('rcptPointsLine').textContent = bagian.join(' · ');
+        barisTier.hidden = !tx.tier_naik;
+        if (tx.tier_naik) barisTier.textContent = `⭐ Naik level ke ${tx.member_tier}!`;
+        kotakPoin.hidden = false;
+      } else {
+        kotakPoin.hidden = true;
+      }
+
       document.getElementById('receiptModal').classList.add('is-open');
     }
 
     // Reset Form for New Transaction
     function resetPOSForm() {
+      memberAktif = null;
+      document.getElementById('inpRedeemPoints').value = '';
+      document.getElementById('redeemBox').hidden = true;
       selectedServices = [];
       document.getElementById('inpCustPhone').value = '';
       document.getElementById('inpCustName').value = '';
@@ -2481,6 +2616,13 @@
           ? 'Offline — memakai salinan data terakhir di perangkat ini.'
           : 'Gagal memuat data dan belum ada salinan lokal. Periksa koneksi.');
       }
+
+      // Aturan poin disimpan di server sebagai data, bukan konstanta di kode —
+      // owner dapat mengubah rasio tanpa menunggu rilis ulang.
+      try {
+        const { data } = await sb.from('loyalty_settings').select('*').maybeSingle();
+        loyalty = data || null;
+      } catch { loyalty = null; }
 
       renderCapsters();
       renderCategoryPills();
