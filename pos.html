@@ -1233,6 +1233,46 @@
       border-radius: 5px; padding: 2px 6px;
       margin-left: 6px; letter-spacing: 0; text-transform: none;
     }
+
+    /* ── Modal yang isinya lebih tinggi dari layar ──────────────────────────
+       .receipt-modal-card tidak punya max-height maupun overflow, sehingga
+       ketika isinya melampaui tinggi jendela ia membludak keluar tanpa ada
+       yang bisa digulir: backdrop-nya position:fixed, jadi halaman di
+       belakangnya pun tidak ikut bergerak.
+
+       Diperparah oleh place-items:center — pada grid, isi yang lebih tinggi
+       dari wadahnya terpotong di BAGIAN ATAS dan bagian itu tidak dapat
+       dijangkau sama sekali.
+
+       Kini kartunya sendiri yang menggulir. Daftar di dalamnya sengaja
+       dilepas dari batas tingginya supaya hanya ada SATU wilayah gulir:
+       tiga wilayah bersarang membuat roda mouse berhenti di tempat yang
+       tidak diduga. */
+    .modal-backdrop.is-open {
+      align-items: start;
+      justify-items: center;
+      overflow-y: auto;
+      padding: 20px 20px 40px;
+    }
+    .receipt-modal-card {
+      max-height: calc(100dvh - 60px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      margin: auto 0;
+    }
+    /* Satu-satunya gulir adalah kartunya */
+    #settingsModal .settings-table-wrap { max-height: none; overflow: visible; }
+
+    /* Kepala modal menetap saat isinya digulir. Tanpa ini tombol tutup ikut
+       hilang ke atas, dan satu-satunya cara menutup adalah menggulir balik
+       dulu — persis pada layar yang panjangnya justru jadi masalah. */
+    #settingsModal .receipt-modal-card > .section-title-bar:first-child {
+      position: sticky; top: -24px; z-index: 3;
+      background: var(--surface);
+      margin: -24px -24px 0;
+      padding: 24px 24px 12px;
+      border-bottom: 1px solid var(--border-soft);
+    }
   </style>
 </head>
 <body>
