@@ -19,6 +19,18 @@
     {
       "source": "/owner",
       "destination": "/rekap.html"
+    },
+    {
+      "source": "/masuk",
+      "destination": "/masuk.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/masuk.html"
+    },
+    {
+      "source": "/capster",
+      "destination": "/capster.html"
     }
   ]
 }

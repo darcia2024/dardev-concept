@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#08090b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Masuk &mdash; Barber Membership System</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --ink:          #08090b;
+      --ink-raised:   #0f1217;
+      --ink-card:     #14171d;
+      --ink-inset:    #0b0d11;
+      --line:         #242832;
+      --line-soft:    #191c23;
+      --fg:           #f2f3f5;
+      --fg-mid:       #a9afba;
+      --fg-dim:       #757c8a;
+      --brass:        #c9a26a;
+      --brass-deep:   #8d7047;
+      --brass-wash:   rgba(201, 162, 106, 0.12);
+      --sage:         #7fae8c;
+      --clay:         #c9756a;
+      --clay-wash:    rgba(201, 117, 106, 0.12);
+      --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono: 'Space Grotesk', monospace;
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--ink);
+      color: var(--fg);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.55;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px 20px 40px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    /* ---------- Identitas ---------- */
+    .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
+    }
+    .brand-badge {
+      width: 52px; height: 52px;
+      background: var(--brass);
+      color: var(--ink);
+      border-radius: 13px;
+      display: grid; place-items: center;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 19px;
+    }
+    .brand h1 {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+    .brand p {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--fg-dim);
+    }
+
+    /* ---------- Pilihan peran ---------- */
+    .roles { display: flex; flex-direction: column; gap: 10px; }
+
+    .role-card {
+      background: var(--ink-card);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 15px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      color: inherit;
+      font: inherit;
+      text-decoration: none;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .role-card:hover, .role-card:focus-visible {
+      border-color: var(--brass);
+      background: var(--brass-wash);
+      outline: none;
+    }
+    .role-icon {
+      width: 40px; height: 40px; flex: none;
+      border-radius: 10px;
+      background: var(--ink-inset);
+      border: 1px solid var(--line);
+      display: grid; place-items: center;
+      font-size: 18px;
+    }
+    .role-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .role-name { font-size: 15px; font-weight: 700; }
+    .role-desc { font-size: 12.5px; color: var(--fg-dim); line-height: 1.45; }
+    .role-arrow { margin-left: auto; color: var(--fg-dim); font-size: 17px; flex: none; }
+
+    /* ---------- Formulir ---------- */
+    .panel {
+      background: var(--ink-card);
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      padding: 22px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .panel-top { display: flex; align-items: center; gap: 12px; }
+    .btn-back {
+      background: none; border: none; cursor: pointer;
+      color: var(--fg-dim); font-size: 19px; line-height: 1;
+      padding: 2px 4px; font-family: inherit;
+    }
+    .btn-back:hover { color: var(--fg); }
+    .panel-title { font-size: 16px; font-weight: 700; }
+    .panel-sub { font-size: 12px; color: var(--fg-dim); }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--fg-dim);
+    }
+    input {
+      background: var(--ink-inset);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      color: var(--fg);
+      padding: 12px 13px;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      width: 100%;
+      transition: border-color .15s ease;
+    }
+    input:focus { border-color: var(--brass); }
+
+    .btn-primary {
+      background: var(--brass);
+      color: var(--ink);
+      border: none;
+      border-radius: var(--r-sm);
+      padding: 13px;
+      font-size: 14.5px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .15s ease;
+    }
+    .btn-primary:disabled { opacity: .55; cursor: default; }
+
+    .err {
+      font-size: 13px;
+      color: var(--clay);
+      background: var(--clay-wash);
+      border: 1px solid var(--clay);
+      border-radius: var(--r-sm);
+      padding: 10px 12px;
+      line-height: 1.45;
+    }
+    [hidden] { display: none !important; }
+
+    .foot {
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--fg-dim);
+      line-height: 1.6;
+    }
+    .foot a { color: var(--brass-deep); text-decoration: none; }
+    .foot a:hover { color: var(--brass); }
+
+    .spinner {
+      display: grid; place-items: center; gap: 12px;
+      padding: 30px 0; text-align: center;
+      color: var(--fg-dim); font-size: 13px;
+    }
+    .spinner-dot {
+      width: 26px; height: 26px;
+      border: 2px solid var(--line);
+      border-top-color: var(--brass);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+
+    <div class="brand">
+      <div class="brand-badge">BK</div>
+      <div>
+        <h1>Barber Membership System</h1>
+        <p>Opening Mode &middot; Fase 0</p>
+      </div>
+    </div>
+
+    <!-- Memeriksa sesi yang mungkin masih tersimpan -->
+    <div class="spinner" id="viewLoading">
+      <div class="spinner-dot"></div>
+      <div>Memeriksa sesi…</div>
+    </div>
+
+    <!-- Pemilihan peran -->
+    <div class="roles" id="viewRoles" hidden>
+      <button class="role-card" data-role="owner">
+        <span class="role-icon">👑</span>
+        <span class="role-text">
+          <span class="role-name">Owner</span>
+          <span class="role-desc">Laporan, data pegawai, pengaturan &mdash; akses penuh</span>
+        </span>
+        <span class="role-arrow">→</span>
+      </button>
+
+      <a class="role-card" href="/pos" data-role="kasir">
+        <span class="role-icon">💳</span>
+        <span class="role-text">
+          <span class="role-name">Kasir</span>
+          <span class="role-desc">Masuk dengan PIN di perangkat outlet</span>
+        </span>
+        <span class="role-arrow">→</span>
+      </a>
+
+      <button class="role-card" data-role="capster">
+        <span class="role-icon">✂️</span>
+        <span class="role-text">
+          <span class="role-name">Capster</span>
+          <span class="role-desc">Lihat kinerja Anda sendiri hari ini</span>
+        </span>
+        <span class="role-arrow">→</span>
+      </button>
+    </div>
+
+    <!-- Formulir akun (owner & capster) -->
+    <form class="panel" id="viewLogin" hidden autocomplete="on">
+      <div class="panel-top">
+        <button type="button" class="btn-back" id="btnBack" aria-label="Kembali">←</button>
+        <div>
+          <div class="panel-title" id="loginTitle">Masuk</div>
+          <div class="panel-sub" id="loginSub"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="inpEmail">Email</label>
+        <input type="email" id="inpEmail" name="email" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label class="label" for="inpPass">Kata Sandi</label>
+        <input type="password" id="inpPass" name="password" autocomplete="current-password" required />
+      </div>
+
+      <div class="err" id="loginErr" hidden></div>
+      <button type="submit" class="btn-primary" id="btnLogin">Masuk</button>
+    </form>
+
+    <div class="foot" id="footNote" hidden>
+      Kasir tidak memakai email &mdash; cukup PIN di perangkat outlet.<br />
+      Lupa kata sandi atau PIN? Hubungi owner.
+    </div>
+  </div>
+
+  <script src="vendor/supabase.js"></script>
+  <script src="sb-app.js"></script>
+
+  <script>
+    /* =========================================================================
+       HALAMAN MASUK — pintu tunggal, perutean berdasarkan peran
+
+       Kartu peran hanya membantu orang memilih; kewenangan TIDAK pernah
+       diambil dari pilihan itu. Setelah login, tujuan ditentukan dari
+       kolom role di tabel profiles — dan tiap halaman tujuan memeriksa
+       ulang perannya sendiri, dengan RLS di database sebagai lapis terakhir.
+       ========================================================================= */
+
+    const TUJUAN = {
+      owner:      '/rekap',
+      capster:    '/capster',
+      pos_device: '/pos',
+      kasir:      '/pos'
+    };
+
+    const SALINAN = {
+      owner:   { judul: 'Masuk sebagai Owner',   sub: 'Akses penuh ke seluruh sistem' },
+      capster: { judul: 'Masuk sebagai Capster', sub: 'Kinerja Anda sendiri, hari ini dan bulan ini' }
+    };
+
+    const $ = id => document.getElementById(id);
+    const errEl = $('loginErr');
+    let peranDipilih = 'owner';
+
+    function tampilkan(view) {
+      ['viewLoading', 'viewRoles', 'viewLogin'].forEach(v => { $(v).hidden = v !== view; });
+      $('footNote').hidden = view === 'viewLoading';
+    }
+
+    function bukaFormulir(peran) {
+      peranDipilih = peran;
+      errEl.hidden = true;
+      $('loginTitle').textContent = SALINAN[peran].judul;
+      $('loginSub').textContent = SALINAN[peran].sub;
+      tampilkan('viewLogin');
+      $('inpEmail').focus();
+    }
+
+    document.querySelectorAll('.role-card[data-role]').forEach(el => {
+      if (el.tagName === 'A') return;   // kartu kasir adalah tautan biasa ke /pos
+      el.addEventListener('click', () => bukaFormulir(el.dataset.role));
+    });
+
+    $('btnBack').addEventListener('click', () => { errEl.hidden = true; tampilkan('viewRoles'); });
+
+    /** Arahkan berdasarkan peran sebenarnya di basis data, bukan kartu yang ditekan. */
+    function arahkan(peran) {
+      const tujuan = TUJUAN[peran];
+      if (!tujuan) {
+        errEl.textContent = 'Akun ini belum diberi peran. Hubungi owner.';
+        errEl.hidden = false;
+        tampilkan('viewLogin');
+        return false;
+      }
+      location.replace(tujuan);
+      return true;
+    }
+
+    $('viewLogin').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.hidden = true;
+      const btn = $('btnLogin');
+      btn.disabled = true;
+      btn.textContent = 'Memeriksa…';
+
+      const { data, error } = await sb.auth.signInWithPassword({
+        email: $('inpEmail').value.trim(),
+        password: $('inpPass').value
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'Masuk';
+
+      if (error) {
+        errEl.textContent = /invalid/i.test(error.message)
+          ? 'Email atau kata sandi salah.'
+          : 'Gagal masuk: ' + error.message;
+        errEl.hidden = false;
+        return;
+      }
+
+      const { profile } = await sbLoadProfile(data.user);
+
+      // Beri tahu bila orangnya memilih kartu yang keliru — tetap diarahkan
+      // ke tempat yang benar sesuai perannya.
+      if (profile.role !== peranDipilih && SALINAN[profile.role]) {
+        errEl.textContent = `Akun ini terdaftar sebagai ${profile.role}. Mengalihkan…`;
+        errEl.hidden = false;
+      }
+      arahkan(profile.role);
+    });
+
+    // Sesi yang masih hidup langsung diteruskan, tanpa login ulang
+    (async function boot() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { tampilkan('viewRoles'); return; }
+      const { profile } = await sbLoadProfile(session.user);
+      if (!arahkan(profile.role)) tampilkan('viewRoles');
+    })();
+  </script>
+</body>
+</html>
