@@ -854,6 +854,228 @@
       .service-name  { font-size: 13px; line-height: 1.3; }
       .service-price { font-size: 15px; }
     }
+
+    /* ==========================================================================
+       LAPISAN KASIR — disusun ulang untuk cara kasir benar-benar bekerja
+
+       Yang dipinjam dari cara Apple menata layar: ketenangan, bukan kelapangan.
+       Kotak bergaris diganti pengelompokan lewat jarak, angka uang diberi bobot
+       tipografis, dan satu tindakan utama yang selalu berada di tempat sama.
+       Yang TIDAK dipinjam: ruang kosong berlimpah. Kasir bekerja sambil berdiri
+       dengan pelanggan menunggu; tiap ruang yang memaksa menggulir itu ongkos.
+
+       Blok ini sengaja diletakkan di akhir agar menang cascade tanpa perlu
+       membedah 839 baris di atasnya. Membuangnya mengembalikan tampilan lama.
+       ========================================================================== */
+
+    /* ---- Kolom checkout: alur menggulir, tindakan menetap ------------------
+       Sebelumnya seluruh kotak checkout diberi position:sticky. Kotaknya sendiri
+       lebih tinggi dari layar, sehingga Total dan tombol Proses justru terdorong
+       ke bawah lipatan — dua hal yang paling sering dilihat kasir menjadi dua
+       hal yang harus dicari lebih dulu. Kini yang menggulir hanya isian di atas,
+       dan zona uang tetap di tempatnya. */
+    .pos-right-panel { position: sticky; top: 68px; align-self: start; }
+
+    .cart-box {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 20px;
+      box-shadow: 0 1px 2px rgba(22,24,28,.04), 0 12px 32px rgba(22,24,28,.07);
+      padding: 0;
+      gap: 0;
+      overflow: hidden;
+      max-height: calc(100dvh - 84px);
+    }
+    .cart-flow {
+      display: flex; flex-direction: column; gap: 18px;
+      padding: 20px 20px 18px;
+      overflow-y: auto;
+      min-height: 0;
+      overscroll-behavior: contain;
+    }
+    .cart-action {
+      flex: none;
+      border-top: 1px solid var(--border-soft);
+      background: var(--surface-tint);
+      padding: 16px 20px 18px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    /* ---- Kepala panel ---- */
+    .cart-box .section-title-bar { padding: 0; border: none; margin: 0; }
+    .cart-box .section-title-bar h2 { font-size: 16px; letter-spacing: -.01em; }
+
+    /* Nomor 01/02/03 dihapus: itu menyiratkan urutan yang tidak dijalani kasir.
+       Nomor WhatsApp sering diketik lebih dulu sambil pelanggan bicara, kadang
+       layanan yang dipilih duluan. Penanda urutan yang tidak dipatuhi hanyalah
+       hiasan yang menyamar sebagai struktur. */
+    .step-badge { display: none; }
+
+    /* ---- Label: kalimat biasa, bukan kapital monospasi --------------------
+       Kapital dan monospasi di setiap label membuat layar terbaca seperti
+       terminal. Yang dituju di sini tenang, bukan teknis. */
+    .form-label, .sb-auth-label {
+      font-family: var(--sans);
+      font-size: 12.5px;
+      font-weight: var(--w-med);
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text-dim);
+    }
+
+    /* ---- Isian: dasar tenggelam, tanpa garis ---- */
+    .input-field {
+      background: var(--surface-sunk);
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 13px 14px;
+      font-size: 16px;               /* 16px menahan iOS memperbesar layar saat difokus */
+      transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+    .input-field:focus {
+      background: var(--surface);
+      border-color: var(--brand-line);
+      box-shadow: 0 0 0 3px var(--brand-wash);
+    }
+
+    /* ---- Metode bayar: satu kendali tersegmen, bukan empat kotak ---------- */
+    .pay-methods {
+      background: var(--surface-sunk);
+      border-radius: 12px;
+      padding: 3px;
+      gap: 2px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .pay-btn {
+      border: none; background: transparent;
+      border-radius: 9px;
+      min-height: 42px;
+      display: grid; place-items: center;
+      font-size: 14px; font-weight: var(--w-med);
+      color: var(--text-mid);
+      transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+    }
+    .pay-btn:hover { background: rgba(22,24,28,.04); color: var(--text); }
+    .pay-btn.active {
+      background: var(--surface); color: var(--text);
+      box-shadow: 0 1px 3px rgba(22,24,28,.10);
+    }
+
+    .pay-detail-box { background: transparent; border: none; padding: 0; }
+
+    /* ---- Kartu layanan: sasaran sentuh besar, harga sebagai jangkar ------- */
+    .services-grid { gap: 10px; }
+    .service-card {
+      border: 1px solid var(--border-soft);
+      border-radius: 16px;
+      min-height: 92px;
+      padding: 15px 16px;
+      box-shadow: 0 1px 2px rgba(22,24,28,.03);
+      transition: border-color .16s ease, box-shadow .16s ease, transform .12s ease;
+    }
+    .service-card:hover { box-shadow: 0 4px 14px rgba(22,24,28,.07); }
+    .service-card:active { transform: scale(.985); }
+    .service-card.is-selected {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 1px var(--brand), 0 6px 18px var(--brand-wash);
+    }
+
+    .capster-grid { gap: 10px; }
+    .capster-card { border-radius: 14px; min-height: 56px; }
+
+    .section-box {
+      border: 1px solid var(--border-soft);
+      border-radius: 20px;
+      box-shadow: 0 1px 2px rgba(22,24,28,.03);
+      padding: 20px;
+    }
+
+    /* ---- Zona uang: dua angka yang dibacakan kasir dengan suara ----------- */
+    .money-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .money-label { font-size: 13.5px; color: var(--text-mid); }
+    .money-sub {
+      font-size: 21px; font-weight: var(--w-med);
+      font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+      color: var(--ok);
+    }
+    .total-box { padding: 0; }
+    .total-label {
+      font-family: var(--sans); font-size: 13.5px; font-weight: var(--w-reg);
+      text-transform: none; letter-spacing: 0; color: var(--text-mid);
+    }
+    .total-amount {
+      font-size: 34px; font-weight: var(--w-semi);
+      font-variant-numeric: tabular-nums; letter-spacing: -.03em;
+      color: var(--text);            /* bukan merah: harga muncul puluhan kali dalam
+                                        satu layar, dan mewarnainya merah menghapus
+                                        arti merah sebagai peringatan */
+      line-height: 1.1;
+    }
+
+    .btn-submit-order {
+      border-radius: 14px;
+      min-height: 54px;
+      font-size: 16px; font-weight: var(--w-med);
+      letter-spacing: -.01em;
+      box-shadow: 0 6px 18px rgba(190,0,0,.22);
+      transition: transform .12s ease, box-shadow .18s ease, background .18s ease;
+    }
+    .btn-submit-order:active:not(:disabled) { transform: scale(.985); }
+    .btn-submit-order:disabled {
+      background: var(--surface-sunk); color: var(--text-dim);
+      box-shadow: none; cursor: default;
+    }
+
+    /* ---- Kode klaim reward: jarang dipakai, maka tidak menetap ------------
+       Sebelumnya kolom ini selalu memakan ruang meski sebagian besar transaksi
+       tidak memakainya, dan ikut mendorong Total ke bawah lipatan. */
+    .rare { border-top: 1px solid var(--border-soft); padding-top: 14px; }
+    .rare > summary {
+      list-style: none; cursor: pointer;
+      font-size: 13px; color: var(--text-dim);
+      display: flex; align-items: center; gap: 7px;
+      padding: 2px 0;
+    }
+    .rare > summary::-webkit-details-marker { display: none; }
+    .rare > summary::before {
+      content: "+"; font-size: 15px; line-height: 1;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--surface-sunk); color: var(--text-mid);
+      display: grid; place-items: center; flex: none;
+    }
+    .rare[open] > summary::before { content: "\2212"; }
+    .rare > summary:hover { color: var(--text); }
+    .rare-body { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; }
+
+    @media (max-width: 960px) {
+      .pos-right-panel { position: static; }
+      .cart-box { max-height: none; }
+      .cart-flow { overflow: visible; }
+      /* Di layar sempit zona uang menetap di dasar layar, bukan di dasar kartu */
+      .cart-action { position: sticky; bottom: 0; z-index: 20;
+                     box-shadow: 0 -6px 20px rgba(22,24,28,.08); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .service-card, .btn-submit-order, .pay-btn { transition: none; }
+      .service-card:active, .btn-submit-order:active:not(:disabled) { transform: none; }
+    }
+
+
+    /* Kotak tukar poin sebelumnya memakai gaya inline yang memuat display:flex.
+       Gaya inline mengalahkan aturan [hidden] bawaan browser, sehingga kotak ini
+       tetap tampil untuk SETIAP pelanggan — termasuk yang bukan member dan tidak
+       punya poin sama sekali. Kasir jadi melihat tawaran tukar poin yang tidak
+       pernah bisa dipakai. Kini gayanya lewat kelas, dan [hidden] kembali bekerja. */
+    .redeem-box {
+      display: flex; flex-direction: column; gap: 9px;
+      background: var(--surface-sunk);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .redeem-box[hidden] { display: none; }
   </style>
 </head>
 <body>
@@ -913,7 +1135,8 @@
     <!-- RIGHT PANEL: Customer & Checkout Cart -->
     <div class="pos-right-panel">
       <div class="cart-box">
-        
+        <div class="cart-flow">
+
         <div class="section-title-bar">
           <h2><span class="step-badge">03</span> Data Pelanggan & Bayar</h2>
           <span style="font-family: var(--mono); font-size: 11px; color: var(--brass);" id="lblLiveClock">--:--:--</span>
@@ -961,10 +1184,6 @@
               <div class="quick-cash-chips" id="quickCashContainer"></div>
             </div>
             <input type="number" id="inpCashGiven" class="input-field" placeholder="Nominal uang tunai (Rp)" />
-            <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 6px;">
-              <span style="color: var(--fg-dim);">Kembalian:</span>
-              <span style="font-family: var(--mono); font-weight: 600; color: var(--sage);" id="lblCashChange">Rp 0</span>
-            </div>
           </div>
 
           <!-- EDC specifics -->
@@ -985,19 +1204,23 @@
           </div>
         </div>
 
-        <!-- Validasi kode klaim reward yang ditunjukkan pelanggan -->
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <label class="sb-auth-label" for="inpClaimCode">Kode Klaim Reward (opsional)</label>
-          <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
-            <input type="text" id="inpClaimCode" class="input-field" placeholder="cth: RWFQJQU5"
-                   autocomplete="off" style="text-transform:uppercase; font-family:var(--mono);" />
-            <button type="button" id="btnValidateClaim" class="btn-hdr" style="font-size:12px; white-space:nowrap;">Periksa</button>
+        <!-- Kode klaim reward: dilipat karena sebagian besar transaksi tidak
+             memakainya, dan saat selalu terbuka ia ikut mendorong Total ke
+             bawah lipatan layar. -->
+        <details class="rare">
+          <summary>Pelanggan menunjukkan kode klaim reward</summary>
+          <div class="rare-body">
+            <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
+              <input type="text" id="inpClaimCode" class="input-field" placeholder="cth: RWFQJQU5"
+                     autocomplete="off" style="text-transform:uppercase;" />
+              <button type="button" id="btnValidateClaim" class="btn-hdr" style="white-space:nowrap;">Periksa</button>
+            </div>
+            <div class="svc-err" id="claimResult" hidden></div>
           </div>
-          <div class="svc-err" id="claimResult" hidden></div>
-        </div>
+        </details>
 
         <!-- Tukar Poin — hanya muncul bila member punya saldo cukup -->
-        <div id="redeemBox" hidden style="background:var(--ink-inset); border:1px solid var(--brass-deep); border-radius:var(--r-sm); padding:12px; display:flex; flex-direction:column; gap:9px;">
+        <div id="redeemBox" class="redeem-box" hidden>
           <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
             <span style="font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--brass);">Tukar Poin</span>
             <span style="font-size:12px; color:var(--fg-dim);" id="lblPointBalance"></span>
@@ -1014,16 +1237,24 @@
           <div class="svc-err" id="redeemErr" hidden></div>
         </div>
 
-        <!-- Total Bill -->
-        <div class="total-box">
-          <span class="total-label">Total Tagihan</span>
-          <span class="total-amount" id="lblTotalAmount">Rp 0</span>
-        </div>
+        </div><!-- /.cart-flow -->
 
-        <!-- Submit Button -->
-        <button id="btnSubmitTransaction" class="btn-submit-order" disabled>
-          <span>✓ Proses Transaksi & Simpan</span>
-        </button>
+        <!-- Zona uang: menetap di dasar kartu, tidak ikut menggulir. Ini dua
+             angka yang dibacakan kasir kepada pelanggan dan yang paling sering
+             dipersoalkan, jadi keduanya tidak boleh perlu dicari. -->
+        <div class="cart-action">
+          <div class="money-row" id="pinChangeRow" hidden>
+            <span class="money-label">Kembalian</span>
+            <span class="money-sub" id="lblCashChange">Rp 0</span>
+          </div>
+          <div class="total-box">
+            <span class="total-label">Total Tagihan</span>
+            <span class="total-amount" id="lblTotalAmount">Rp 0</span>
+          </div>
+          <button id="btnSubmitTransaction" class="btn-submit-order" disabled>
+            <span>Proses Transaksi</span>
+          </button>
+        </div>
 
       </div>
     </div>
@@ -1811,6 +2042,10 @@
         selectedPaymentMethod = btn.dataset.method;
 
         document.getElementById('cashPayBox').style.display = selectedPaymentMethod === 'Tunai' ? 'block' : 'none';
+        // Kembalian hanya berarti pada pembayaran tunai; pada QRIS/EDC/Transfer
+        // barisnya disembunyikan agar zona uang tidak memuat angka yang tidak
+        // pernah diserahkan ke siapa pun.
+        document.getElementById('pinChangeRow').hidden = selectedPaymentMethod !== 'Tunai';
         document.getElementById('qrisPayBox').style.display = selectedPaymentMethod === 'QRIS' ? 'block' : 'none';
         document.getElementById('edcPayBox').style.display = selectedPaymentMethod === 'EDC' ? 'block' : 'none';
         document.getElementById('transferPayBox').style.display = selectedPaymentMethod === 'Transfer' ? 'block' : 'none';

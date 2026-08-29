@@ -273,7 +273,11 @@ strong, b,
 }
 
 /* Angka yang menjadi kesimpulan sebuah layar */
-.total-amount,
+/* .total-amount dikeluarkan dari daftar ini. Dulu ia satu-satunya angka merah
+   di layar kasir dan itu masuk akal — angka kesimpulan, muncul sekali. Setelah
+   zona uang dipatok, Total kini berdampingan langsung dengan tombol Proses yang
+   juga merah. Dua merah bertumpuk membuat mata kehilangan petunjuk mana yang
+   harus ditekan. Merah disisakan untuk tindakan; Total cukup besar dan bertinta. */
 #kpiTotalRevenue,
 .points-val {
   color: var(--brand) !important;
