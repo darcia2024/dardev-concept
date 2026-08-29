@@ -134,7 +134,7 @@ WHERE NOT EXISTS (SELECT 1 FROM products_hpp);
 
 INSERT INTO outlets (name, address, phone, latitude, longitude, open_time, close_time, sort_order)
 SELECT * FROM (VALUES
-    ('Barber King — Outlet Pusat',
+    ('Underrated Barbershop',
      'Alamat menyusul dari klien',
      '6281200000000',
      -6.2000000, 106.8166667,
