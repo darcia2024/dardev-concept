@@ -146,6 +146,49 @@
       width: 76px; text-align: right; color: var(--fg-mid);
     }
 
+    /* ---------- Absensi ---------- */
+    .absen-card {
+      background: var(--ink-card); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 16px;
+      display: flex; flex-direction: column; gap: 13px;
+    }
+    .absen-state {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--ink-inset); border: 1px solid var(--line-soft);
+      border-radius: var(--r-sm); padding: 13px;
+    }
+    .absen-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--fg-dim); }
+    .absen-dot.on { background: var(--sage); box-shadow: 0 0 8px var(--sage); }
+    .absen-dot.late { background: var(--clay); box-shadow: 0 0 8px var(--clay); }
+    .absen-txt { flex: 1; min-width: 0; }
+    .absen-main { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+    .absen-sub { font-size: 11.5px; color: var(--fg-dim); margin-top: 2px; }
+    .btn-absen {
+      width: 100%; padding: 13px; border: none; border-radius: var(--r-sm);
+      background: var(--brass); color: var(--ink);
+      font-size: 14.5px; font-weight: 700; font-family: inherit; cursor: pointer;
+    }
+    .btn-absen:disabled { background: var(--ink-inset); color: var(--fg-dim); border: 1px solid var(--line); cursor: default; }
+    .btn-absen.is-out { background: var(--ink-card); color: var(--fg); border: 1px solid var(--brass); }
+    .absen-note { font-size: 11.5px; color: var(--fg-dim); line-height: 1.55; }
+
+    .cuti-row {
+      display: flex; gap: 12px; align-items: flex-start;
+      background: var(--ink-inset); border: 1px solid var(--line-soft);
+      border-radius: var(--r-sm); padding: 12px 13px;
+    }
+    .cuti-main { flex: 1; min-width: 0; }
+    .cuti-kind { font-size: 13px; font-weight: 700; }
+    .cuti-tgl { font-family: var(--mono); font-size: 11.5px; color: var(--fg-dim); margin-top: 2px; }
+    .cuti-alasan { font-size: 11.5px; color: var(--fg-mid); margin-top: 4px; line-height: 1.45; }
+    .cuti-pill {
+      flex: none; font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+      text-transform: uppercase; padding: 4px 9px; border-radius: 99px; border: 1px solid;
+    }
+    .cuti-pill.menunggu { color: var(--brass); border-color: var(--brass); }
+    .cuti-pill.disetujui { color: var(--sage); border-color: var(--sage); }
+    .cuti-pill.ditolak { color: var(--clay); border-color: var(--clay); }
+
     .empty { text-align: center; color: var(--fg-dim); font-size: 13px; padding: 22px 10px; line-height: 1.55; }
 
     .note {
@@ -183,6 +226,32 @@
         <div class="kpi-val" id="kpiRevenue">Rp 0</div>
         <div class="kpi-sub">Dari layanan yang Anda kerjakan</div>
       </div>
+    </div>
+
+    <!-- Absensi -->
+    <div class="absen-card">
+      <div class="card-head" style="border-bottom:1px solid var(--line-soft); padding-bottom:10px;">
+        <h2>🕐 Absensi Hari Ini</h2>
+        <span id="jamKerja"></span>
+      </div>
+      <div class="absen-state">
+        <span class="absen-dot" id="absenDot"></span>
+        <div class="absen-txt">
+          <div class="absen-main" id="absenMain">Memuat…</div>
+          <div class="absen-sub" id="absenSub"></div>
+        </div>
+      </div>
+      <button class="btn-absen" id="btnAbsen" disabled>Memuat…</button>
+      <div class="absen-note" id="absenNote"></div>
+    </div>
+
+    <!-- Cuti -->
+    <div class="card">
+      <div class="card-head">
+        <h2>🗓️ Cuti &amp; Izin</h2>
+        <button class="btn" id="btnAjukanCuti" style="font-size:11.5px; padding:5px 10px;">+ Ajukan</button>
+      </div>
+      <div class="rows" id="cutiList"></div>
     </div>
 
     <div class="card">
@@ -238,6 +307,170 @@
       const el = $('blockedArea');
       el.hidden = false;
       el.innerHTML = pesan + '<br /><br /><a href="/masuk" style="color:var(--brass);">&larr; Kembali ke halaman masuk</a>';
+    }
+
+    /* -------------------------------------------------------------------------
+       ABSENSI & CUTI
+
+       Waktu, jarak, dan status terlambat seluruhnya ditentukan server. Halaman
+       ini hanya mengirim koordinat dan nama berkas selfie; ia tidak pernah
+       mengirim jam absen, sehingga mengubah jam ponsel tidak berpengaruh.
+
+       Catatan jujur: koordinat GPS masih dapat dipalsukan pada perangkat yang
+       di-root atau memakai mock location. Radius menyaring kelalaian, bukan
+       kecurangan yang disengaja.
+       ------------------------------------------------------------------------- */
+
+    let aturanKerja = null;
+
+    function jamWIB(iso) {
+      return new Date(iso).toLocaleTimeString('id-ID',
+        { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+    }
+
+    function ambilLokasi() {
+      return new Promise(function (resolve) {
+        if (!navigator.geolocation) { resolve(null); return; }
+        navigator.geolocation.getCurrentPosition(
+          function (pos) { resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
+          function () { resolve(null); },
+          { enableHighAccuracy: true, timeout: 9000, maximumAge: 0 }
+        );
+      });
+    }
+
+    async function muatAbsen() {
+      const res = await sb.rpc('my_today_attendance');
+      if (res.error) return;
+      const a = Array.isArray(res.data) ? res.data[0] : res.data;
+      const dot = $('absenDot'), btn = $('btnAbsen');
+
+      if (aturanKerja) {
+        $('jamKerja').textContent = String(aturanKerja.jam_masuk).slice(0,5)
+          + '–' + String(aturanKerja.jam_pulang).slice(0,5);
+        $('absenNote').textContent = 'Absen hanya diterima dalam radius '
+          + aturanKerja.radius_absen_m + ' meter dari outlet, dengan foto selfie. '
+          + 'Waktu diambil dari server.';
+      }
+
+      if (!a || !a.sudah_masuk) {
+        dot.className = 'absen-dot';
+        $('absenMain').textContent = 'Belum absen masuk';
+        $('absenSub').textContent = 'Tekan tombol di bawah saat Anda tiba di outlet';
+        btn.disabled = false; btn.className = 'btn-absen';
+        btn.textContent = '📸 Absen Masuk';
+        btn.dataset.aksi = 'in';
+      } else if (!a.sudah_pulang) {
+        dot.className = 'absen-dot ' + (a.status === 'terlambat' ? 'late' : 'on');
+        $('absenMain').textContent = 'Masuk ' + jamWIB(a.check_in_time)
+          + (a.status === 'terlambat' ? ' · terlambat ' + a.terlambat_menit + ' menit' : ' · tepat waktu');
+        $('absenSub').textContent = 'Belum absen pulang';
+        btn.disabled = false; btn.className = 'btn-absen is-out';
+        btn.textContent = '🏁 Absen Pulang';
+        btn.dataset.aksi = 'out';
+      } else {
+        dot.className = 'absen-dot on';
+        $('absenMain').textContent = 'Selesai · ' + jamWIB(a.check_in_time) + ' – ' + jamWIB(a.check_out_time);
+        const jam = Math.floor((a.menit_kerja || 0) / 60), mnt = (a.menit_kerja || 0) % 60;
+        $('absenSub').textContent = 'Total kerja ' + jam + ' jam ' + mnt + ' menit';
+        btn.disabled = true; btn.className = 'btn-absen';
+        btn.textContent = '✓ Absensi hari ini selesai';
+        btn.dataset.aksi = '';
+      }
+    }
+
+    $('btnAbsen').addEventListener('click', async function () {
+      const btn = $('btnAbsen');
+      const aksi = btn.dataset.aksi;
+      if (!aksi) return;
+
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Membaca lokasi…';
+      const loc = await ambilLokasi();
+
+      if (aksi === 'in' && !loc) {
+        btn.disabled = false; btn.textContent = label;
+        alert('Lokasi tidak terbaca. Izinkan akses lokasi di browser lalu coba lagi.');
+        return;
+      }
+
+      // Selfie diwakili penanda; unggahan berkas menyusul bersama Storage.
+      const selfie = 'selfie/' + Date.now() + '.jpg';
+      btn.textContent = 'Menyimpan…';
+
+      const res = aksi === 'in'
+        ? await sb.rpc('clock_in',  { p_selfie_url: selfie, p_lat: loc.lat, p_lng: loc.lng })
+        : await sb.rpc('clock_out', { p_selfie_url: selfie, p_lat: loc ? loc.lat : null, p_lng: loc ? loc.lng : null });
+
+      btn.disabled = false; btn.textContent = label;
+      if (res.error) { alert(res.error.message); return; }
+      await muatAbsen();
+    });
+
+    function renderCuti(rows) {
+      const wrap = $('cutiList');
+      if (!rows.length) {
+        wrap.innerHTML = '<div class="empty">Belum ada pengajuan cuti atau izin.</div>';
+        return;
+      }
+      wrap.innerHTML = rows.map(function (c) {
+        const mulai = new Date(c.tanggal_mulai + 'T00:00:00')
+          .toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        const selesai = new Date(c.tanggal_selesai + 'T00:00:00')
+          .toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        return ''
+          + '<div class="cuti-row">'
+          + '<div class="cuti-main">'
+          + '<div class="cuti-kind">' + escapeHtml(c.kind) + '</div>'
+          + '<div class="cuti-tgl">' + mulai + ' – ' + selesai + ' · ' + c.jumlah_hari + ' hari</div>'
+          + (c.alasan ? '<div class="cuti-alasan">' + escapeHtml(c.alasan) + '</div>' : '')
+          + (c.catatan_owner ? '<div class="cuti-alasan" style="color:var(--brass);">Owner: ' + escapeHtml(c.catatan_owner) + '</div>' : '')
+          + '</div>'
+          + '<span class="cuti-pill ' + c.status + '">' + c.status + '</span>'
+          + '</div>';
+      }).join('');
+    }
+
+    async function muatCuti() {
+      const res = await sb.rpc('my_leaves');
+      if (res.error) return;
+      renderCuti(res.data || []);
+    }
+
+    $('btnAjukanCuti').addEventListener('click', async function () {
+      const jenis = prompt('Jenis pengajuan:\n1 = Cuti Tahunan\n2 = Izin\n3 = Sakit', '1');
+      if (jenis === null) return;
+      const peta = { '1': 'Cuti Tahunan', '2': 'Izin', '3': 'Sakit' };
+      const kind = peta[String(jenis).trim()];
+      if (!kind) { alert('Pilihan tidak dikenali.'); return; }
+
+      const mulai = prompt('Tanggal mulai (YYYY-MM-DD):', '');
+      if (!mulai) return;
+      const selesai = prompt('Tanggal selesai (YYYY-MM-DD):', mulai);
+      if (!selesai) return;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(mulai) || !/^\d{4}-\d{2}-\d{2}$/.test(selesai)) {
+        alert('Format tanggal harus YYYY-MM-DD, contoh 2026-09-10.');
+        return;
+      }
+      const alasan = prompt('Alasan (opsional):', '') || null;
+
+      const res = await sb.rpc('request_leave', {
+        p_kind: kind, p_mulai: mulai, p_selesai: selesai, p_alasan: alasan
+      });
+      if (res.error) { alert(res.error.message); return; }
+      const r = Array.isArray(res.data) ? res.data[0] : res.data;
+      alert('Pengajuan terkirim: ' + r.jumlah_hari + ' hari.\n'
+            + (kind === 'Cuti Tahunan' ? 'Sisa kuota cuti tahunan: ' + r.sisa_kuota + ' hari.\n' : '')
+            + 'Menunggu persetujuan owner.');
+      await muatCuti();
+    });
+
+    async function muatAbsenDanCuti() {
+      if (!aturanKerja) {
+        const r = await sb.from('work_rules').select('*').maybeSingle();
+        aturanKerja = r.data || null;
+      }
+      await Promise.all([muatAbsen(), muatCuti()]);
     }
 
     function renderLayanan(rows) {
@@ -349,6 +582,7 @@
       }
 
       await muat();
+      await muatAbsenDanCuti().catch(function () {});
 
       // Transaksi masuk dari perangkat kasir, bukan dari halaman ini
       setInterval(() => { if (SBConn.online) muat(); }, 60000);
