@@ -1096,7 +1096,7 @@
       <button class="btn-hdr" id="btnOpenClosing" title="Setor hitungan uang tunai akhir shift">Tutup Kas</button>
       <button class="btn-hdr" id="btnOpenSettings" title="Kelola Layanan & Capster" hidden>Pengaturan</button>
       <a href="/rekap" class="btn-hdr" id="lnkRekap" title="Buka Dashboard Owner" hidden>Rekap Omzet</a>
-      <button class="btn-hdr" id="btnSignOut" title="Keluar dari perangkat">Keluar</button>
+      <button class="btn-hdr" id="btnSignOut" title="Melepas pendaftaran perangkat ini. Untuk ganti kasir, tekan nama kasir di kiri.">Lepas Perangkat</button>
     </div>
   </header>
 
@@ -2945,7 +2945,14 @@ ${location.origin}/kartu?c=${tx.member_code}
 
     (async function boot() {
       // Tahap 1 — perangkat: sekali saja, disiapkan owner
-      const { profile } = await sbRequireAuth('Daftarkan perangkat kasir');
+      // Kasir sudah diberi tahu bahwa mereka cukup memakai PIN. Judul "Masuk
+      // untuk melanjutkan" di layar ini membuat mereka mengira sistemnya salah.
+      // Layar ini bukan login harian — ia muncul sekali seumur perangkat, dan
+      // yang mengisinya owner, bukan kasir.
+      const { profile } = await sbRequireAuth(
+        'Sekali saja, diisi owner. Setelah ini kasir cukup memakai PIN.',
+        'Daftarkan perangkat kasir'
+      );
       isOwner = profile.role === 'owner';
 
       // Data layanan, pegawai, dan laporan adalah wilayah owner
