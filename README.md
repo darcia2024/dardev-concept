@@ -4,13 +4,26 @@ Sistem Manajemen Membership Digital, Kasir POS & Loyalitas 5-Tier berbasis Web P
 
 ---
 
+## 📘 Dokumen Serah Terima
+
+Panduan operasional lengkap — siapa masuk lewat mana, apa yang dilihat tiap
+peran, daftar data yang wajib diisi sebelum dipakai sungguhan, keputusan
+teknis yang perlu diketahui penerus, dan batasan yang diakui apa adanya:
+
+**[SERAH-TERIMA.md](SERAH-TERIMA.md)**
+
+---
+
 ## 🌐 Live Production Deployment (Vercel)
 
+* **Pintu Masuk Sistem:** [https://dardev-concept.vercel.app/masuk](https://dardev-concept.vercel.app/masuk)
 * **Slide Presentasi Scope & Blueprint:** [https://dardev-concept.vercel.app](https://dardev-concept.vercel.app)
 * **Live Demo Mobile Web App (PWA):** [https://dardev-concept.vercel.app/app.html](https://dardev-concept.vercel.app/app.html)
 * **Addendum Penawaran Final (Revisi 02):** [https://dardev-concept.vercel.app/finalpenawaran](https://dardev-concept.vercel.app/finalpenawaran)
 * **POS Kasir Mode Opening (Fase 0):** [https://dardev-concept.vercel.app/pos](https://dardev-concept.vercel.app/pos)
-* **Dashboard Rekap Owner (Fase 0):** [https://dardev-concept.vercel.app/rekap](https://dardev-concept.vercel.app/rekap)
+* **Dashboard Rekap Owner:** [https://dardev-concept.vercel.app/rekap](https://dardev-concept.vercel.app/rekap)
+* **Kinerja Capster:** [https://dardev-concept.vercel.app/capster](https://dardev-concept.vercel.app/capster)
+* **Kartu Member Digital:** `https://dardev-concept.vercel.app/kartu?c=KODE_KARTU`
 
 ---
 
