@@ -512,6 +512,22 @@
       background: var(--ink-card); display: flex; flex-direction: column;
     }
     .foto-kartu img { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; background: var(--ink-inset); }
+    .foto-kartu { position: relative; }
+    /* Tombol hapus diletakkan di atas gambar, bukan di bawah keterangan:
+       kalau berbaris rapi bersama teks, jari yang sedang menelusuri daftar
+       gampang menyenggolnya. Di sudut atas ia perlu dituju dengan sengaja. */
+    .foto-hapus {
+      position: absolute; top: 6px; right: 6px; z-index: 2;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(255,255,255,.92); border: 1px solid var(--line);
+      color: var(--fg-dim); font-size: 14px; line-height: 1; cursor: pointer;
+      display: grid; place-items: center; padding: 0;
+      opacity: 0; transition: opacity .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .foto-kartu:hover .foto-hapus, .foto-hapus:focus-visible { opacity: 1; }
+    .foto-hapus:hover { color: var(--brand, #BE0000); border-color: var(--brand-line, rgba(190,0,0,.3)); }
+    @media (hover: none) { .foto-hapus { opacity: 1; } }
+
     .foto-ket { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
     .foto-nama { font-size: 12.5px; font-weight: 600; }
     .foto-meta { font-size: 11px; color: var(--fg-dim); }
@@ -876,6 +892,26 @@
       </div>
     </div>
 
+    <!-- Arsip foto terhapus -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Foto yang Dihapus</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Gambarnya hilang, catatan bahwa gambar itu pernah ada tetap tinggal
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="arsipFotoTable">
+          <thead>
+            <tr><th>Dihapus</th><th>Karyawan</th><th>Tanggal</th><th>Jenis</th><th>Alasan</th></tr>
+          </thead>
+          <tbody id="arsipFotoBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Kelola sandi capster & PIN kasir -->
     <div class="table-panel">
       <div class="table-controls">
@@ -1016,6 +1052,7 @@
       await muatArsipAbsen();
       await muatMember();
       await muatArsipMember();
+      await muatArsipFoto();
       await loadCuti();
     }
 
@@ -1763,6 +1800,9 @@
       const terpakai = jalur.filter(function (j) { return peta[j.path]; });
       grid.innerHTML = terpakai.map(function (j) {
         return '<div class="foto-kartu">'
+          + '<button class="foto-hapus" data-hapus-foto="' + escapeHtml(j.path) + '" '
+          + 'data-nama="' + escapeHtml(j.nama) + '" data-tgl="' + j.tgl + '" data-jenis="' + j.jenis + '" '
+          + 'title="Hapus foto ini">&#215;</button>'
           + '<img src="' + peta[j.path] + '" alt="Selfie ' + escapeHtml(j.nama) + ' ' + j.tgl + '" loading="lazy" />'
           + '<div class="foto-ket">'
           + '<div class="foto-nama">' + escapeHtml(j.nama) + '</div>'
@@ -1777,6 +1817,66 @@
         + ' Tautan berlaku 1 jam.';
       btn.disabled = false;
     });
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       HAPUS FOTO ABSENSI
+
+       Urutannya disengaja: dicatat DULU lewat log_delete_photo(), baru
+       berkasnya dihapus. Kalau dibalik dan pencatatannya gagal, yang tersisa
+       adalah foto yang hilang tanpa keterangan siapa pun.
+
+       Kebijakan UPDATE pada bucket tetap tertutup untuk semua peran: foto
+       boleh dihapus, tetapi tidak boleh ditukar dengan gambar lain. Menghapus
+       meninggalkan lubang yang terlihat; menukar meninggalkan kebohongan yang
+       tidak terlihat.
+       ═══════════════════════════════════════════════════════════════════════ */
+    document.getElementById('fotoGrid').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-hapus-foto]');
+      if (!btn) return;
+
+      const jalur = btn.dataset.hapusFoto;
+      const nama = btn.dataset.nama, tgl = btn.dataset.tgl, jenis = btn.dataset.jenis;
+      if (!confirm('Hapus foto absen ' + jenis + ' ' + nama + ' tanggal ' + tgl + '?\n\nFoto ini adalah bukti kehadiran. Setelah dihapus tidak bisa dikembalikan, dan yang tersisa hanya catatan bahwa Anda pernah menghapusnya.')) return;
+      const alasan = prompt('Alasan penghapusan (tersimpan di arsip):', 'Foto testing');
+      if (alasan === null) return;
+
+      btn.disabled = true;
+
+      // Dicatat lebih dulu, selagi datanya masih bisa dibaca
+      const cat = await sb.rpc('log_delete_photo', { p_jalur: jalur, p_alasan: alasan });
+      if (cat.error) { btn.disabled = false; alert('Gagal mencatat: ' + cat.error.message); return; }
+
+      const del = await sb.storage.from('absensi').remove([jalur]);
+      btn.disabled = false;
+      if (del.error) { alert('Foto gagal dihapus: ' + del.error.message + '\n\nCatatan penghapusan sudah terlanjur dibuat — beri tahu Dardev.'); return; }
+
+      btn.closest('.foto-kartu').remove();
+      await muatArsipFoto();
+      await muatAbsenBaris();
+    });
+
+    async function muatArsipFoto() {
+      const tb = document.getElementById('arsipFotoBody');
+      const { data, error } = await sb.rpc('deleted_photos_list', { p_limit: 50 });
+      if (error) {
+        tb.innerHTML = '<tr><td colspan="5" class="empty-row">Gagal memuat arsip: ' + escapeHtml(error.message) + '</td></tr>';
+        return;
+      }
+      const rows = data || [];
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="5" class="empty-row">Belum ada foto yang dihapus.</td></tr>';
+        return;
+      }
+      tb.innerHTML = rows.map(function (r) {
+        return '<tr>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + new Date(r.dihapus_pada).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) + '</td>'
+          + '<td>' + escapeHtml(r.capster_name || '-') + '</td>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + (r.business_date || '—') + '</td>'
+          + '<td>' + escapeHtml(r.jenis || '—') + '</td>'
+          + '<td style="font-size:12.5px; color:var(--fg-dim);">' + escapeHtml(r.alasan || '—') + '</td>'
+          + '</tr>';
+      }).join('');
+    }
 
     /* ═══════════════════════════════════════════════════════════════════════
        SANDI CAPSTER & PIN KASIR

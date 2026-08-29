@@ -67,7 +67,8 @@ memanggil API secara langsung.
 | Absensi & cuti dirinya | — | ✅ | ✅ |
 | Absensi & cuti semua orang | — | — | ✅ |
 | Foto selfie absensi | — | miliknya | ✅ |
-| Hapus transaksi & absensi | — | — | ✅ |
+| Hapus transaksi, absensi, member | — | — | ✅ |
+| Hapus foto absensi | — | — | ✅ |
 | Ganti sandi capster & PIN kasir | — | — | ✅ |
 
 ---
@@ -169,8 +170,23 @@ sudah dicetak tidak lagi cocok.
 **Antrean offline tidak pernah membuang transaksi.** Kegagalan berulang
 ditandai agar terlihat orang, bukan diulang diam-diam selamanya.
 
-**Foto absensi tidak dapat ditimpa atau dihapus** oleh siapa pun, termasuk
-owner. Bukti yang dapat diganti belakangan bukan lagi bukti.
+**Foto absensi dapat dihapus owner, tetapi tidak dapat ditimpa.** Awalnya
+tidak ada peran yang boleh menghapusnya sama sekali, dengan alasan bukti yang
+dapat dihapus berhenti menjadi bukti. Pemilik sistem meminta kemampuan itu
+diberikan, dan itu keputusannya. Yang tetap dijaga: kebijakan DELETE hanya
+untuk owner — capster tidak dapat menghapus fotonya sendiri, sebab bila boleh,
+yang terlambat tinggal menghapus buktinya sebelum owner sempat melihat.
+Kebijakan UPDATE tetap tertutup untuk semua peran: foto boleh dihapus, tidak
+boleh ditukar dengan gambar lain. Menghapus meninggalkan lubang yang terlihat;
+menukar meninggalkan kebohongan yang tidak terlihat. Tiap penghapusan tercatat
+di `deleted_photos` beserta pelaku, waktu, dan alasannya — dicatat lebih dulu,
+baru berkasnya dihapus.
+
+> **Konsekuensi yang perlu diketahui penerus:** sejak perubahan ini, foto
+> absensi tidak lagi berlaku sebagai bukti yang tidak terbantahkan dalam
+> sengketa kehadiran. Yang tersisa adalah jejak audit — cukup untuk menjawab
+> "siapa menghapus dan kapan", tidak cukup untuk menjawab "apakah orang itu
+> benar hadir".
 
 **Catatan absensi boleh dihapus, fotonya tidak.** Owner perlu membersihkan data
 uji, sementara foto harus tetap berlaku sebagai bukti. Keduanya didamaikan
@@ -267,7 +283,7 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | `assets/logo.png` · `logo-putih.png` | Logo Underrated Barbershop (gelap & putih) |
 | `vendor/` | Library Supabase & QR, di-host sendiri |
 | `supabase_schema.sql` | Skema dasar |
-| `supabase_migration_02..13_*.sql` | Migrasi berurutan; jalankan sesuai nomor |
+| `supabase_migration_02..16_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
 
 Kunci di `sb-app.js` adalah *publishable key* yang memang dirancang untuk
 publik. Yang menjaga data adalah RLS. **Jangan pernah** menaruh `service_role`
