@@ -110,7 +110,7 @@ setoran kas, HPP & laba produk, rekap absensi, dan persetujuan cuti.
 Seluruh data berikut masih **contoh** dan wajib diganti:
 
 - [x] ~~Daftar layanan dan harga final~~ — sudah terpasang dari klien
-- [ ] Daftar capster — `/pos` → Pengaturan
+- [x] ~~Daftar capster~~ — Cena, Lukman, Wanda sudah terpasang beserta akunnya
 - [ ] Nama kasir dan **PIN masing-masing** — PIN contoh `1234/5678/9012`
       berurutan dan mudah ditebak
 - [ ] Alamat dan **koordinat outlet** — dipakai validasi radius absensi
