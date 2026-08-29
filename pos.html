@@ -1643,8 +1643,12 @@
 
       memberLookupTimer = setTimeout(async () => {
         const seq = ++memberLookupSeq;
+        // Offline, status member TIDAK dapat dipastikan. Menyebutnya
+        // "pelanggan baru" akan membuat kasir memberi tahu pelanggan lama
+        // bahwa ia belum terdaftar — padahal poinnya tetap masuk saat
+        // transaksi tersinkron nanti.
         if (!SBConn.online) {
-          if (!members[raw]) markNewCustomer();
+          if (!members[raw]) markUnknownCustomer();
           return;
         }
         // Lewat RPC, bukan SELECT langsung: perangkat kasir hanya boleh
@@ -1677,6 +1681,15 @@
     function markNewCustomer() {
       badgeEl.className = 'member-status-badge is-new';
       badgeEl.innerHTML = `✨ Pelanggan Baru (Auto Registrasi Tier Silver)`;
+      memberAktif = null;
+      renderRedeemBox();
+    }
+
+    /** Offline: status keanggotaan tidak diketahui, bukan berarti baru. */
+    function markUnknownCustomer() {
+      badgeEl.className = 'member-status-badge';
+      badgeEl.innerHTML = `📴 Offline &middot; status member belum bisa diperiksa. ` +
+                          `Transaksi tetap tercatat dan poin masuk saat tersinkron.`;
       memberAktif = null;
       renderRedeemBox();
     }
