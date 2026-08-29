@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#F4F5F7" />
+  <meta name="theme-color" content="#F3F2F2" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Kartu Member &mdash; Underrated Barbershop</title>
@@ -13,9 +13,39 @@
   <!-- Bobot berhenti di 600. Sistem ini tidak memakai huruf tebal. -->
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/logo.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="apple-mobile-web-app-title" content="Underrated" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <link rel="stylesheet" href="theme.css" />
 
   <style>
+    /* ── Ajakan memasang ke layar utama ───────────────────────────────────
+       Muncul di bawah, bukan sebagai lapisan penuh yang menghadang: pelanggan
+       membuka tautan ini untuk melihat poinnya, bukan untuk memasang apa pun.
+       Ajakan yang menghalangi tujuan aslinya akan ditutup tanpa dibaca. */
+    .pasang {
+      position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom));
+      z-index: 60;
+      background: var(--surface, #fff);
+      border: 1px solid var(--border, #E1E5EA);
+      border-radius: 16px; padding: 13px 15px;
+      box-shadow: 0 10px 30px rgba(22,24,28,.14);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .pasang[hidden] { display: none; }
+    .pasang img { width: 34px; height: 34px; border-radius: 9px; flex: none; }
+    .pasang .teks { flex: 1; min-width: 0; }
+    .pasang .judul { font-size: 14px; font-weight: 500; }
+    .pasang .sub { font-size: 12px; color: var(--text-dim, #767D87); line-height: 1.4; }
+    .pasang button {
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      border-radius: 9px; padding: 8px 13px; cursor: pointer; flex: none;
+      border: 1px solid var(--border, #E1E5EA); background: var(--surface, #fff); color: var(--text, #16181C);
+    }
+    .pasang button.utama { background: var(--brand, #BE0000); color: #fff; border-color: var(--brand, #BE0000); }
+    .pasang .tutup { border: none; background: none; color: var(--text-dim, #767D87); font-size: 17px; padding: 4px 6px; }
+
     * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
     body {
       background:var(--ink); color:var(--fg); font-family:var(--sans);
@@ -294,6 +324,16 @@
     </div>
   </main>
 
+  <div class="pasang" id="ajakPasang" hidden>
+    <img src="assets/icon-192.png" alt="" />
+    <div class="teks">
+      <div class="judul">Simpan di layar utama</div>
+      <div class="sub" id="ajakSub">Buka kartu Anda tanpa mencari tautannya lagi.</div>
+    </div>
+    <button class="utama" id="btnPasang">Pasang</button>
+    <button class="tutup" id="btnTutupPasang" aria-label="Tutup">&#215;</button>
+  </div>
+
   <nav class="tabbar" id="tabbar">
     <button class="tabbtn is-on" data-tab="tabHome"><span class="ic"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M3.5 10.5 12 3.8l8.5 6.7V19a1.4 1.4 0 0 1-1.4 1.4h-4.3v-5.6H9.2v5.6H4.9A1.4 1.4 0 0 1 3.5 19v-8.5Z"/></svg></span><span class="lb">Home</span></button>
     <button class="tabbtn" data-tab="tabReward"><span class="ic"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"><rect x="3" y="9" width="18" height="11.5" rx="1.6"/><path d="M2 6.2h20V9H2zM12 6.2v14.3"/><path d="M12 6.2S10.7 3 8.6 3a2 2 0 0 0 0 4M12 6.2S13.3 3 15.4 3a2 2 0 0 1 0 4"/></svg></span><span class="lb">Reward</span></button>
@@ -321,7 +361,27 @@
 
     const $ = id => document.getElementById(id);
     const params = new URLSearchParams(location.search);
-    const KODE = (params.get('c') || params.get('kode') || '').trim().toUpperCase();
+
+    /* ─────────────────────────────────────────────────────────────────────
+       KODE MEMBER HARUS DIINGAT
+
+       Kode hanya ada di query string. Aplikasi yang dipasang ke layar utama
+       selalu dibuka dari start_url yang tetap (/kartu) — tanpa query itu.
+       Kalau kodenya tidak disimpan, ikon di layar utama membuka layar error,
+       dan pelanggan menyimpulkan aplikasinya rusak.
+
+       Maka: kode dari tautan disimpan, dan dipakai kembali bila tautannya
+       tidak membawa apa-apa. Kode di tautan selalu menang, supaya satu ponsel
+       yang dipakai memeriksa kartu orang lain tidak tertukar.
+       ───────────────────────────────────────────────────────────────────── */
+    const KUNCI_KODE = 'underrated_kode_member';
+    const kodeTautan = (params.get('c') || params.get('kode') || '').trim().toUpperCase();
+    let kodeTersimpan = '';
+    try { kodeTersimpan = (localStorage.getItem(KUNCI_KODE) || '').trim().toUpperCase(); } catch (e) {}
+    const KODE = kodeTautan || kodeTersimpan;
+    if (kodeTautan) {
+      try { localStorage.setItem(KUNCI_KODE, kodeTautan); } catch (e) {}
+    }
 
     function rupiah(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
     function esc(s) {
@@ -597,6 +657,69 @@
 
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') muat().catch(() => {});
+      });
+    })();
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       DIPASANG DI LAYAR UTAMA
+       ═══════════════════════════════════════════════════════════════════════ */
+    if ('serviceWorker' in navigator) {
+      // Ditunda sampai halaman selesai memuat: mendaftarkan service worker
+      // lebih awal ikut berebut jaringan dengan permintaan kartu itu sendiri.
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').catch(function () {});
+      });
+    }
+
+    (function ajakan() {
+      const kotak = $('ajakPasang');
+      if (!kotak) return;
+
+      const SUDAH = 'underrated_tolak_pasang';
+      let ditolak = false;
+      try { ditolak = localStorage.getItem(SUDAH) === '1'; } catch (e) {}
+
+      // Sudah berjalan sebagai aplikasi terpasang — tidak perlu diajak lagi
+      const terpasang = window.matchMedia('(display-mode: standalone)').matches
+                     || window.navigator.standalone === true;
+      if (terpasang || ditolak) return;
+
+      const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      let tunda = null;
+
+      function tampil(pesan, adaTombol) {
+        $('ajakSub').textContent = pesan;
+        $('btnPasang').hidden = !adaTombol;
+        kotak.hidden = false;
+      }
+
+      // Android/Chrome memberi kendali penuh lewat beforeinstallprompt
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        tunda = e;
+        tampil('Buka kartu Anda tanpa mencari tautannya lagi.', true);
+      });
+
+      // iOS tidak menyediakan pemicu apa pun; satu-satunya jalan adalah
+      // memberi tahu caranya. Ditunda 4 detik supaya kartunya sempat dibaca
+      // lebih dulu — itu alasan orang membuka tautan ini.
+      if (iOS) {
+        setTimeout(function () {
+          if (kotak.hidden) tampil('Tekan tombol Bagikan di Safari, lalu pilih "Add to Home Screen".', false);
+        }, 4000);
+      }
+
+      $('btnPasang').addEventListener('click', async function () {
+        if (!tunda) return;
+        kotak.hidden = true;
+        tunda.prompt();
+        try { await tunda.userChoice; } catch (e) {}
+        tunda = null;
+      });
+
+      $('btnTutupPasang').addEventListener('click', function () {
+        kotak.hidden = true;
+        try { localStorage.setItem(SUDAH, '1'); } catch (e) {}
       });
     })();
   </script>
