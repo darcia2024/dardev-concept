@@ -491,6 +491,54 @@
       .kpi-value { font-size: 20px; }
       .kpi-label { font-size: 10px; }
     }
+
+    /* ── Kewenangan owner: hapus, foto, kelola akun ────────────────────────
+       Merah di sini hanya untuk tindakan yang menghapus. Tombolnya sengaja
+       tidak diberi latar penuh: tombol hapus yang mencolok di setiap baris
+       membuat tangan yang sedang menelusuri tabel gampang tergelincir. */
+    .btn-hapus {
+      background: transparent; border: 1px solid transparent;
+      color: var(--fg-dim); border-radius: 7px;
+      width: 30px; height: 30px; line-height: 1;
+      font-size: 15px; cursor: pointer; padding: 0;
+      transition: color .15s ease, background .15s ease, border-color .15s ease;
+    }
+    .btn-hapus:hover { color: var(--brand, #BE0000); background: var(--brand-wash, rgba(190,0,0,.06));
+                       border-color: var(--brand-line, rgba(190,0,0,.24)); }
+
+    .foto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
+    .foto-kartu {
+      border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden;
+      background: var(--ink-card); display: flex; flex-direction: column;
+    }
+    .foto-kartu img { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; background: var(--ink-inset); }
+    .foto-ket { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+    .foto-nama { font-size: 12.5px; font-weight: 600; }
+    .foto-meta { font-size: 11px; color: var(--fg-dim); }
+    .foto-tag {
+      align-self: flex-start; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 4px; margin-top: 2px;
+    }
+    .foto-tag.masuk  { color: var(--sage, #0F7355); background: var(--sage-wash, rgba(15,115,85,.1)); }
+    .foto-tag.pulang { color: var(--fg-dim); background: var(--ink-inset); }
+
+    .kelola-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 12px; }
+    .kelola-kartu {
+      border: 1px solid var(--line); border-radius: var(--r-md);
+      background: var(--ink-card); padding: 15px 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .kelola-nama { font-size: 14.5px; font-weight: 600; }
+    .kelola-sub { font-size: 12px; color: var(--fg-dim); overflow-wrap: anywhere; }
+    .kelola-baris { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .kelola-baris input {
+      background: var(--ink-inset); border: 1px solid var(--line); border-radius: var(--r-sm);
+      color: var(--fg); padding: 9px 11px; font-size: 14px; font-family: inherit; outline: none; width: 100%;
+    }
+    .kelola-baris input:focus { border-color: var(--brand, #BE0000); }
+    .kelola-pesan { font-size: 12px; line-height: 1.45; }
+    .kelola-pesan.ok  { color: var(--sage, #0F7355); }
+    .kelola-pesan.bad { color: var(--brand, #BE0000); }
   </style>
 </head>
 <body>
@@ -719,6 +767,69 @@
     </div>
 
     <!-- Live Transaction Logs Table -->
+    <!-- Foto selfie absensi -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Foto Absensi Karyawan</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Bulan berjalan. Tautan foto berumur pendek dan dibuat ulang tiap halaman dibuka.
+          </p>
+        </div>
+        <button class="btn-hdr" id="btnMuatFoto">Muat Foto</button>
+      </div>
+      <div style="padding: 4px 2px 2px;">
+        <div class="foto-grid" id="fotoGrid"></div>
+        <p id="fotoPesan" style="font-size:12.5px; color:var(--fg-dim); padding:14px 2px;">
+          Tekan &ldquo;Muat Foto&rdquo; untuk menampilkan. Foto tidak dimuat otomatis karena tiap
+          gambar membutuhkan tautan bertanda tersendiri.
+        </p>
+      </div>
+    </div>
+
+    <!-- Kelola sandi capster & PIN kasir -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Sandi Capster &amp; PIN Kasir</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Untuk karyawan yang lupa sandinya, atau saat PIN perlu diganti
+          </p>
+        </div>
+      </div>
+      <div style="padding: 4px 2px 8px; display:flex; flex-direction:column; gap:18px;">
+        <div>
+          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Sandi capster</div>
+          <div class="kelola-grid" id="gridCapster"></div>
+        </div>
+        <div>
+          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">PIN kasir</div>
+          <div class="kelola-grid" id="gridKasir"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arsip transaksi terhapus -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Transaksi yang Dihapus</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Setiap penghapusan tersimpan di sini beserta alasannya &mdash; termasuk yang Anda lakukan sendiri
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="arsipTable">
+          <thead>
+            <tr><th>Dihapus</th><th>No. Invoice</th><th>Tanggal</th><th>Capster</th><th>Kasir</th>
+                <th>Alasan</th><th style="text-align:right;">Total</th></tr>
+          </thead>
+          <tbody id="arsipTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="table-panel">
       <div class="table-controls">
         <div>
@@ -741,6 +852,7 @@
               <th>Metode</th>
               <th>Ref / Approval</th>
               <th style="text-align: right;">Total</th>
+              <th style="width:44px;"></th>
             </tr>
           </thead>
           <tbody id="txTableBody">
@@ -809,6 +921,8 @@
       await loadClosings();
       await loadHpp();
       await loadAbsensi();
+      await muatArsip();
+      await muatKelolaAkun();
       await loadCuti();
     }
 
@@ -1248,7 +1362,7 @@
       // Update Transactions Table DOM
       const tbody = document.getElementById('txTableBody');
       if (txList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="empty-row">Tidak ada transaksi yang cocok dengan filter</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="empty-row">Tidak ada transaksi yang cocok dengan filter</td></tr>`;
       } else {
         tbody.innerHTML = txList.map(tx => {
           const timeStr = tx.created_at ? new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
@@ -1265,11 +1379,222 @@
               <td><span class="pill-pay ${methodClass}">${tx.payment_method || 'Tunai'}</span></td>
               <td style="font-family:var(--mono); font-size:11.5px; color:var(--brass);">${tx.payment_ref || '-'}</td>
               <td style="font-family:var(--mono); font-weight: 600; color:var(--fg); text-align:right;">${formatRupiah(tx.final_amount)}</td>
+              <td><button class="btn-hapus" data-hapus="${tx.id}" data-nota="${escapeHtml(tx.invoice_no || '')}"
+                          title="Hapus transaksi ini">&#215;</button></td>
             </tr>
           `;
         }).join('');
       }
     }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       HAPUS TRANSAKSI
+
+       Penghapusan dijalankan server lewat delete_transaction(), bukan DELETE
+       biasa dari sini. Satu transaksi menyentuh item, buku besar poin, saldo
+       member, dan klaim reward; menghapus barisnya saja meninggalkan poin
+       yang tidak pernah dibelanjakan dan saldo yang tidak cocok riwayatnya.
+       ═══════════════════════════════════════════════════════════════════════ */
+    document.getElementById('txTableBody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-hapus]');
+      if (!btn) return;
+
+      const nota = btn.dataset.nota || '(tanpa nomor)';
+      // Dua langkah: konfirmasi, lalu alasan. Alasannya masuk arsip, sehingga
+      // pertanyaan "kenapa angka kemarin berubah" masih bisa dijawab nanti.
+      if (!confirm('Hapus transaksi ' + nota + '?\n\nPoin member yang berasal dari transaksi ini akan ditarik kembali, dan kunjungannya dikurangi. Tindakan ini tidak bisa dibatalkan.')) return;
+      const alasan = prompt('Alasan penghapusan (tersimpan di arsip):', 'Data testing');
+      if (alasan === null) return;
+
+      btn.disabled = true;
+      const { data, error } = await sb.rpc('delete_transaction', {
+        p_tx_id: btn.dataset.hapus,
+        p_alasan: alasan
+      });
+      btn.disabled = false;
+
+      if (error) { alert('Gagal menghapus: ' + error.message); return; }
+      const r = Array.isArray(data) ? data[0] : data;
+      alert('Transaksi ' + (r ? r.invoice_no : nota) + ' dihapus.'
+            + (r && r.poin_ditarik ? '\n\n' + r.poin_ditarik + ' poin ditarik dari member ' + (r.member_phone || '') + '.' : ''));
+
+      await loadData();
+      await muatArsip();
+    });
+
+    async function muatArsip() {
+      const tb = document.getElementById('arsipTableBody');
+      const { data, error } = await sb.rpc('deleted_transactions_list', { p_limit: 50 });
+      if (error) {
+        tb.innerHTML = '<tr><td colspan="7" class="empty-row">Gagal memuat arsip: ' + escapeHtml(error.message) + '</td></tr>';
+        return;
+      }
+      const rows = data || [];
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="7" class="empty-row">Belum ada transaksi yang dihapus.</td></tr>';
+        return;
+      }
+      tb.innerHTML = rows.map(function (r) {
+        return '<tr>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + new Date(r.dihapus_pada).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) + '</td>'
+          + '<td style="font-family:var(--mono);">' + escapeHtml(r.invoice_no) + '</td>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + r.business_date + '</td>'
+          + '<td>' + escapeHtml(r.capster_name || '-') + '</td>'
+          + '<td>' + escapeHtml(r.cashier_name || '-') + '</td>'
+          + '<td style="font-size:12.5px; color:var(--fg-dim);">' + escapeHtml(r.alasan || '—') + '</td>'
+          + '<td style="font-family:var(--mono); text-align:right;">' + formatRupiah(r.final_amount) + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       FOTO ABSENSI
+
+       Bucket-nya privat: tidak ada URL publik. Tiap foto perlu tautan bertanda
+       berumur pendek yang diminta satu per satu, jadi sengaja dimuat atas
+       permintaan — bukan otomatis setiap dashboard dibuka.
+       ═══════════════════════════════════════════════════════════════════════ */
+    document.getElementById('btnMuatFoto').addEventListener('click', async () => {
+      const grid = document.getElementById('fotoGrid');
+      const pesan = document.getElementById('fotoPesan');
+      const btn = document.getElementById('btnMuatFoto');
+      btn.disabled = true; pesan.textContent = 'Memuat…'; grid.innerHTML = '';
+
+      const { data, error } = await sb.rpc('attendance_photos');
+      if (error) {
+        pesan.textContent = 'Gagal memuat: ' + error.message;
+        btn.disabled = false; return;
+      }
+      const baris = data || [];
+      if (!baris.length) {
+        pesan.textContent = 'Belum ada foto absensi bulan ini.';
+        btn.disabled = false; return;
+      }
+
+      // Kumpulkan seluruh jalur berkas, lalu minta tautannya sekaligus
+      const jalur = [];
+      baris.forEach(function (r) {
+        if (r.selfie_url)     jalur.push({ path: r.selfie_url,     nama: r.name, tgl: r.business_date, jenis: 'masuk' });
+        if (r.selfie_out_url) jalur.push({ path: r.selfie_out_url, nama: r.name, tgl: r.business_date, jenis: 'pulang' });
+      });
+
+      const tanda = await sb.storage.from('absensi').createSignedUrls(jalur.map(j => j.path), 3600);
+      if (tanda.error) {
+        pesan.textContent = 'Gagal membuat tautan foto: ' + tanda.error.message;
+        btn.disabled = false; return;
+      }
+      const peta = {};
+      (tanda.data || []).forEach(function (t) { if (t.signedUrl) peta[t.path] = t.signedUrl; });
+
+      const terpakai = jalur.filter(function (j) { return peta[j.path]; });
+      grid.innerHTML = terpakai.map(function (j) {
+        return '<div class="foto-kartu">'
+          + '<img src="' + peta[j.path] + '" alt="Selfie ' + escapeHtml(j.nama) + ' ' + j.tgl + '" loading="lazy" />'
+          + '<div class="foto-ket">'
+          + '<div class="foto-nama">' + escapeHtml(j.nama) + '</div>'
+          + '<div class="foto-meta">' + new Date(j.tgl + 'T00:00:00').toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) + '</div>'
+          + '<span class="foto-tag ' + j.jenis + '">' + j.jenis + '</span>'
+          + '</div></div>';
+      }).join('');
+
+      const gagal = jalur.length - terpakai.length;
+      pesan.textContent = terpakai.length + ' foto dimuat'
+        + (gagal ? ' — ' + gagal + ' foto tidak dapat dibuka (berkasnya mungkin gagal terunggah saat absen).' : '.')
+        + ' Tautan berlaku 1 jam.';
+      btn.disabled = false;
+    });
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       SANDI CAPSTER & PIN KASIR
+       ═══════════════════════════════════════════════════════════════════════ */
+    function kelolaPesan(el, teks, baik) {
+      el.textContent = teks;
+      el.className = 'kelola-pesan ' + (baik ? 'ok' : 'bad');
+    }
+
+    async function muatKelolaAkun() {
+      const gc = document.getElementById('gridCapster');
+      const gk = document.getElementById('gridKasir');
+
+      const [staf, kasir] = await Promise.all([
+        sb.rpc('owner_staff_list'),
+        sb.rpc('owner_cashier_list')
+      ]);
+
+      if (staf.error) {
+        gc.innerHTML = '<div class="kelola-pesan bad">Gagal memuat capster: ' + escapeHtml(staf.error.message) + '</div>';
+      } else {
+        gc.innerHTML = (staf.data || []).map(function (c) {
+          const bisa = c.punya_akun;
+          return '<div class="kelola-kartu">'
+            + '<div><div class="kelola-nama">' + escapeHtml(c.name) + (c.is_active ? '' : ' <span style="font-size:11px;color:var(--fg-dim);">(nonaktif)</span>') + '</div>'
+            + '<div class="kelola-sub">' + escapeHtml(c.email || 'belum punya akun') + '</div></div>'
+            + (bisa
+              ? '<div class="kelola-baris">'
+                + '<input type="text" placeholder="Sandi baru, min. 8 karakter" data-sandi-input="' + c.capster_id + '" autocomplete="off" />'
+                + '<button class="btn-hdr" data-sandi-simpan="' + c.capster_id + '">Simpan</button>'
+                + '</div>'
+              : '<div class="kelola-pesan bad">Belum punya akun — buatkan dulu lewat Dardev.</div>')
+            + '<div class="kelola-pesan" data-sandi-pesan="' + c.capster_id + '"></div>'
+            + '</div>';
+        }).join('') || '<div class="kelola-pesan">Belum ada capster.</div>';
+      }
+
+      if (kasir.error) {
+        gk.innerHTML = '<div class="kelola-pesan bad">Gagal memuat kasir: ' + escapeHtml(kasir.error.message) + '</div>';
+      } else {
+        gk.innerHTML = (kasir.data || []).map(function (k) {
+          return '<div class="kelola-kartu">'
+            + '<div><div class="kelola-nama">' + escapeHtml(k.name) + (k.is_active ? '' : ' <span style="font-size:11px;color:var(--fg-dim);">(nonaktif)</span>') + '</div>'
+            + '<div class="kelola-sub">PIN tersimpan terenkripsi &mdash; tidak dapat dilihat, hanya diganti</div></div>'
+            + '<div class="kelola-baris">'
+            + '<input type="text" inputmode="numeric" placeholder="PIN baru, 4-8 angka" data-pin-input="' + k.cashier_id + '" autocomplete="off" />'
+            + '<button class="btn-hdr" data-pin-simpan="' + k.cashier_id + '">Simpan</button>'
+            + '</div>'
+            + '<div class="kelola-pesan" data-pin-pesan="' + k.cashier_id + '"></div>'
+            + '</div>';
+        }).join('') || '<div class="kelola-pesan">Belum ada kasir.</div>';
+      }
+    }
+
+    document.addEventListener('click', async (e) => {
+      const bSandi = e.target.closest('[data-sandi-simpan]');
+      const bPin   = e.target.closest('[data-pin-simpan]');
+
+      if (bSandi) {
+        const id = bSandi.dataset.sandiSimpan;
+        const inp = document.querySelector('[data-sandi-input="' + id + '"]');
+        const msg = document.querySelector('[data-sandi-pesan="' + id + '"]');
+        const nilai = (inp.value || '').trim();
+        if (nilai.length < 8) { kelolaPesan(msg, 'Sandi minimal 8 karakter.', false); return; }
+
+        bSandi.disabled = true;
+        const { data, error } = await sb.rpc('owner_set_capster_password', { p_capster_id: id, p_password: nilai });
+        bSandi.disabled = false;
+        if (error) { kelolaPesan(msg, 'Gagal: ' + error.message, false); return; }
+        const r = Array.isArray(data) ? data[0] : data;
+        inp.value = '';
+        kelolaPesan(msg, 'Sandi ' + (r ? r.capster_name : '') + ' diganti. Beri tahu yang bersangkutan.', true);
+      }
+
+      if (bPin) {
+        const id = bPin.dataset.pinSimpan;
+        const inp = document.querySelector('[data-pin-input="' + id + '"]');
+        const msg = document.querySelector('[data-pin-pesan="' + id + '"]');
+        const nilai = (inp.value || '').trim();
+        if (!/^[0-9]{4,8}$/.test(nilai)) { kelolaPesan(msg, 'PIN harus 4 sampai 8 angka.', false); return; }
+
+        const kartu = bPin.closest('.kelola-kartu');
+        const nama = kartu.querySelector('.kelola-nama').textContent.replace('(nonaktif)', '').trim();
+
+        bPin.disabled = true;
+        const { error } = await sb.rpc('upsert_cashier', { p_name: nama, p_pin: nilai, p_id: id });
+        bPin.disabled = false;
+        if (error) { kelolaPesan(msg, 'Gagal: ' + error.message, false); return; }
+        inp.value = '';
+        kelolaPesan(msg, 'PIN ' + nama + ' diganti. Beri tahu yang bersangkutan.', true);
+      }
+    });
 
     // Export CSV Feature
     document.getElementById('btnExportCsv').addEventListener('click', () => {
