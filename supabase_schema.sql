@@ -364,12 +364,12 @@ CREATE POLICY own_profile ON profiles
 --     Placeholder sampai daftar layanan & capster final dari klien masuk.
 -- ==============================================================================
 INSERT INTO services (name, category, price, duration_minutes) VALUES
-('Gentleman Haircut (Wash + Style)', 'Haircut',   50000.00, 45),
-('Express Haircut',                  'Haircut',   35000.00, 30),
-('Hair Wash, Massage & Tonic',       'Treatment', 25000.00, 20),
-('Beard Trim & Hot Towel Shave',     'Grooming',  35000.00, 25),
-('Kids Haircut (Under 12)',          'Haircut',   40000.00, 30),
-('Complete VIP Grooming Package',    'Package',   90000.00, 60)
+('Haircut',      'Haircut',     85000.00, 45),
+('Hairwash',     'Haircut',     15000.00, 15),
+('Rootlift',     'Speciality', 115000.00, 60),
+('Down Perm',    'Speciality', 175000.00, 90),
+('Warrior Perm', 'Speciality', 315000.00, 120),
+('Design Perm',  'Speciality', 415000.00, 150)
 ON CONFLICT (lower(name)) DO NOTHING;
 
 INSERT INTO capsters (name, phone) VALUES
