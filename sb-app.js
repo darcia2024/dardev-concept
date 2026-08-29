@@ -45,61 +45,57 @@ window.addEventListener('offline', () => SBConn.set(false));
 const SB_LOGIN_CSS = `
   .sb-auth-backdrop {
     position: fixed; inset: 0; z-index: 9999;
-    background: var(--ink, #08090b);
+    background: var(--bg, #F4F5F7);
     display: none; align-items: center; justify-content: center; padding: 20px;
   }
   .sb-auth-backdrop.is-open { display: flex; }
   .sb-auth-card {
     width: 100%; max-width: 380px;
-    background: var(--ink-card, #14171d);
-    border: 1px solid var(--line, #242832);
-    border-radius: var(--r-lg, 16px);
+    background: var(--surface, #FFFFFF);
+    border: 1px solid var(--border, #E1E5EA);
+    border-radius: var(--r-lg, 18px);
     padding: 28px 26px;
     display: flex; flex-direction: column; gap: 16px;
-    box-shadow: var(--shadow-lg, 0 12px 36px rgba(0,0,0,0.6));
+    box-shadow: var(--shadow-lg, 0 18px 44px rgba(22,24,28,.10));
   }
   .sb-auth-brand { display: flex; align-items: center; gap: 11px; }
-  .sb-auth-logo {
-    width: 38px; height: 38px; border-radius: 9px; flex: none;
-    background: var(--brass, #c9a26a); color: var(--ink, #08090b);
-    display: grid; place-items: center; font-weight: 800; font-size: 14px;
-  }
-  .sb-auth-title { font-size: 16px; font-weight: 700; color: var(--fg, #f2f3f5); line-height: 1.25; }
-  .sb-auth-sub { font-size: 12px; color: var(--fg-dim, #757c8a); margin-top: 2px; }
+  .sb-auth-logo { height: 26px; width: auto; flex: none; display: block; }
+  .sb-auth-title { font-size: 16px; font-weight: 600; color: var(--text, #16181C); line-height: 1.25; }
+  .sb-auth-sub { font-size: 12px; color: var(--text-dim, #767D87); margin-top: 2px; }
   .sb-auth-field { display: flex; flex-direction: column; gap: 6px; }
   .sb-auth-label {
     font-family: var(--mono, monospace); font-size: 10.5px; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--fg-dim, #757c8a);
+    text-transform: uppercase; color: var(--text-dim, #767D87);
   }
   .sb-auth-card input {
-    background: var(--ink-inset, #0b0d11); border: 1px solid var(--line, #242832);
-    border-radius: var(--r-sm, 6px); color: var(--fg, #f2f3f5);
+    background: var(--surface-sunk, #EDEFF2); border: 1px solid var(--border, #E1E5EA);
+    border-radius: var(--r-sm, 6px); color: var(--text, #16181C);
     padding: 11px 13px; font-size: 14.5px; font-family: inherit; outline: none; width: 100%;
   }
-  .sb-auth-card input:focus { border-color: var(--brass, #c9a26a); }
+  .sb-auth-card input:focus { border-color: var(--brand, #BE0000); }
   .sb-auth-btn {
-    background: var(--brass, #c9a26a); color: var(--ink, #08090b);
+    background: var(--brand, #BE0000); color: #fff;
     border: none; border-radius: var(--r-sm, 6px);
-    padding: 12px; font-size: 14px; font-weight: 700; font-family: inherit;
+    padding: 12px; font-size: 14px; font-weight: 600; font-family: inherit;
     cursor: pointer; transition: opacity .15s ease;
   }
   .sb-auth-btn:disabled { opacity: .55; cursor: default; }
   .sb-auth-err {
-    font-size: 12.5px; color: var(--clay, #c9756a); line-height: 1.45;
-    background: var(--clay-wash, rgba(201,117,106,.12));
-    border: 1px solid var(--clay, #c9756a); border-radius: var(--r-sm, 6px);
+    font-size: 12.5px; color: var(--brand, #BE0000); line-height: 1.45;
+    background: var(--brand-wash, rgba(190,0,0,.055));
+    border: 1px solid var(--brand, #BE0000); border-radius: var(--r-sm, 6px);
     padding: 9px 11px;
   }
   .sb-auth-err[hidden] { display: none; }
   .sb-conn-pill {
     display: inline-flex; align-items: center; gap: 6px;
     font-family: var(--mono, monospace); font-size: 10.5px; letter-spacing: .08em;
-    padding: 4px 9px; border-radius: 99px; border: 1px solid var(--line, #242832);
-    color: var(--fg-dim, #757c8a); white-space: nowrap;
+    padding: 4px 9px; border-radius: 99px; border: 1px solid var(--border, #E1E5EA);
+    color: var(--text-dim, #767D87); white-space: nowrap;
   }
-  .sb-conn-pill.is-online { color: var(--sage, #7fae8c); border-color: var(--sage, #7fae8c); }
-  .sb-conn-pill.is-offline { color: var(--clay, #c9756a); border-color: var(--clay, #c9756a); }
-  .sb-conn-pill.is-pending { color: var(--brass, #c9a26a); border-color: var(--brass, #c9a26a); }
+  .sb-conn-pill.is-online { color: var(--ok, #0F7355); border-color: var(--ok, #0F7355); }
+  .sb-conn-pill.is-offline { color: var(--brand, #BE0000); border-color: var(--brand, #BE0000); }
+  .sb-conn-pill.is-pending { color: var(--warn, #8A5A00); border-color: var(--warn, #8A5A00); }
 `;
 
 function sbInjectAuthUI(subtitle) {
@@ -113,7 +109,7 @@ function sbInjectAuthUI(subtitle) {
   el.innerHTML = `
     <form class="sb-auth-card" id="sbAuthForm" autocomplete="on">
       <div class="sb-auth-brand">
-        <div class="sb-auth-logo">BK</div>
+        <img src="assets/logo.png" alt="Underrated Barbershop" class="sb-auth-logo" />
         <div>
           <div class="sb-auth-title">Masuk untuk melanjutkan</div>
           <div class="sb-auth-sub">${subtitle}</div>
@@ -204,7 +200,7 @@ const SB_CASHIER_KEY = 'barber_cashier_v1';
 const SB_PIN_CSS = `
   .sb-pin-backdrop {
     position: fixed; inset: 0; z-index: 9998;
-    background: var(--ink, #08090b);
+    background: var(--bg, #F4F5F7);
     display: none; align-items: center; justify-content: center; padding: 20px;
   }
   .sb-pin-backdrop.is-open { display: flex; }
@@ -212,40 +208,41 @@ const SB_PIN_CSS = `
     width: 100%; max-width: 340px;
     display: flex; flex-direction: column; gap: 18px; align-items: center;
   }
-  .sb-pin-title { font-size: 17px; font-weight: 700; color: var(--fg, #f2f3f5); text-align: center; }
+  .sb-pin-logo { height: 26px; width: auto; display: block; margin-bottom: 4px; }
+  .sb-pin-title { font-size: 17px; font-weight: 600; color: var(--text, #16181C); text-align: center; }
   .sb-pin-sub {
     font-family: var(--mono, monospace); font-size: 11px; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--fg-dim, #757c8a); text-align: center;
+    text-transform: uppercase; color: var(--text-dim, #767D87); text-align: center;
   }
   .sb-pin-dots { display: flex; gap: 14px; height: 18px; align-items: center; }
   .sb-pin-dot {
     width: 13px; height: 13px; border-radius: 50%;
-    border: 1.5px solid var(--line, #242832); transition: all .12s ease;
+    border: 1.5px solid var(--border, #E1E5EA); transition: all .12s ease;
   }
-  .sb-pin-dot.is-filled { background: var(--brass, #c9a26a); border-color: var(--brass, #c9a26a); }
+  .sb-pin-dot.is-filled { background: var(--brand, #BE0000); border-color: var(--brand, #BE0000); }
   .sb-pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
   .sb-pin-key {
-    background: var(--ink-card, #14171d); border: 1px solid var(--line, #242832);
-    color: var(--fg, #f2f3f5); border-radius: var(--r-md, 10px);
+    background: var(--surface, #FFFFFF); border: 1px solid var(--border, #E1E5EA);
+    color: var(--text, #16181C); border-radius: var(--r-md, 10px);
     font-family: var(--mono, monospace); font-size: 22px; font-weight: 600;
     padding: 16px 0; cursor: pointer; user-select: none;
     transition: background .1s ease, border-color .1s ease;
   }
-  .sb-pin-key:active { background: var(--brass, #c9a26a); color: var(--ink, #08090b); border-color: var(--brass, #c9a26a); }
-  .sb-pin-key.is-muted { font-size: 15px; color: var(--fg-dim, #757c8a); }
+  .sb-pin-key:active { background: var(--brand, #BE0000); color: #fff; border-color: var(--brand, #BE0000); }
+  .sb-pin-key.is-muted { font-size: 15px; color: var(--text-dim, #767D87); }
   .sb-pin-err {
-    font-size: 13px; color: var(--clay, #c9756a); text-align: center;
+    font-size: 13px; color: var(--brand, #BE0000); text-align: center;
     min-height: 18px; line-height: 1.4;
   }
   .sb-cashier-chip {
     display: inline-flex; align-items: center; gap: 7px;
-    font-size: 12.5px; font-weight: 600; color: var(--fg, #f2f3f5);
-    background: var(--ink-card, #14171d); border: 1px solid var(--line, #242832);
+    font-size: 12.5px; font-weight: 600; color: var(--text, #16181C);
+    background: var(--surface, #FFFFFF); border: 1px solid var(--border, #E1E5EA);
     border-radius: 99px; padding: 5px 12px; cursor: pointer; white-space: nowrap;
   }
-  .sb-cashier-chip:hover { border-color: var(--brass, #c9a26a); }
+  .sb-cashier-chip:hover { border-color: var(--brand, #BE0000); }
   .sb-cashier-chip .dot {
-    width: 6px; height: 6px; border-radius: 50%; background: var(--sage, #7fae8c); flex: none;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ok, #0F7355); flex: none;
   }
 `;
 
@@ -260,6 +257,7 @@ function sbInjectPinUI() {
   el.id = 'sbPinBackdrop';
   el.innerHTML = `
     <div class="sb-pin-card">
+      <img src="assets/logo.png" alt="Underrated Barbershop" class="sb-pin-logo" />
       <div>
         <div class="sb-pin-title">Masukkan PIN Kasir</div>
         <div class="sb-pin-sub" id="sbPinSub">Setiap transaksi tercatat atas nama Anda</div>
