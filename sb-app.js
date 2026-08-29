@@ -43,43 +43,113 @@ window.addEventListener('offline', () => SBConn.set(false));
    --------------------------------------------------------------------------- */
 
 const SB_LOGIN_CSS = `
+  /* Gerbang perangkat memakai kartu terbelah yang sama dengan halaman /masuk.
+     Layar ini praktis adalah halaman masuk bagi mesin kasir, jadi tidak ada
+     alasan ia tampil sebagai dialog yang berbeda sendiri. */
   .sb-auth-backdrop {
     position: fixed; inset: 0; z-index: 9999;
-    background: var(--bg, #F4F5F7);
-    display: none; align-items: center; justify-content: center; padding: 20px;
+    background: #2A0607;
+    background-image: radial-gradient(120% 100% at 50% 0%, #3A0A0B 0%, #2A0607 46%, #1C0304 100%);
+    display: none; align-items: center; justify-content: center;
+    padding: clamp(16px, 4vw, 48px);
+    overflow: auto;
   }
   .sb-auth-backdrop.is-open { display: flex; }
+
   .sb-auth-card {
-    width: 100%; max-width: 380px;
-    background: var(--surface, #FFFFFF);
-    border: 1px solid var(--border, #E1E5EA);
-    border-radius: var(--r-lg, 18px);
-    padding: 28px 26px;
-    display: flex; flex-direction: column; gap: 16px;
-    box-shadow: var(--shadow-lg, 0 18px 44px rgba(22,24,28,.10));
+    width: 100%; max-width: 1000px;
+    background: #FFFFFF;
+    border: none;
+    border-radius: 28px;
+    padding: 28px;
+    box-shadow: 0 40px 90px rgba(0,0,0,.42), 0 4px 14px rgba(0,0,0,.22);
+    display: grid;
+    grid-template-columns: minmax(0, 420px) 1fr;
+    gap: clamp(32px, 5vw, 68px);
+    align-items: stretch;
   }
-  .sb-auth-brand { display: flex; align-items: center; gap: 11px; }
-  .sb-auth-logo { height: 26px; width: auto; flex: none; display: block; }
-  .sb-auth-title { font-size: 16px; font-weight: 600; color: var(--text, #16181C); line-height: 1.25; }
-  .sb-auth-sub { font-size: 12px; color: var(--text-dim, #767D87); margin-top: 2px; }
-  .sb-auth-field { display: flex; flex-direction: column; gap: 6px; }
+
+  /* Panel gambar: wordmark diukur menempati x 20,9%–78,9% dan y 47,8%–59,4%,
+     sehingga aman pada 3:4 maupun 16:9. */
+  .sb-auth-panel {
+    border-radius: 20px; overflow: hidden; background: #EDEFF2;
+    aspect-ratio: 3 / 4;
+    max-height: calc(100dvh - 128px);
+  }
+  .sb-auth-panel img {
+    width: 100%; height: 100%; display: block;
+    object-fit: cover; object-position: 50% 52%;
+  }
+
+  .sb-auth-sisi {
+    display: flex; flex-direction: column; justify-content: center;
+    max-width: 380px; width: 100%; min-width: 0; padding: 8px 0;
+  }
+  /* align-self wajib: induknya flex kolom dengan align-items stretch bawaan,
+     yang meregangkan logo di sumbu silang sampai gepeng. */
+  .sb-auth-logo {
+    height: 26px; width: auto; align-self: flex-start;
+    display: block; margin-bottom: 22px;
+  }
+  .sb-auth-title {
+    font-size: 34px; font-weight: 600; letter-spacing: -.032em;
+    line-height: 1.12; color: var(--text, #16181C);
+  }
+  .sb-auth-sub {
+    font-size: 14px; color: var(--text-dim, #767D87);
+    margin-top: 8px; line-height: 1.5;
+  }
+  .sb-auth-garis { height: 1px; background: var(--border, #E1E5EA); margin: 26px 0; }
+
+  .sb-auth-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
   .sb-auth-label {
-    font-family: var(--mono, monospace); font-size: 10.5px; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--text-dim, #767D87);
+    font-family: var(--sans, sans-serif); font-size: 13.5px; letter-spacing: 0;
+    text-transform: none; color: var(--text-mid, #565C66);
   }
   .sb-auth-card input {
-    background: var(--surface-sunk, #EDEFF2); border: 1px solid var(--border, #E1E5EA);
-    border-radius: var(--r-sm, 6px); color: var(--text, #16181C);
-    padding: 11px 13px; font-size: 14.5px; font-family: inherit; outline: none; width: 100%;
+    background: var(--surface, #FFFFFF);
+    border: 1px solid var(--border, #E1E5EA);
+    border-radius: 12px; color: var(--text, #16181C);
+    height: 50px; padding: 0 15px;
+    font-size: 15.5px; font-family: inherit; outline: none; width: 100%;
+    transition: border-color .15s ease, box-shadow .15s ease;
   }
-  .sb-auth-card input:focus { border-color: var(--brand, #BE0000); }
+  .sb-auth-card input:focus {
+    border-color: var(--brand, #BE0000);
+    box-shadow: 0 0 0 3px var(--brand-wash, rgba(190,0,0,.06));
+  }
   .sb-auth-btn {
     background: var(--brand, #BE0000); color: #fff;
-    border: none; border-radius: var(--r-sm, 6px);
-    padding: 12px; font-size: 14px; font-weight: 600; font-family: inherit;
-    cursor: pointer; transition: opacity .15s ease;
+    border: none; border-radius: 12px;
+    width: 100%; height: 52px; margin-top: 10px;
+    font-size: 15.5px; font-weight: 500; font-family: inherit;
+    letter-spacing: -.01em; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(190,0,0,.24);
+    transition: transform .12s ease, background .18s ease;
   }
-  .sb-auth-btn:disabled { opacity: .55; cursor: default; }
+  .sb-auth-btn:active:not(:disabled) { transform: scale(.99); }
+  .sb-auth-btn:disabled {
+    background: var(--surface-sunk, #EDEFF2); color: var(--text-dim, #767D87);
+    box-shadow: none; cursor: default;
+  }
+
+  @media (min-width: 861px) and (max-height: 780px) {
+    .sb-auth-backdrop { padding: 24px; }
+    .sb-auth-card { padding: 22px; gap: clamp(28px, 4vw, 52px); }
+  }
+  @media (max-width: 860px) {
+    .sb-auth-card {
+      grid-template-columns: 1fr; gap: 26px;
+      padding: 20px; border-radius: 24px; max-width: 460px;
+    }
+    .sb-auth-panel { aspect-ratio: 16 / 9; max-height: none; }
+    .sb-auth-sisi { max-width: none; padding: 0 2px 4px; }
+    .sb-auth-title { font-size: 29px; }
+    .sb-auth-garis { margin: 22px 0; }
+    /* Panel sudah membawa wordmark dan duduk tepat di atas formulir */
+    .sb-auth-logo { display: none; }
+  }
+
   .sb-auth-err {
     font-size: 12.5px; color: var(--brand, #BE0000); line-height: 1.45;
     background: var(--brand-wash, rgba(190,0,0,.055));
@@ -108,23 +178,35 @@ function sbInjectAuthUI(subtitle, judul) {
   el.id = 'sbAuthBackdrop';
   el.innerHTML = `
     <form class="sb-auth-card" id="sbAuthForm" autocomplete="on">
-      <div class="sb-auth-brand">
-        <img src="assets/logo.png" alt="Underrated Barbershop" class="sb-auth-logo" />
-        <div>
-          <div class="sb-auth-title">${judul}</div>
-          <div class="sb-auth-sub">${subtitle}</div>
+      <div class="sb-auth-panel">
+        <picture>
+          <source srcset="assets/login-panel.webp" type="image/webp" />
+          <img src="assets/login-panel.jpg" alt="Underrated Barbershop" width="1200" height="1200" />
+        </picture>
+      </div>
+
+      <div class="sb-auth-sisi">
+        <img src="assets/logo.png" alt="" class="sb-auth-logo" aria-hidden="true" />
+        <div class="sb-auth-title">${judul}</div>
+        <div class="sb-auth-sub">${subtitle}</div>
+
+        <div class="sb-auth-garis"></div>
+
+        <div class="sb-auth-err" id="sbAuthErr" hidden></div>
+
+        <div class="sb-auth-field">
+          <label class="sb-auth-label" for="sbAuthEmail">Email</label>
+          <input type="email" id="sbAuthEmail" name="email" autocomplete="username"
+                 placeholder="nama@underrated.com" required />
         </div>
+        <div class="sb-auth-field">
+          <label class="sb-auth-label" for="sbAuthPass">Kata sandi</label>
+          <input type="password" id="sbAuthPass" name="password" autocomplete="current-password"
+                 placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required />
+        </div>
+
+        <button type="submit" class="sb-auth-btn" id="sbAuthBtn">Masuk</button>
       </div>
-      <div class="sb-auth-field">
-        <label class="sb-auth-label" for="sbAuthEmail">Email</label>
-        <input type="email" id="sbAuthEmail" name="email" autocomplete="username" required />
-      </div>
-      <div class="sb-auth-field">
-        <label class="sb-auth-label" for="sbAuthPass">Kata Sandi</label>
-        <input type="password" id="sbAuthPass" name="password" autocomplete="current-password" required />
-      </div>
-      <div class="sb-auth-err" id="sbAuthErr" hidden></div>
-      <button type="submit" class="sb-auth-btn" id="sbAuthBtn">Masuk</button>
     </form>
   `;
   document.body.appendChild(el);
@@ -209,19 +291,30 @@ const SB_CASHIER_KEY = 'barber_cashier_v1';
 const SB_PIN_CSS = `
   .sb-pin-backdrop {
     position: fixed; inset: 0; z-index: 9998;
-    background: var(--bg, #F4F5F7);
+    background: #2A0607;
+    background-image: radial-gradient(120% 100% at 50% 0%, #3A0A0B 0%, #2A0607 46%, #1C0304 100%);
     display: none; align-items: center; justify-content: center; padding: 20px;
   }
   .sb-pin-backdrop.is-open { display: flex; }
   .sb-pin-card {
-    width: 100%; max-width: 340px;
+    width: 100%; max-width: 372px;
+    background: #FFFFFF;
+    border-radius: 28px;
+    padding: 30px 26px 26px;
+    box-shadow: 0 40px 90px rgba(0,0,0,.42), 0 4px 14px rgba(0,0,0,.22);
     display: flex; flex-direction: column; gap: 18px; align-items: center;
   }
   .sb-pin-logo { height: 26px; width: auto; display: block; margin-bottom: 4px; }
-  .sb-pin-title { font-size: 17px; font-weight: 600; color: var(--text, #16181C); text-align: center; }
+  .sb-pin-title {
+    font-size: 26px; font-weight: 600; letter-spacing: -.028em;
+    color: var(--text, #16181C); text-align: center; line-height: 1.15;
+  }
   .sb-pin-sub {
-    font-family: var(--mono, monospace); font-size: 11px; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--text-dim, #767D87); text-align: center;
+    font-family: var(--sans, sans-serif); font-size: 13.5px; letter-spacing: 0;
+    text-transform: none; color: var(--text-dim, #767D87); text-align: center;
+    /* Positif, bukan negatif: judul dan subjudul berada dalam satu pembungkus
+       tanpa gap, sehingga margin negatif membuat keduanya bertumpuk 8px. */
+    margin-top: 6px; line-height: 1.45;
   }
   .sb-pin-dots { display: flex; gap: 14px; height: 18px; align-items: center; }
   .sb-pin-dot {
@@ -232,8 +325,9 @@ const SB_PIN_CSS = `
   .sb-pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
   .sb-pin-key {
     background: var(--surface, #FFFFFF); border: 1px solid var(--border, #E1E5EA);
-    color: var(--text, #16181C); border-radius: var(--r-md, 10px);
-    font-family: var(--mono, monospace); font-size: 22px; font-weight: 600;
+    color: var(--text, #16181C); border-radius: 14px;
+    font-family: var(--sans, sans-serif); font-size: 22px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
     padding: 16px 0; cursor: pointer; user-select: none;
     transition: background .1s ease, border-color .1s ease;
   }
