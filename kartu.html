@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#08090b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Kartu Member &mdash; Barber King</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --ink:#08090b; --ink-raised:#0f1217; --ink-card:#14171d; --ink-inset:#0b0d11;
+      --line:#242832; --line-soft:#191c23;
+      --fg:#f2f3f5; --fg-mid:#a9afba; --fg-dim:#757c8a;
+      --brass:#c9a26a; --brass-deep:#8d7047; --brass-wash:rgba(201,162,106,.12);
+      --sage:#7fae8c; --clay:#c9756a;
+      --sans:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      --mono:'Space Grotesk',monospace;
+      --r-sm:6px; --r-md:10px; --r-lg:16px;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+    body {
+      background:var(--ink); color:var(--fg); font-family:var(--sans);
+      font-size:15px; line-height:1.5; min-height:100dvh;
+      -webkit-font-smoothing:antialiased;
+    }
+    main { max-width:460px; margin:0 auto; padding:18px 16px 90px; display:flex; flex-direction:column; gap:16px; }
+    main > * { min-width:0; }
+
+    /* ---------- Kartu ---------- */
+    .card-hero {
+      position:relative; overflow:hidden;
+      background:linear-gradient(150deg,#1b1f27 0%,#0e1116 58%,#141922 100%);
+      border:1px solid var(--brass-deep); border-radius:var(--r-lg);
+      padding:20px; display:flex; flex-direction:column; gap:18px;
+    }
+    .card-hero::after {
+      content:""; position:absolute; inset:auto -30% -55% auto;
+      width:230px; height:230px; border-radius:50%;
+      background:radial-gradient(circle,var(--brass-wash),transparent 68%);
+      pointer-events:none;
+    }
+    .card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+    .card-brand { font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--brass); }
+    .card-name { font-size:21px; font-weight:800; letter-spacing:-.02em; line-height:1.2; margin-top:5px; }
+    .card-phone { font-family:var(--mono); font-size:11.5px; color:var(--fg-dim); margin-top:3px; }
+    .tier-badge {
+      flex:none; font-family:var(--mono); font-size:10.5px; font-weight:700;
+      letter-spacing:.12em; text-transform:uppercase;
+      border:1px solid var(--brass); color:var(--brass);
+      padding:5px 11px; border-radius:99px; white-space:nowrap;
+    }
+    .points-row { display:flex; align-items:flex-end; gap:6px; }
+    .points-val { font-family:var(--mono); font-size:38px; font-weight:700; color:var(--brass); line-height:1; letter-spacing:-.02em; }
+    .points-unit { font-size:13px; color:var(--fg-mid); padding-bottom:4px; }
+
+    .progress-wrap { display:flex; flex-direction:column; gap:7px; }
+    .progress-track { height:7px; background:var(--ink-inset); border-radius:99px; overflow:hidden; border:1px solid var(--line-soft); }
+    .progress-fill { height:100%; background:linear-gradient(90deg,var(--brass-deep),var(--brass)); border-radius:99px; }
+    .progress-text { font-size:11.5px; color:var(--fg-dim); }
+
+    /* ---------- QR ---------- */
+    .qr-card {
+      background:var(--ink-card); border:1px solid var(--line); border-radius:var(--r-md);
+      padding:18px; display:flex; flex-direction:column; align-items:center; gap:12px;
+    }
+    .qr-box { background:#fff; padding:12px; border-radius:10px; line-height:0; }
+    .qr-box img, .qr-box canvas { display:block; width:186px; height:186px; image-rendering:pixelated; }
+    .qr-code-text { font-family:var(--mono); font-size:17px; font-weight:700; letter-spacing:.14em; color:var(--brass); }
+    .qr-hint { font-size:12px; color:var(--fg-dim); text-align:center; line-height:1.55; }
+
+    /* ---------- Umum ---------- */
+    .panel { background:var(--ink-card); border:1px solid var(--line); border-radius:var(--r-md); padding:16px; display:flex; flex-direction:column; gap:13px; }
+    .panel-head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; border-bottom:1px solid var(--line-soft); padding-bottom:10px; }
+    .panel-head h2 { font-size:14.5px; font-weight:700; }
+    .panel-head span { font-family:var(--mono); font-size:10.5px; color:var(--fg-dim); }
+
+    .stat-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .stat { background:var(--ink-inset); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:12px; }
+    .stat-label { font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--fg-dim); }
+    .stat-val { font-family:var(--mono); font-size:17px; font-weight:700; margin-top:3px; }
+
+    .rw { display:flex; gap:12px; align-items:center; background:var(--ink-inset); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:12px 13px; }
+    .rw.is-locked { opacity:.5; }
+    .rw-main { flex:1; min-width:0; }
+    .rw-name { font-size:13.5px; font-weight:700; line-height:1.35; }
+    .rw-desc { font-size:11.5px; color:var(--fg-dim); line-height:1.45; margin-top:2px; }
+    .rw-cost { font-family:var(--mono); font-size:12px; color:var(--brass); margin-top:4px; }
+    .btn-rw {
+      flex:none; background:var(--brass); color:var(--ink); border:none;
+      border-radius:var(--r-sm); padding:9px 13px; font-size:12.5px; font-weight:700;
+      font-family:inherit; cursor:pointer; white-space:nowrap;
+    }
+    .btn-rw:disabled { background:var(--ink-card); color:var(--fg-dim); border:1px solid var(--line); cursor:default; }
+
+    .claim {
+      background:var(--brass-wash); border:1px solid var(--brass-deep); border-radius:var(--r-sm);
+      padding:13px; display:flex; justify-content:space-between; align-items:center; gap:12px;
+    }
+    .claim-code { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--brass); letter-spacing:.1em; }
+    .claim-meta { font-size:11.5px; color:var(--fg-dim); margin-top:2px; }
+    .claim.is-used { background:none; border-color:var(--line); opacity:.6; }
+    .claim.is-used .claim-code { color:var(--fg-dim); }
+
+    .hist { display:flex; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid var(--line-soft); }
+    .hist:last-child { border-bottom:0; }
+    .hist-date { font-family:var(--mono); font-size:11px; color:var(--fg-dim); flex:none; width:52px; }
+    .hist-main { flex:1; min-width:0; }
+    .hist-svc { font-size:13px; font-weight:600; line-height:1.35; }
+    .hist-cap { font-size:11px; color:var(--fg-dim); }
+    .hist-amt { font-family:var(--mono); font-size:12.5px; flex:none; text-align:right; }
+    .hist-pts { font-family:var(--mono); font-size:10.5px; color:var(--sage); }
+
+    .empty { text-align:center; color:var(--fg-dim); font-size:13px; padding:20px 10px; line-height:1.6; }
+    .center-msg { min-height:100dvh; display:grid; place-items:center; padding:28px; text-align:center; }
+    [hidden] { display:none !important; }
+
+    .toast {
+      position:fixed; left:50%; bottom:22px; transform:translate(-50%,140%);
+      background:var(--fg); color:var(--ink); padding:11px 18px; border-radius:99px;
+      font-size:13px; font-weight:600; z-index:99; transition:transform .28s ease;
+      max-width:calc(100% - 32px); text-align:center;
+    }
+    .toast.show { transform:translate(-50%,0); }
+  </style>
+</head>
+<body>
+  <div class="center-msg" id="loadingView">
+    <div style="color:var(--fg-dim); font-size:13px;">Memuat kartu…</div>
+  </div>
+
+  <div class="center-msg" id="errorView" hidden></div>
+
+  <main id="cardView" hidden>
+    <!-- Kartu -->
+    <section class="card-hero">
+      <div class="card-top">
+        <div>
+          <div class="card-brand">Barber King &middot; Member</div>
+          <div class="card-name" id="mName">—</div>
+          <div class="card-phone" id="mPhone"></div>
+        </div>
+        <div class="tier-badge" id="mTier">—</div>
+      </div>
+
+      <div>
+        <div class="points-row">
+          <span class="points-val" id="mPoints">0</span>
+          <span class="points-unit">poin tersedia</span>
+        </div>
+      </div>
+
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <div class="progress-text" id="progressText"></div>
+      </div>
+    </section>
+
+    <!-- QR -->
+    <section class="qr-card">
+      <div class="qr-box" id="qrBox"></div>
+      <div class="qr-code-text" id="mCode">—</div>
+      <div class="qr-hint">Tunjukkan kode ini ke kasir sebelum membayar<br />agar poin Anda tercatat.</div>
+    </section>
+
+    <!-- Statistik -->
+    <section class="panel">
+      <div class="stat-row">
+        <div class="stat"><div class="stat-label">Kunjungan</div><div class="stat-val" id="mVisits">0</div></div>
+        <div class="stat"><div class="stat-label">Poin Seumur Hidup</div><div class="stat-val" id="mLifetime">0</div></div>
+      </div>
+    </section>
+
+    <!-- Klaim aktif -->
+    <section class="panel" id="claimPanel" hidden>
+      <div class="panel-head"><h2>🎟️ Kode Klaim Anda</h2><span>tunjukkan ke kasir</span></div>
+      <div style="display:flex; flex-direction:column; gap:9px;" id="claimList"></div>
+    </section>
+
+    <!-- Reward -->
+    <section class="panel">
+      <div class="panel-head"><h2>🎁 Tukar Poin</h2><span id="rewardCount"></span></div>
+      <div style="display:flex; flex-direction:column; gap:9px;" id="rewardList"></div>
+    </section>
+
+    <!-- Riwayat -->
+    <section class="panel">
+      <div class="panel-head"><h2>✂️ Riwayat Kunjungan</h2><span id="histCount"></span></div>
+      <div id="histList"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="vendor/supabase.js"></script>
+  <script src="vendor/qrcode.js"></script>
+  <script src="sb-app.js"></script>
+
+  <script>
+    /* =========================================================================
+       KARTU MEMBER DIGITAL
+
+       Halaman ini dibuka tanpa login: member_code pada URL adalah kredensialnya.
+       Karena itu isinya sengaja dibatasi pada milik pemegang kode saja, nomor
+       WhatsApp disamarkan di server, dan penukaran reward tidak menyelesaikan
+       dirinya sendiri — ia menghasilkan kode klaim yang harus divalidasi kasir
+       di meja. Pemegang tautan tetap tidak dapat membelanjakan poin dari jauh.
+       ========================================================================= */
+
+    const $ = id => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    const KODE = (params.get('c') || params.get('kode') || '').trim().toUpperCase();
+
+    function rupiah(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
+    function esc(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    let toastTimer = null;
+    function toast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
+    }
+
+    function gagal(pesan) {
+      $('loadingView').hidden = true;
+      $('cardView').hidden = true;
+      const el = $('errorView');
+      el.hidden = false;
+      el.innerHTML = `<div style="max-width:320px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:17px; font-weight:700;">Kartu tidak ditemukan</div>
+          <div style="font-size:13.5px; color:var(--fg-mid); line-height:1.6;">${pesan}</div>
+        </div>`;
+    }
+
+    function gambarQR(teks) {
+      const qr = qrcode(0, 'M');
+      qr.addData(teks);
+      qr.make();
+      // createImgTag menghasilkan PNG data-URI, tidak butuh permintaan jaringan
+      $('qrBox').innerHTML = qr.createImgTag(6, 0);
+      const img = $('qrBox').querySelector('img');
+      if (img) { img.alt = 'Kode QR member ' + teks; img.style.width = '186px'; img.style.height = '186px'; }
+    }
+
+    function renderKartu(m) {
+      $('mName').textContent = m.name;
+      $('mPhone').textContent = m.phone_masked;
+      $('mTier').textContent = m.tier;
+      $('mPoints').textContent = Number(m.points_balance).toLocaleString('id-ID');
+      $('mCode').textContent = m.member_code;
+      $('mVisits').textContent = m.visit_count;
+      $('mLifetime').textContent = Number(m.lifetime_points).toLocaleString('id-ID');
+
+      if (m.tier_berikut) {
+        const butuh = Number(m.poin_ke_tier_berikut);
+        const total = Number(m.lifetime_points) + butuh;
+        $('progressFill').style.width = Math.min(100, (m.lifetime_points / total) * 100) + '%';
+        $('progressText').textContent = `${butuh} poin lagi menuju ${m.tier_berikut}`;
+      } else {
+        $('progressFill').style.width = '100%';
+        $('progressText').textContent = 'Anda sudah di level tertinggi';
+      }
+      gambarQR(m.member_code);
+    }
+
+    function renderReward(rows) {
+      $('rewardCount').textContent = rows.length ? rows.length + ' pilihan' : '';
+      const wrap = $('rewardList');
+      if (!rows.length) {
+        wrap.innerHTML = '<div class="empty">Belum ada reward tersedia.</div>';
+        return;
+      }
+      wrap.innerHTML = rows.map(r => {
+        const bisa = r.cukup_poin && r.tier_memenuhi;
+        const alasan = !r.tier_memenuhi ? `Khusus ${esc(r.min_tier)}+`
+                     : !r.cukup_poin ? 'Poin kurang' : 'Tukar';
+        return `
+        <div class="rw ${bisa ? '' : 'is-locked'}">
+          <div class="rw-main">
+            <div class="rw-name">${esc(r.name)}</div>
+            ${r.description ? `<div class="rw-desc">${esc(r.description)}</div>` : ''}
+            <div class="rw-cost">${r.point_cost} poin${r.stock != null ? ` · sisa ${r.stock}` : ''}</div>
+          </div>
+          <button class="btn-rw" data-reward="${esc(r.id)}" data-nama="${esc(r.name)}"
+                  data-poin="${r.point_cost}" ${bisa ? '' : 'disabled'}>${alasan}</button>
+        </div>`;
+      }).join('');
+    }
+
+    function renderKlaim(rows) {
+      const aktif = rows.filter(c => c.status === 'menunggu');
+      const panel = $('claimPanel');
+      if (!aktif.length) { panel.hidden = true; return; }
+      panel.hidden = false;
+      $('claimList').innerHTML = aktif.map(c => `
+        <div class="claim">
+          <div>
+            <div class="claim-code">${esc(c.claim_code)}</div>
+            <div class="claim-meta">${esc(c.reward_name)}</div>
+          </div>
+          <div style="text-align:right; font-size:11px; color:var(--fg-dim); line-height:1.4;">
+            berlaku s/d<br />${new Date(c.expires_at).toLocaleDateString('id-ID',{day:'2-digit',month:'short'})}
+          </div>
+        </div>`).join('');
+    }
+
+    function renderRiwayat(rows) {
+      $('histCount').textContent = rows.length ? rows.length + ' kunjungan' : '';
+      const wrap = $('histList');
+      if (!rows.length) {
+        wrap.innerHTML = '<div class="empty">Belum ada kunjungan tercatat.</div>';
+        return;
+      }
+      wrap.innerHTML = rows.map(h => `
+        <div class="hist">
+          <div class="hist-date">${new Date(h.waktu).toLocaleDateString('id-ID',{day:'2-digit',month:'short',timeZone:'Asia/Jakarta'})}</div>
+          <div class="hist-main">
+            <div class="hist-svc">${esc(h.layanan || 'Layanan')}</div>
+            <div class="hist-cap">oleh ${esc(h.capster || '-')}</div>
+          </div>
+          <div class="hist-amt">${rupiah(h.dibayar)}
+            ${h.poin > 0 ? `<div class="hist-pts">+${h.poin} poin</div>` : ''}
+          </div>
+        </div>`).join('');
+    }
+
+    $('rewardList').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-reward]');
+      if (!btn || btn.disabled) return;
+      if (!confirm(`Tukar ${btn.dataset.poin} poin untuk "${btn.dataset.nama}"?\n\nAnda akan menerima kode klaim yang harus ditunjukkan ke kasir dalam 7 hari.`)) return;
+
+      btn.disabled = true;
+      const label = btn.textContent;
+      btn.textContent = 'Memproses…';
+
+      const { data, error } = await sb.rpc('redeem_reward', { p_code: KODE, p_reward_id: btn.dataset.reward });
+      if (error) {
+        btn.disabled = false; btn.textContent = label;
+        toast(error.message || 'Penukaran gagal.');
+        return;
+      }
+      const c = Array.isArray(data) ? data[0] : data;
+      toast(`Berhasil! Kode klaim ${c.claim_code} — tunjukkan ke kasir.`);
+      await muat();
+    });
+
+    async function muat() {
+      const [kartu, reward, klaim, riwayat] = await Promise.all([
+        sb.rpc('member_card',         { p_code: KODE }),
+        sb.rpc('member_rewards',      { p_code: KODE }),
+        sb.rpc('member_claims',       { p_code: KODE }),
+        sb.rpc('member_card_history', { p_code: KODE })
+      ]);
+
+      if (kartu.error) { gagal('Terjadi gangguan: ' + kartu.error.message); return false; }
+      const m = Array.isArray(kartu.data) ? kartu.data[0] : kartu.data;
+      if (!m) {
+        gagal('Kode kartu tidak dikenali. Pastikan tautannya lengkap, atau minta kasir mengirim ulang.');
+        return false;
+      }
+
+      renderKartu(m);
+      renderReward(reward.data || []);
+      renderKlaim(klaim.data || []);
+      renderRiwayat(riwayat.data || []);
+      $('loadingView').hidden = true;
+      $('cardView').hidden = false;
+      return true;
+    }
+
+    (async function boot() {
+      if (!KODE) {
+        gagal('Tautan tidak berisi kode kartu. Minta kasir mengirimkan tautan kartu Anda.');
+        return;
+      }
+      try { await muat(); }
+      catch (err) { gagal('Gagal memuat kartu: ' + (err.message || err)); }
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') muat().catch(() => {});
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -31,6 +31,14 @@
     {
       "source": "/capster",
       "destination": "/capster.html"
+    },
+    {
+      "source": "/kartu",
+      "destination": "/kartu.html"
+    },
+    {
+      "source": "/card",
+      "destination": "/kartu.html"
     }
   ]
 }
