@@ -2365,7 +2365,11 @@ ${location.origin}/kartu?c=${tx.member_code}
       if (!isOwner) return;
       const { data, error } = await sb.from('cashiers')
         .select('id, name, is_active').order('name', { ascending: true });
-      if (error) return;
+      // Kolom disebut satu per satu, bukan select('*'): hak baca pin_hash sudah
+      // dicabut, sehingga '*' ditolak seluruhnya. Kegagalan di sini dulu
+      // dibiarkan diam — layarnya lalu berbunyi "Belum ada kasir", dan owner
+      // akan membuat kasir kembar tanpa tahu yang lama masih ada.
+      if (error) { showCsrError('Daftar kasir gagal dimuat: ' + error.message); return; }
       cashiers = data || [];
       renderCashiers();
     }

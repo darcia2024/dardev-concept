@@ -1,2 +1,5 @@
 .vercel
 .env*
+
+# PIN kasir tidak pernah boleh masuk repositori
+pin_kasir.txt

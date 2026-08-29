@@ -333,10 +333,18 @@ CREATE POLICY pos_read_capsters ON capsters
 -- pelanggan lewat lookup_member() — keduanya SECURITY DEFINER — sehingga kasir
 -- tidak pernah bisa mengunduh daftar pelanggan atau membaca omzet.
 
--- 11. SEED KASIR CONTOH -------------------------------------------------------
--- PIN contoh dari spesifikasi. Berurutan dan mudah ditebak — ganti lewat
--- dashboard owner sebelum dipakai melayani pelanggan.
-INSERT INTO cashiers (name, pin_hash)
-SELECT v.name, extensions.crypt(v.pin, extensions.gen_salt('bf'))
-FROM (VALUES ('Ahmad', '1234'), ('Fikri', '5678'), ('Rizal', '9012')) AS v(name, pin)
-WHERE NOT EXISTS (SELECT 1 FROM cashiers c WHERE lower(c.name) = lower(v.name));
+-- 11. KASIR TIDAK DI-SEED -----------------------------------------------------
+-- Sebelumnya berkas ini menanam tiga kasir contoh berikut PIN 1234/5678/9012.
+-- Seed semacam itu punya dua cacat. Pertama, PIN yang berurutan sering
+-- tertinggal sampai hari buka karena tidak ada yang memaksa menggantinya.
+-- Kedua, memperbaikinya dengan menaruh PIN sungguhan di sini justru lebih
+-- buruk: PIN itu lalu hidup di riwayat Git selamanya, terbaca siapa pun yang
+-- pernah meng-clone repositori, dan tidak dapat dicabut dengan mengeditnya.
+--
+-- Karena itu kasir dibuat lewat dashboard owner (/pos -> Pengaturan -> Kasir),
+-- yang memanggil upsert_cashier() dan langsung menyimpannya sebagai hash
+-- bcrypt. PIN tidak pernah singgah di berkas mana pun.
+--
+-- Pemasangan baru akan mendapati daftar kasir kosong. Itu memang disengaja:
+-- POS menolak transaksi tanpa kasir yang dikenali, sehingga tidak mungkin
+-- berjualan sebelum orangnya didaftarkan.
