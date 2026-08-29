@@ -28,7 +28,11 @@ CREATE TABLE IF NOT EXISTS loyalty_settings (
 
     min_redeem_points INT NOT NULL DEFAULT 10 CHECK (min_redeem_points >= 0),
     -- Batas diskon terhadap subtotal, menjaga transaksi tidak menjadi nol rupiah
-    max_redeem_percent NUMERIC(5,2) NOT NULL DEFAULT 50.00
+    -- 25%: dipilih setelah skema bagi hasil 60-40 ditetapkan. Pada batas 50%
+    -- dan diskon poin ditanggung toko, sisa toko untuk Speciality jatuh ke
+    -- sekitar 1% dari harga — capster tetap menerima 40% penuh karena
+    -- pekerjaannya penuh, sehingga seluruh diskon jatuh ke sisi toko.
+    max_redeem_percent NUMERIC(5,2) NOT NULL DEFAULT 25.00
         CHECK (max_redeem_percent > 0 AND max_redeem_percent <= 100),
 
     is_active BOOLEAN NOT NULL DEFAULT true,
