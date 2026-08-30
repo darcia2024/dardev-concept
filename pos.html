@@ -1273,6 +1273,40 @@
       padding: 24px 24px 12px;
       border-bottom: 1px solid var(--border-soft);
     }
+
+    /* ── Capster per layanan ────────────────────────────────────────────────
+       Biasanya seluruh layanan dikerjakan orang yang sama, jadi pemilih ini
+       tampil setenang mungkin: tanpa kotak, seukuran teks keterangan di
+       bawahnya. Ia baru terlihat seperti kendali ketika disorot atau diubah.
+       Menonjolkannya akan menyuruh kasir memutuskan sesuatu yang pada
+       sebagian besar transaksi tidak perlu diputuskan. */
+    .item-capster-pilih {
+      appearance: none; -webkit-appearance: none;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      font-family: var(--sans);
+      font-size: 12.5px;
+      color: var(--text-dim);
+      /* Lebar intrinsik <select> sudah menghitung panah bawaannya. Panah itu
+         diganti gambar sendiri, tetapi ruangnya tetap diperhitungkan — sehingga
+         padding-kanan menumpuk di atasnya dan nama terpotong. Ditambah sedikit
+         supaya nama terpanjang tetap terbaca utuh. */
+      padding: 2px 22px 2px 5px; margin-left: -5px;
+      min-width: 84px; max-width: 100%;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23767D87' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 4px center; background-size: 11px;
+      transition: border-color .15s ease, color .15s ease, background-color .15s ease;
+    }
+    .item-capster-pilih:hover { border-color: var(--border); color: var(--text-mid); }
+    .item-capster-pilih:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+    /* Ditandai hanya bila BERBEDA dari capster transaksinya — itu satu-satunya
+       keadaan yang perlu diperiksa mata sebelum menekan Proses. */
+    .item-capster-pilih.is-beda {
+      color: var(--brand); border-color: var(--brand-line);
+      background-color: var(--brand-wash);
+    }
   </style>
 </head>
 <body>
@@ -1888,7 +1922,10 @@
       if (index > -1) {
         selectedServices.splice(index, 1);
       } else {
-        selectedServices.push(service);
+        // Salinan, bukan referensi. selectedServices menyimpan capster per item,
+        // dan menempelkannya ke objek katalog akan membuat pilihan satu
+        // transaksi ikut terbawa ke transaksi berikutnya.
+        selectedServices.push({ ...service, capsterId: null });
       }
       renderServices(currentFilterCat);
       updateCartView();
@@ -1959,7 +1996,12 @@
           <div class="cart-row">
             <div class="item-info">
               <span><strong>${escapeHtml(s.name)}</strong></span>
-              <span class="item-capster">Capster: ${selectedCapster ? escapeHtml(selectedCapster.name) : '<em>(Belum dipilih)</em>'}</span>
+              ${selectedCapster ? `
+              <select class="item-capster-pilih" data-item="${escapeHtml(String(s.id))}" title="Siapa yang mengerjakan layanan ini">
+                ${capsters.filter(c => c.is_active !== false).map(c => `
+                  <option value="${escapeHtml(String(c.id))}"${(s.capsterId || selectedCapster.id) === c.id ? ' selected' : ''}>${escapeHtml(c.name)}</option>
+                `).join('')}
+              </select>` : '<span class="item-capster"><em>Pilih capster dulu</em></span>'}
             </div>
             <span class="item-price">${formatRupiah(s.price)}</span>
           </div>
@@ -1975,8 +2017,27 @@
       const hasServices = selectedServices.length > 0;
       submitBtn.disabled = !(hasCapster && hasServices);
 
+      tandaiCapsterBeda();
       renderQuickCashChips(subtotal);
       calculateCashChange(subtotal);
+    }
+
+    /* Pilihan capster per layanan disimpan pada item, lalu ditandai bila
+       berbeda dari capster transaksinya. */
+    document.getElementById('cartItemsContainer').addEventListener('change', (e) => {
+      const sel = e.target.closest('.item-capster-pilih');
+      if (!sel) return;
+      const item = selectedServices.find(x => String(x.id) === sel.dataset.item);
+      if (!item) return;
+      item.capsterId = sel.value;
+      tandaiCapsterBeda();
+    });
+
+    function tandaiCapsterBeda() {
+      if (!selectedCapster) return;
+      document.querySelectorAll('.item-capster-pilih').forEach(sel => {
+        sel.classList.toggle('is-beda', sel.value !== selectedCapster.id);
+      });
     }
 
     // Render Quick Cash Chips
@@ -2305,7 +2366,11 @@
           item_type: s.item_type || 'layanan',
           service_id: s.item_type === 'produk' ? null : s.id,
           product_id: s.item_type === 'produk' ? s.id : null,
-          name: s.name, category: s.category, price: s.price
+          name: s.name, category: s.category, price: s.price,
+          // Bila kasir tidak mengubah apa pun, dikirim capster transaksinya —
+          // hasilnya sama seperti sebelum fitur ini ada.
+          capster_id: s.capsterId || selectedCapster.id,
+          capster_name: (capsters.find(c => c.id === (s.capsterId || selectedCapster.id)) || selectedCapster).name
         })),
         p_subtotal: subtotal,
         p_final_amount: totalAmount,
