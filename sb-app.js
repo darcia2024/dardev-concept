@@ -538,7 +538,9 @@ async function sbSubmitTransaction(payload) {
     return { queued: false, tx: row };
   } catch (err) {
     // Kegagalan validasi/izin tidak boleh diantrekan — akan gagal selamanya
-    const permanent = err && (err.code === '42501' || err.code === '23514' || err.code === '22P02');
+    const permanent = err && (
+      err.code === '42501' || err.code === '23514' || err.code === '22P02' || err.code === 'P0001'
+    );
     if (permanent) return { error: err };
     SBQueue.add(payload);
     return { queued: true, error: err };

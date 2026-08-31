@@ -302,7 +302,7 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | `assets/logo.png` · `logo-putih.png` | Logo Underrated Barbershop (gelap & putih) |
 | `vendor/` | Library Supabase, pembuat QR, dan pembaca QR, di-host sendiri |
 | `supabase_schema.sql` | Skema dasar |
-| `supabase_migration_02..25_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
+| `supabase_migration_02..30_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
 
 Kunci di `sb-app.js` adalah *publishable key* yang memang dirancang untuk
 publik. Yang menjaga data adalah RLS. **Jangan pernah** menaruh `service_role`

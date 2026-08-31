@@ -892,12 +892,14 @@
     .svc-form .input-field {
       font-size: 13.5px;
       padding: 8px 10px;
+      min-height: 44px;
     }
     .svc-form-actions {
       display: flex;
       justify-content: flex-end;
       gap: 8px;
     }
+    .svc-form-actions .btn-hdr { min-height: 44px; }
     .btn-primary {
       background: var(--brass);
       border-color: var(--brass);
@@ -927,8 +929,8 @@
       border: 1px solid var(--line);
       color: var(--fg-mid);
       border-radius: var(--r-sm);
-      width: 26px;
-      height: 26px;
+      width: 44px;
+      height: 44px;
       font-size: 12px;
       cursor: pointer;
       display: inline-flex;
@@ -1820,6 +1822,19 @@
           </div>
         </div>
 
+        <!-- Kasir hanya memilih preset buatan owner. Nominalnya dihitung ulang
+             oleh server saat transaksi disimpan. -->
+        <div id="manualDiscountBox" class="redeem-box" hidden>
+          <label class="form-label" for="selManualDiscount">Diskon Kasir <span style="font-weight:400; color:var(--fg-dim);">(opsional)</span></label>
+          <select id="selManualDiscount" class="input-field">
+            <option value="">Tanpa diskon</option>
+          </select>
+          <div style="display:flex; justify-content:space-between; gap:12px; font-size:12.5px;">
+            <span id="lblManualDiscountRule" style="color:var(--fg-dim);">Pilih preset diskon</span>
+            <span id="lblManualDiscountValue" style="font-family:var(--mono); color:var(--sage); white-space:nowrap;">Rp 0</span>
+          </div>
+        </div>
+
         <!-- Kode klaim reward: dilipat karena sebagian besar transaksi tidak
              memakainya, dan saat selalu terbuka ia ikut mendorong Total ke
              bawah lipatan layar. -->
@@ -1916,6 +1931,10 @@
           <div class="receipt-line" id="rcptDiscountRow" style="display: none;">
             <span>Diskon poin:</span>
             <span id="rcptDiscount">-</span>
+          </div>
+          <div class="receipt-line" id="rcptManualDiscountRow" style="display: none;">
+            <span id="rcptManualDiscountLabel">Diskon kasir:</span>
+            <span id="rcptManualDiscount">-</span>
           </div>
           <div class="receipt-line is-bold">
             <span>TOTAL:</span>
@@ -2041,11 +2060,11 @@
   </div>
 
   <!-- SETTINGS MODAL -->
-  <div class="modal-backdrop" id="settingsModal">
-    <div class="receipt-modal-card" style="max-width: 520px;">
+  <div class="modal-backdrop" id="settingsModal" aria-hidden="true">
+    <div class="receipt-modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" style="max-width: 520px;">
       <div class="section-title-bar">
-        <h2>Pengaturan Master Data</h2>
-        <button id="btnCloseSettings" style="background:none; border:none; color:var(--fg-dim); font-size:18px; cursor:pointer;">✕</button>
+        <h2 id="settingsTitle">Pengaturan Master Data</h2>
+        <button id="btnCloseSettings" aria-label="Tutup pengaturan" style="width:44px; height:44px; background:none; border:none; color:var(--fg-dim); font-size:18px; cursor:pointer;">✕</button>
       </div>
 
       <!-- Edit Services -->
@@ -2073,7 +2092,7 @@
         <div class="settings-table-wrap">
           <table class="sm-table" id="tableServicesSetting">
             <thead>
-              <tr><th>Layanan</th><th>Harga (Rp)</th><th style="width: 92px; text-align: right;">Aksi</th></tr>
+              <tr><th>Layanan</th><th>Harga (Rp)</th><th style="width: 148px; text-align: right;">Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -2101,12 +2120,54 @@
         <div class="settings-table-wrap">
           <table class="sm-table" id="tableCapstersSetting">
             <thead>
-              <tr><th>Nama Capster</th><th>WhatsApp</th><th style="width: 92px; text-align: right;">Aksi</th></tr>
+              <tr><th>Nama Capster</th><th>WhatsApp</th><th style="width: 148px; text-align: right;">Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
         <div class="svc-meta" id="capSummary"></div>
+      </div>
+
+      <!-- Preset diskon: owner menentukan aturan, kasir hanya memilih -->
+      <div id="discountSection">
+        <div class="section-title-bar" style="margin-bottom: 8px;">
+          <h4 style="font-size: 13px; color: var(--brass); margin: 0;">Diskon Kasir</h4>
+          <button id="btnAddDiscount" class="btn-hdr" style="font-size: 11.5px; padding: 5px 10px;">+ Tambah Diskon</button>
+        </div>
+
+        <div class="svc-form" id="discountFormWrap" hidden>
+          <input type="text" id="inpDiscountName" class="input-field" aria-label="Nama diskon" placeholder="Nama diskon, contoh: Promo Opening" maxlength="80" autocomplete="off" />
+          <div class="svc-form-row">
+            <select id="selDiscountKind" class="input-field" aria-label="Jenis diskon">
+              <option value="percent">Persen (%)</option>
+              <option value="fixed">Nominal (Rp)</option>
+            </select>
+            <input type="number" id="inpDiscountValue" class="input-field" aria-label="Nilai diskon" placeholder="Nilai diskon" min="1" step="1" inputmode="decimal" />
+          </div>
+          <div class="svc-form-row">
+            <input type="number" id="inpDiscountMin" class="input-field" aria-label="Minimal belanja" placeholder="Minimal belanja (Rp)" min="0" step="1000" inputmode="numeric" />
+            <input type="number" id="inpDiscountMax" class="input-field" aria-label="Maksimal potongan" placeholder="Maks. potongan (opsional)" min="1" step="1000" inputmode="numeric" />
+          </div>
+          <label style="display:flex; align-items:center; gap:8px; min-height:44px; font-size:13px; color:var(--fg-mid);">
+            <input type="checkbox" id="chkDiscountActive" checked />
+            Aktif dan dapat dipilih kasir
+          </label>
+          <div class="svc-err" id="discountFormError" hidden></div>
+          <div class="svc-form-actions">
+            <button id="btnCancelDiscount" class="btn-hdr" style="font-size: 12px;">Batal</button>
+            <button id="btnSaveDiscount" class="btn-hdr btn-primary" style="font-size: 12px;">Simpan</button>
+          </div>
+        </div>
+
+        <div class="settings-table-wrap">
+          <table class="sm-table" id="tableDiscountsSetting">
+            <thead>
+              <tr><th>Diskon</th><th>Aturan</th><th style="width: 148px; text-align: right;">Aksi</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="svc-meta" id="discountSummary"></div>
       </div>
 
       <!-- Master Kasir — PIN pribadi tiap kasir (khusus owner) -->
@@ -2130,7 +2191,7 @@
         <div class="settings-table-wrap">
           <table class="sm-table" id="tableCashiersSetting">
             <thead>
-              <tr><th>Nama Kasir</th><th>PIN</th><th style="width: 92px; text-align: right;">Aksi</th></tr>
+              <tr><th>Nama Kasir</th><th>PIN</th><th style="width: 148px; text-align: right;">Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -2220,12 +2281,15 @@
     // hanya menyimpan salinan master data + antrean transaksi (lihat sb-app.js).
     const STORAGE_KEY_SERVICES = 'barber_services_v1';
     const STORAGE_KEY_CAPSTERS = 'barber_capsters_v1';
+    const STORAGE_KEY_DISCOUNTS = 'barber_pos_discounts_v1';
 
     // State Variables
     let services = [];
     let capsters = [];
+    let discounts = [];
     let transactions = [];
     let members = {};
+    let discountsReady = true;
 
     let selectedCapster = null;
     let selectedServices = [];
@@ -2240,15 +2304,23 @@
     /** Master data diambil dari Supabase, lalu disalin ke localStorage
         sebagai cadangan supaya kasir tetap bisa melayani saat sinyal putus. */
     async function initData() {
-      const [svcRes, capRes] = await Promise.all([
+      const [svcRes, capRes, discountRes] = await Promise.all([
         sb.from('services').select('*').order('category', { ascending: true }).order('name', { ascending: true }),
-        sb.from('capsters').select('*').order('name', { ascending: true })
+        sb.from('capsters').select('*').order('name', { ascending: true }),
+        sb.rpc(isOwner ? 'owner_pos_discounts_list' : 'pos_discounts')
       ]);
       if (svcRes.error) throw svcRes.error;
       if (capRes.error) throw capRes.error;
 
       services = (svcRes.data || []).map(mapService);
       capsters = capRes.data || [];
+      if (discountRes.error) {
+        discountsReady = false;
+        discounts = [];
+      } else {
+        discountsReady = true;
+        discounts = discountRes.data || [];
+      }
 
       // Produk dimuat terpisah lewat RPC agar harga modal tidak ikut terkirim
       try {
@@ -2259,6 +2331,7 @@
 
       localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(services));
       localStorage.setItem(STORAGE_KEY_CAPSTERS, JSON.stringify(capsters));
+      if (discountsReady) localStorage.setItem(STORAGE_KEY_DISCOUNTS, JSON.stringify(discounts));
     }
 
     /** Dipakai bila pemuatan awal gagal (outlet sedang offline). */
@@ -2267,12 +2340,14 @@
         services = JSON.parse(localStorage.getItem(STORAGE_KEY_SERVICES)) || [];
         capsters = JSON.parse(localStorage.getItem(STORAGE_KEY_CAPSTERS)) || [];
         products = JSON.parse(localStorage.getItem('barber_products_v1')) || [];
-      } catch { services = []; capsters = []; products = []; }
+        discounts = JSON.parse(localStorage.getItem(STORAGE_KEY_DISCOUNTS)) || [];
+      } catch { services = []; capsters = []; products = []; discounts = []; }
     }
 
     function persistCache() {
       localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(services));
       localStorage.setItem(STORAGE_KEY_CAPSTERS, JSON.stringify(capsters));
+      localStorage.setItem(STORAGE_KEY_DISCOUNTS, JSON.stringify(discounts));
     }
 
     /** Master data hanya boleh diubah saat online — jika tidak, dua perangkat
@@ -2478,6 +2553,78 @@
       renderServices(currentFilterCat);
     });
 
+    function discountRuleLabel(discount) {
+      if (!discount) return '';
+      const value = Number(discount.value || 0);
+      const rule = discount.kind === 'percent'
+        ? value.toLocaleString('id-ID') + '%'
+        : formatRupiah(value);
+      const cap = discount.kind === 'percent' && Number(discount.max_discount || 0) > 0
+        ? ', maks. ' + formatRupiah(discount.max_discount)
+        : '';
+      return rule + cap;
+    }
+
+    /** Pratinjau murni. Server menjalankan rumus yang sama dan menjadi sumber
+        kebenaran saat transaksi benar-benar disimpan. */
+    function calculateManualDiscount(discount, subtotal, pointDiscount) {
+      const gross = Math.max(0, Number(subtotal || 0));
+      const points = Math.max(0, Number(pointDiscount || 0));
+      if (!discount || discount.is_active === false) return { amount: 0, eligible: false };
+      if (gross < Number(discount.min_subtotal || 0)) return { amount: 0, eligible: false };
+
+      let amount = discount.kind === 'percent'
+        ? Math.round(gross * Number(discount.value || 0)) / 100
+        : Number(discount.value || 0);
+      if (Number(discount.max_discount || 0) > 0) {
+        amount = Math.min(amount, Number(discount.max_discount));
+      }
+      amount = Math.min(Math.max(0, amount), Math.max(0, gross - points));
+      return { amount, eligible: true };
+    }
+
+    function selectedManualDiscount() {
+      const id = document.getElementById('selManualDiscount').value;
+      return discounts.find(d => String(d.id) === id && d.is_active !== false) || null;
+    }
+
+    function manualDiscountAmount(subtotal) {
+      return calculateManualDiscount(selectedManualDiscount(), subtotal, nilaiDiskonSah()).amount;
+    }
+
+    function totalTagihan() {
+      const subtotal = selectedServices.reduce((acc, cur) => acc + Number(cur.price || 0), 0);
+      return Math.max(0, subtotal - nilaiDiskonSah() - manualDiscountAmount(subtotal));
+    }
+
+    function renderManualDiscountSelector(subtotal) {
+      const box = document.getElementById('manualDiscountBox');
+      const select = document.getElementById('selManualDiscount');
+      const active = discounts.filter(d => d.is_active !== false);
+      const previous = select.value;
+
+      box.hidden = active.length === 0;
+      select.innerHTML = '<option value="">Tanpa diskon</option>' + active.map(d => {
+        const min = Number(d.min_subtotal || 0);
+        const disabled = subtotal < min;
+        const minLabel = min > 0 ? ' · min. ' + formatRupiah(min) : '';
+        return `<option value="${escapeHtml(String(d.id))}"${disabled ? ' disabled' : ''}>${escapeHtml(d.name)} · ${escapeHtml(discountRuleLabel(d))}${escapeHtml(minLabel)}</option>`;
+      }).join('');
+
+      if (active.some(d => String(d.id) === previous && subtotal >= Number(d.min_subtotal || 0))) {
+        select.value = previous;
+      }
+
+      const chosen = selectedManualDiscount();
+      const preview = calculateManualDiscount(chosen, subtotal, nilaiDiskonSah());
+      document.getElementById('lblManualDiscountRule').textContent = chosen
+        ? discountRuleLabel(chosen)
+        : 'Pilih preset diskon';
+      document.getElementById('lblManualDiscountValue').textContent = formatRupiah(preview.amount);
+    }
+
+    document.getElementById('selManualDiscount').addEventListener('change', updateCartView);
+
     // Update Cart View and Bill
     function updateCartView() {
       const container = document.getElementById('cartItemsContainer');
@@ -2488,7 +2635,9 @@
         container.innerHTML = `<div class="cart-empty-state">Pilih layanan cukur di sebelah kiri</div>`;
         totalAmountEl.textContent = 'Rp 0';
         submitBtn.disabled = true;
+        renderManualDiscountSelector(0);
         renderQuickCashChips(0);
+        calculateCashChange();
         return;
       }
 
@@ -2514,8 +2663,9 @@
       });
 
       container.innerHTML = html;
-      // Yang dibayar pelanggan adalah subtotal dikurangi diskon poin
-      totalAmountEl.textContent = formatRupiah(Math.max(0, subtotal - nilaiDiskonSah()));
+      renderManualDiscountSelector(subtotal);
+      const finalAmount = totalTagihan();
+      totalAmountEl.textContent = formatRupiah(finalAmount);
 
       // Validate submit button readiness
       const hasCapster = !!selectedCapster;
@@ -2523,8 +2673,8 @@
       submitBtn.disabled = !(hasCapster && hasServices);
 
       tandaiCapsterBeda();
-      renderQuickCashChips(subtotal);
-      calculateCashChange(subtotal);
+      renderQuickCashChips(finalAmount);
+      calculateCashChange();
     }
 
     /* Pilihan capster per layanan disimpan pada item, lalu ditandai bila
@@ -2566,8 +2716,7 @@
     }
 
     function calculateCashChange() {
-      const total = Math.max(0,
-        selectedServices.reduce((acc, cur) => acc + cur.price, 0) - nilaiDiskonSah());
+      const total = totalTagihan();
       const given = Number(document.getElementById('inpCashGiven').value || 0);
       const changeEl = document.getElementById('lblCashChange');
       
@@ -3123,7 +3272,9 @@
 
       const subtotal = selectedServices.reduce((acc, cur) => acc + cur.price, 0);
       const poinTukar = poinSahDitukar();
-      const totalAmount = Math.max(0, subtotal - nilaiDiskonSah());
+      const selectedDiscount = selectedManualDiscount();
+      const manualPreview = calculateManualDiscount(selectedDiscount, subtotal, nilaiDiskonSah()).amount;
+      const totalAmount = totalTagihan();
 
       // Extract payment reference
       let paymentRef = '';
@@ -3171,6 +3322,9 @@
         p_created_at: now.toISOString(),
         p_redeem_points: poinTukar
       };
+      // Argumen tidak dikirim bila kosong agar POS tetap kompatibel saat
+      // frontend terpasang beberapa detik lebih dulu daripada migrasi database.
+      if (selectedDiscount) payload.p_discount_id = selectedDiscount.id;
 
       const submitBtn = document.getElementById('btnSubmitTransaction');
       const prevLabel = submitBtn.textContent;
@@ -3198,16 +3352,18 @@
         capster_name: selectedCapster.name,
         services: [...selectedServices],
         subtotal,
-        final_amount: totalAmount,
+        final_amount: res.tx ? Number(res.tx.final_amount) : totalAmount,
         payment_method: selectedPaymentMethod,
         payment_ref: paymentRef,
-        cash_paid: cashPaid,
-        cash_change: cashChange,
+        cash_paid: res.tx && res.tx.cash_paid != null ? Number(res.tx.cash_paid) : cashPaid,
+        cash_change: res.tx && res.tx.cash_change != null ? Number(res.tx.cash_change) : cashChange,
         created_at: res.tx ? res.tx.created_at : now.toISOString(),
         member_code: null,   // diisi setelah transaksi tersimpan (lihat di bawah)
         points_earned: res.tx ? res.tx.points_earned : 0,
         points_balance: res.tx ? res.tx.points_balance : null,
-        discount_points: res.tx ? Number(res.tx.discount_points) : 0,
+        discount_points: res.tx ? Number(res.tx.discount_points) : nilaiDiskonSah(),
+        discount_manual: res.tx ? Number(res.tx.discount_manual || 0) : manualPreview,
+        discount_name: res.tx ? (res.tx.discount_name || '') : (selectedDiscount ? selectedDiscount.name : ''),
         tier_naik: res.tx ? res.tx.tier_naik : false,
         queued: !!res.queued
       };
@@ -3263,15 +3419,23 @@
         wadahItem.appendChild(baris);
       });
 
-      const adaDiskon = tx.discount_points > 0;
+      const adaDiskonPoin = tx.discount_points > 0;
+      const adaDiskonKasir = tx.discount_manual > 0;
+      const adaDiskon = adaDiskonPoin || adaDiskonKasir;
       // Subtotal hanya berarti bila ia dapat berbeda dari total. Pada satu
       // layanan tanpa diskon ia mengulang angka yang sama tiga kali.
       const perluSubtotal = adaDiskon || tx.services.length > 1;
       document.getElementById('rcptSubtotalRow').style.display = perluSubtotal ? 'flex' : 'none';
       document.getElementById('rcptSubtotal').textContent = formatRupiah(tx.subtotal);
-      document.getElementById('rcptDiscountRow').style.display = adaDiskon ? 'flex' : 'none';
-      if (adaDiskon) {
+      document.getElementById('rcptDiscountRow').style.display = adaDiskonPoin ? 'flex' : 'none';
+      if (adaDiskonPoin) {
         document.getElementById('rcptDiscount').textContent = '- ' + formatRupiah(tx.discount_points);
+      }
+      document.getElementById('rcptManualDiscountRow').style.display = adaDiskonKasir ? 'flex' : 'none';
+      if (adaDiskonKasir) {
+        document.getElementById('rcptManualDiscountLabel').textContent =
+          tx.discount_name ? 'Diskon ' + tx.discount_name + ':' : 'Diskon kasir:';
+        document.getElementById('rcptManualDiscount').textContent = '- ' + formatRupiah(tx.discount_manual);
       }
 
       document.getElementById('rcptTotal').textContent = formatRupiah(tx.final_amount);
@@ -3333,11 +3497,14 @@
         baris.push('');
 
         // Subtotal hanya berarti bila ia bisa berbeda dari total
-        if (tx.discount_points > 0 || tx.services.length > 1) {
+        if (tx.discount_points > 0 || tx.discount_manual > 0 || tx.services.length > 1) {
           baris.push('Subtotal: ' + formatRupiah(tx.subtotal));
         }
         if (tx.discount_points > 0) {
           baris.push('Diskon poin: -' + formatRupiah(tx.discount_points));
+        }
+        if (tx.discount_manual > 0) {
+          baris.push('Diskon ' + (tx.discount_name || 'kasir') + ': -' + formatRupiah(tx.discount_manual));
         }
         baris.push('*Total: ' + formatRupiah(tx.final_amount) + '* (' + tx.payment_method + ')');
         if (tx.payment_method === 'Tunai' && tx.cash_paid > 0) {
@@ -3408,6 +3575,7 @@
       memberAktif = null;
       document.getElementById('inpRedeemPoints').value = '';
       document.getElementById('redeemBox').hidden = true;
+      document.getElementById('selManualDiscount').value = '';
       selectedServices = [];
       document.getElementById('inpCustPhone').value = '';
       document.getElementById('inpCustName').value = '';
@@ -3598,12 +3766,39 @@
 
     // Settings Modal Handlers
     const settingsModal = document.getElementById('settingsModal');
+    let settingsPreviousFocus = null;
     document.getElementById('btnOpenSettings').addEventListener('click', () => {
+      settingsPreviousFocus = document.activeElement;
       renderSettingsTables();
       settingsModal.classList.add('is-open');
+      settingsModal.setAttribute('aria-hidden', 'false');
+      document.getElementById('btnCloseSettings').focus();
     });
-    document.getElementById('btnCloseSettings').addEventListener('click', () => {
+    function closeSettingsModal() {
       settingsModal.classList.remove('is-open');
+      settingsModal.setAttribute('aria-hidden', 'true');
+      if (settingsPreviousFocus) settingsPreviousFocus.focus();
+    }
+    document.getElementById('btnCloseSettings').addEventListener('click', closeSettingsModal);
+    settingsModal.addEventListener('click', event => {
+      if (event.target === settingsModal) closeSettingsModal();
+    });
+    settingsModal.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeSettingsModal();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(settingsModal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled])'))
+        .filter(element => element.offsetParent !== null);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
     });
 
     function renderSettingsTables() {
@@ -3642,6 +3837,39 @@
       });
       dl.innerHTML = cats.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
 
+      const discountTbody = document.querySelector('#tableDiscountsSetting tbody');
+      document.getElementById('btnAddDiscount').disabled = !discountsReady;
+      if (!discountsReady) {
+        discountTbody.innerHTML = '<tr><td colspan="3" class="svc-empty">Fitur diskon belum aktif di database.</td></tr>';
+        document.getElementById('discountSummary').textContent = 'Jalankan migrasi 30 untuk mengaktifkan diskon kasir';
+      } else if (discounts.length === 0) {
+        discountTbody.innerHTML = '<tr><td colspan="3" class="svc-empty">Belum ada diskon. Tekan “+ Tambah Diskon”.</td></tr>';
+        document.getElementById('discountSummary').textContent = '0 preset diskon';
+      } else {
+        discountTbody.innerHTML = discounts.map(d => `
+          <tr class="${d.is_active === false ? 'is-off' : ''}">
+            <td>
+              <strong>${escapeHtml(d.name)}</strong>
+              ${d.is_active === false ? '<span class="svc-sub">NONAKTIF</span>' : ''}
+            </td>
+            <td style="font-family:var(--mono);">
+              ${escapeHtml(discountRuleLabel(d))}
+              <span class="svc-sub">${Number(d.min_subtotal || 0) > 0 ? 'Min. ' + formatRupiah(d.min_subtotal) : 'Tanpa minimum'}</span>
+            </td>
+            <td>
+              <div class="row-actions">
+                <button data-act="toggle" data-id="${d.id}" class="${d.is_active === false ? '' : 'is-on'}" title="${d.is_active === false ? 'Aktifkan' : 'Nonaktifkan'}">${d.is_active === false ? '○' : '●'}</button>
+                <button data-act="edit" data-id="${d.id}" title="Ubah">✎</button>
+                <button data-act="del" data-id="${d.id}" title="Hapus">✕</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+        const activeDiscounts = discounts.filter(d => d.is_active !== false).length;
+        document.getElementById('discountSummary').textContent =
+          `${discounts.length} preset · ${activeDiscounts} dapat dipilih kasir`;
+      }
+
       const capTbody = document.querySelector('#tableCapstersSetting tbody');
 
       if (capsters.length === 0) {
@@ -3669,6 +3897,154 @@
       document.getElementById('capSummary').textContent =
         `${capsters.length} capster · ${activeCap} bertugas hari ini`;
     }
+
+    /* =========================================================================
+       PRESET DISKON KASIR — CRUD OWNER
+       ========================================================================= */
+
+    let editingDiscountId = null;
+    const discountForm = document.getElementById('discountFormWrap');
+    const discountErrorEl = document.getElementById('discountFormError');
+
+    function showDiscountError(msg) {
+      discountErrorEl.textContent = msg;
+      discountErrorEl.hidden = false;
+    }
+
+    function syncDiscountKindField() {
+      const fixed = document.getElementById('selDiscountKind').value === 'fixed';
+      const max = document.getElementById('inpDiscountMax');
+      max.disabled = fixed;
+      if (fixed) max.value = '';
+      document.getElementById('inpDiscountValue').placeholder = fixed ? 'Nominal diskon (Rp)' : 'Persentase diskon';
+    }
+
+    function openDiscountForm(discount) {
+      editingDiscountId = discount ? discount.id : null;
+      discountErrorEl.hidden = true;
+      document.getElementById('inpDiscountName').value = discount ? discount.name : '';
+      document.getElementById('selDiscountKind').value = discount ? discount.kind : 'percent';
+      document.getElementById('inpDiscountValue').value = discount ? Number(discount.value) : '';
+      document.getElementById('inpDiscountMin').value = discount ? Number(discount.min_subtotal || 0) : 0;
+      document.getElementById('inpDiscountMax').value = discount && discount.max_discount != null
+        ? Number(discount.max_discount) : '';
+      document.getElementById('chkDiscountActive').checked = discount ? discount.is_active !== false : true;
+      document.getElementById('btnSaveDiscount').textContent = discount ? 'Simpan Perubahan' : 'Tambah';
+      syncDiscountKindField();
+      discountForm.hidden = false;
+      document.getElementById('inpDiscountName').focus();
+    }
+
+    function closeDiscountForm() {
+      editingDiscountId = null;
+      discountForm.hidden = true;
+      discountErrorEl.hidden = true;
+    }
+
+    async function reloadDiscounts() {
+      const { data, error } = await sb.rpc('owner_pos_discounts_list');
+      if (error) throw error;
+      discounts = data || [];
+      discountsReady = true;
+      localStorage.setItem(STORAGE_KEY_DISCOUNTS, JSON.stringify(discounts));
+      renderSettingsTables();
+      updateCartView();
+    }
+
+    document.getElementById('selDiscountKind').addEventListener('change', syncDiscountKindField);
+    document.getElementById('btnAddDiscount').addEventListener('click', () => {
+      if (!discountForm.hidden && editingDiscountId === null) { closeDiscountForm(); return; }
+      openDiscountForm(null);
+    });
+    document.getElementById('btnCancelDiscount').addEventListener('click', closeDiscountForm);
+
+    document.getElementById('btnSaveDiscount').addEventListener('click', async () => {
+      const name = document.getElementById('inpDiscountName').value.trim();
+      const kind = document.getElementById('selDiscountKind').value;
+      const value = Number(document.getElementById('inpDiscountValue').value);
+      const minSubtotal = Number(document.getElementById('inpDiscountMin').value || 0);
+      const maxRaw = document.getElementById('inpDiscountMax').value.trim();
+      const maxDiscount = kind === 'percent' && maxRaw ? Number(maxRaw) : null;
+
+      if (!name) return showDiscountError('Nama diskon wajib diisi.');
+      if (!Number.isFinite(value) || value <= 0) return showDiscountError('Nilai diskon harus lebih dari nol.');
+      if (kind === 'percent' && value > 100) return showDiscountError('Diskon persen maksimal 100%.');
+      if (!Number.isFinite(minSubtotal) || minSubtotal < 0) return showDiscountError('Minimal belanja tidak valid.');
+      if (maxDiscount !== null && (!Number.isFinite(maxDiscount) || maxDiscount <= 0)) {
+        return showDiscountError('Maksimal potongan harus lebih dari nol.');
+      }
+      if (!requireOnline(showDiscountError)) return;
+
+      const btn = document.getElementById('btnSaveDiscount');
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Menyimpan…';
+      const { error } = await sb.rpc('upsert_pos_discount', {
+        p_id: editingDiscountId,
+        p_name: name,
+        p_kind: kind,
+        p_value: value,
+        p_min_subtotal: minSubtotal,
+        p_max_discount: maxDiscount,
+        p_is_active: document.getElementById('chkDiscountActive').checked
+      });
+      btn.disabled = false; btn.textContent = label;
+
+      if (error) {
+        return showDiscountError(error.code === '23505'
+          ? 'Sudah ada diskon dengan nama yang sama.'
+          : 'Gagal menyimpan: ' + (error.message || error));
+      }
+
+      closeDiscountForm();
+      try {
+        await reloadDiscounts();
+        showToast('Diskon "' + name + '" disimpan.');
+      } catch (err) {
+        showToast('Diskon tersimpan, tetapi daftar gagal dimuat ulang: ' + (err.message || err));
+      }
+    });
+
+    document.querySelector('#tableDiscountsSetting tbody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const discount = discounts.find(d => String(d.id) === btn.dataset.id);
+      if (!discount) return;
+
+      if (btn.dataset.act === 'edit') {
+        openDiscountForm(discount);
+        return;
+      }
+      if (!SBConn.online) return showToast('Sedang offline. Perubahan master data butuh koneksi.');
+
+      if (btn.dataset.act === 'toggle') {
+        btn.disabled = true;
+        const { error } = await sb.rpc('upsert_pos_discount', {
+          p_id: discount.id,
+          p_name: discount.name,
+          p_kind: discount.kind,
+          p_value: Number(discount.value),
+          p_min_subtotal: Number(discount.min_subtotal || 0),
+          p_max_discount: discount.max_discount == null ? null : Number(discount.max_discount),
+          p_is_active: discount.is_active === false
+        });
+        btn.disabled = false;
+        if (error) return showToast('Gagal menyimpan: ' + (error.message || error));
+        await reloadDiscounts();
+        showToast('Diskon "' + discount.name + '" ' + (discount.is_active === false ? 'diaktifkan.' : 'dinonaktifkan.'));
+        return;
+      }
+
+      if (btn.dataset.act === 'del') {
+        if (!confirm('Hapus diskon "' + discount.name + '"?\n\nTransaksi lama tetap menyimpan nama dan nilai potongannya.')) return;
+        btn.disabled = true;
+        const { error } = await sb.rpc('delete_pos_discount', { p_id: discount.id });
+        btn.disabled = false;
+        if (error) return showToast('Gagal menghapus: ' + (error.message || error));
+        if (editingDiscountId === discount.id) closeDiscountForm();
+        await reloadDiscounts();
+        showToast('Diskon dihapus.');
+      }
+    });
 
     /* =========================================================================
        MASTER LAYANAN — CRUD
@@ -4202,6 +4578,7 @@
       if (!SBConn.online) return showToast('Sedang offline. Tidak bisa memuat ulang.');
       closeServiceForm();
       closeCapsterForm();
+      closeDiscountForm();
       try {
         await initData();
       } catch (err) {
