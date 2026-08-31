@@ -73,11 +73,13 @@ teknis yang perlu diketahui penerus, dan batasan yang diakui apa adanya:
 | `supabase_migration_03_tutup_kas.sql` | Tutup kas harian: setoran tunai kasir (hitungan buta) & rekonsiliasi owner. |
 | `supabase_migration_24_booking.sql` | Permintaan booking publik dan inbox booking kasir. |
 | `supabase_migration_25_booking_hardening.sql` | Validasi waktu, durasi, batas input, dan hak akses RPC booking. |
+| `supabase_migration_30_diskon_kasir.sql` | Preset diskon owner, validasi total di server, dan jejak diskon transaksi. |
 | `sb-app.js` | Lapisan data bersama: konfigurasi, gerbang login, antrean offline, indikator koneksi. |
 | `vendor/supabase.js` | Library Supabase yang di-*host* sendiri. |
 | `landing.html` | Halaman publik, layanan, lokasi, dan formulir booking. |
 | `pos.html` | POS kasir. |
 | `rekap.html` | Dashboard owner. |
+| `TUTORIAL-DISKON-KASIR.md` | Panduan owner membuat preset dan kasir memberikan diskon. |
 
 ### Sistem Akses Owner & Kasir
 

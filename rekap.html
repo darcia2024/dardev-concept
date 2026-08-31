@@ -1358,6 +1358,8 @@
         ...t,
         services: (t.transaction_items || []).map(i => ({ name: i.service_name, price: Number(i.price) })),
         subtotal: Number(t.subtotal),
+        discount_points: Number(t.discount_points || 0),
+        discount_manual: Number(t.discount_manual || 0),
         final_amount: Number(t.final_amount)
       }));
 
@@ -2761,6 +2763,11 @@
           const timeStr = tx.created_at ? new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
           const methodClass = (tx.payment_method || 'tunai').toLowerCase();
           const srvNames = (tx.services || []).map(s => s.name).join(', ') || '-';
+          const discountParts = [];
+          if (tx.discount_manual > 0) {
+            discountParts.push((tx.discount_name || 'Diskon kasir') + ' -' + formatRupiah(tx.discount_manual));
+          }
+          if (tx.discount_points > 0) discountParts.push('Poin -' + formatRupiah(tx.discount_points));
           return `
             <tr>
               <td style="font-family:var(--mono);">${timeStr}</td>
@@ -2771,7 +2778,10 @@
               <td>${srvNames}</td>
               <td><span class="pill-pay ${methodClass}">${tx.payment_method || 'Tunai'}</span></td>
               <td style="font-family:var(--mono); font-size:11.5px; color:var(--brass);">${tx.payment_ref || '-'}</td>
-              <td style="font-family:var(--mono); font-weight: 600; color:var(--fg); text-align:right;">${formatRupiah(tx.final_amount)}</td>
+              <td style="font-family:var(--mono); font-weight: 600; color:var(--fg); text-align:right;">
+                ${formatRupiah(tx.final_amount)}
+                ${discountParts.length ? `<span style="display:block; margin-top:3px; font-family:var(--sans); font-size:10.5px; font-weight:500; color:var(--clay);">${escapeHtml(discountParts.join(' · '))}</span>` : ''}
+              </td>
               <td><button class="btn-hapus" data-hapus="${tx.id}" data-nota="${escapeHtml(tx.invoice_no || '')}"
                           title="Hapus transaksi ini">&#215;</button></td>
             </tr>
@@ -3251,7 +3261,8 @@
       unduhCsv(
         'Transaksi_' + selectedDateFilter + '_' + sbJakartaToday() + '.csv',
         ['Waktu', 'No Invoice', 'Nama Pelanggan', 'No WhatsApp', 'Capster',
-         'Layanan', 'Metode Bayar', 'Kode Ref/Approval', 'Total (Rp)'],
+         'Layanan', 'Metode Bayar', 'Kode Ref/Approval', 'Subtotal (Rp)',
+         'Diskon Poin (Rp)', 'Diskon Kasir (Rp)', 'Nama Diskon', 'Total (Rp)'],
         txList.map(function (tx) {
           return [
             tx.created_at ? new Date(tx.created_at).toLocaleString('id-ID',
@@ -3259,7 +3270,9 @@
             tx.invoice_no || '', tx.member_name || '', tx.member_phone || '',
             tx.capster_name || '',
             (tx.services || []).map(function (x) { return x.name; }).join(' + '),
-            tx.payment_method || '', tx.payment_ref || '', tx.final_amount || 0
+            tx.payment_method || '', tx.payment_ref || '', tx.subtotal || 0,
+            tx.discount_points || 0, tx.discount_manual || 0,
+            tx.discount_name || '', tx.final_amount || 0
           ];
         })
       );
