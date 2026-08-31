@@ -1493,7 +1493,7 @@
        berarti menyalin ulang penanganan fokus, tombol, dan pesan galat.
        ========================================================================= */
     const edBackdrop = document.getElementById('edBackdrop');
-    let edSimpan = null, edHapus = null, edFokusKembali = null;
+    let edSimpan = null, edHapus = null, edFokusKembali = null, edTetapTerbuka = false;
 
     function edPesan(teks) {
       const el = document.getElementById('edMsg');
@@ -1516,6 +1516,8 @@
       edPesan('');
 
       const body = document.getElementById('edBody');
+      // textContent kosong sekaligus membuang kotak hasil simulasi sebelumnya,
+      // yang disisipkan ke dalam body ini oleh pemanggil.
       body.textContent = '';
       const nilai = opsi.nilai || {};
 
@@ -1567,6 +1569,12 @@
       tHapus.hidden = !opsi.onHapus;
       edHapus = opsi.onHapus || null;
       edSimpan = opsi.onSimpan;
+      // Simulator memakai kerangka yang sama tetapi tidak menyimpan apa pun:
+      // tombolnya berbunyi Hitung, dan modalnya tetap terbuka supaya satu
+      // angka bisa diubah lalu dihitung ulang tanpa mengisi ulang semuanya.
+      edTetapTerbuka = !!opsi.tetapTerbuka;
+      document.getElementById('edSave').textContent = opsi.labelSimpan || 'Simpan';
+      document.getElementById('edCancel').textContent = opsi.labelBatal || 'Batal';
 
       // Penelusuran mutasi memakai kerangka yang sama tetapi menyembunyikan
       // tombol Simpan; ia harus kembali untuk pemakaian berikutnya.
@@ -1597,7 +1605,7 @@
         const res = await kerja();
         // Galat dari PostgREST datang sebagai objek, bukan lemparan
         if (res && res.error) { edPesan(res.error.message); return false; }
-        edTutup();
+        if (!edTetapTerbuka) edTutup();
         return true;
       } catch (e) {
         edPesan(e && e.message ? e.message : String(e));
@@ -2210,33 +2218,82 @@
       if (p) editorProduk(p);
     });
 
-    document.getElementById('btnSimulasiHpp').addEventListener('click', async function () {
-      const beli = Number(prompt('Simulasi harga jual\n\nHarga beli dari supplier (Rp):', '42000'));
-      if (!Number.isFinite(beli)) return;
-      const kirim = Number(prompt('Ongkos kirim per unit (Rp):', '1500'));
-      const kemas = Number(prompt('Biaya kemasan / label (Rp):', '500'));
-      const over = Number(prompt('Alokasi overhead (Rp):', '1000'));
-      const target = Number(prompt('Target margin (persen):', '40'));
-      const poin = Number(prompt('Bila member menukar poin senilai (Rp), isi 0 bila tidak:', '0'));
+    /* Simulator harga jual.
 
-      const res = await sb.rpc('hpp_simulate', {
-        p_buy: beli, p_shipping: kirim, p_packaging: kemas,
-        p_overhead: over, p_target_margin: target, p_diskon_poin: poin
+       Bentuk lama menanyakan enam angka lewat prompt() beruntun lalu
+       menumpahkan hasilnya ke alert(). Dua hal buruk sekaligus: membatalkan
+       dialog keempat membuang tiga jawaban sebelumnya tanpa memberi tahu, dan
+       mengubah satu angka berarti mengetik ulang keenamnya. Padahal justru
+       mengubah satu angka lalu melihat akibatnya adalah seluruh gunanya
+       simulasi. */
+    const KOLOM_SIMULASI = [
+      { key: 'beli',   label: 'Harga beli dari supplier (Rp)', tipe: 'angka', min: 0 },
+      { key: 'kirim',  label: 'Ongkos kirim per unit (Rp)',    tipe: 'angka', min: 0 },
+      { key: 'kemas',  label: 'Biaya kemasan / label (Rp)',    tipe: 'angka', min: 0 },
+      { key: 'over',   label: 'Alokasi overhead (Rp)',         tipe: 'angka', min: 0 },
+      { key: 'target', label: 'Target margin (%)',             tipe: 'angka', min: 0, langkah: '0.1',
+        hint: 'Sistem menghitung harga jual yang memberi margin sebesar ini.' },
+      { key: 'poin',   label: 'Bila member menukar poin senilai (Rp)', tipe: 'angka', min: 0,
+        hint: 'Isi 0 bila ingin melihat margin tanpa penukaran poin.' }
+    ];
+
+    function barisHasil(label, nilai, warna) {
+      return '<div style="display:flex; justify-content:space-between; gap:12px; padding:7px 0;'
+           + ' border-bottom:1px solid var(--border-soft); font-size:13px;">'
+           + '<span style="color:var(--fg-mid);">' + label + '</span>'
+           + '<strong style="font-family:var(--mono); white-space:nowrap;'
+           + (warna ? ' color:' + warna + ';' : '') + '">' + nilai + '</strong></div>';
+    }
+
+    document.getElementById('btnSimulasiHpp').addEventListener('click', function () {
+      bukaEditor({
+        judul: 'Simulasi Harga Jual',
+        sub: 'Tidak menyimpan apa pun — hanya menghitung. Ubah satu angka lalu tekan Hitung lagi.',
+        kolom: KOLOM_SIMULASI,
+        nilai: { beli: 42000, kirim: 1500, kemas: 500, over: 1000, target: 40, poin: 0 },
+        labelSimpan: 'Hitung',
+        labelBatal: 'Tutup',
+        tetapTerbuka: true,
+        onSimpan: async function () {
+          const d = edAmbil(KOLOM_SIMULASI);
+          const res = await sb.rpc('hpp_simulate', {
+            p_buy: d.beli || 0, p_shipping: d.kirim || 0, p_packaging: d.kemas || 0,
+            p_overhead: d.over || 0, p_target_margin: d.target || 0, p_diskon_poin: d.poin || 0
+          });
+          if (res.error) return res;
+
+          const r = Array.isArray(res.data) ? res.data[0] : res.data;
+          let kotak = document.getElementById('edHasilSim');
+          if (!kotak) {
+            kotak = document.createElement('div');
+            kotak.id = 'edHasilSim';
+            kotak.style.cssText = 'margin-top:6px; padding-top:12px; border-top:1px solid var(--border);';
+            document.getElementById('edBody').appendChild(kotak);
+          }
+
+          kotak.innerHTML =
+              '<div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase;'
+            + ' color:var(--fg-dim); margin-bottom:6px;">Hasil</div>'
+            + barisHasil('HPP per unit', formatRupiah(r.hpp))
+            + barisHasil('Harga jual disarankan', formatRupiah(r.harga_jual))
+            + barisHasil('Margin kotor', formatRupiah(r.margin_rp) + ' · ' + r.margin_persen + '%')
+            + barisHasil('Batas diskon aman', 'maks ' + r.diskon_aman_persen + '% · '
+                + formatRupiah(r.diskon_aman_rp), 'var(--brass)')
+            + (d.poin > 0
+                ? '<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border);">'
+                  + '<div style="font-size:11.5px; color:var(--fg-dim); margin-bottom:4px;">'
+                  + 'Bila poin ditukar ' + formatRupiah(d.poin) + '</div>'
+                  + barisHasil('Sisa margin', formatRupiah(r.sisa_margin_rp) + ' · ' + r.sisa_margin_persen + '%',
+                      r.masih_untung ? 'var(--sage)' : 'var(--clay)')
+                  + barisHasil('Masih untung', r.masih_untung ? 'Ya' : 'Tidak — rugi',
+                      r.masih_untung ? 'var(--sage)' : 'var(--clay)')
+                  + '</div>'
+                : '');
+
+          kotak.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          return res;
+        }
       });
-      if (res.error) { alert(res.error.message); return; }
-      const r = Array.isArray(res.data) ? res.data[0] : res.data;
-      alert(
-        'HASIL SIMULASI\n\n'
-        + 'HPP per unit      : ' + formatRupiah(r.hpp) + '\n'
-        + 'Harga jual        : ' + formatRupiah(r.harga_jual) + ' (target ' + target + '%)\n'
-        + 'Margin kotor      : ' + formatRupiah(r.margin_rp) + ' (' + r.margin_persen + '%)\n'
-        + 'Batas diskon aman : maks ' + r.diskon_aman_persen + '% (' + formatRupiah(r.diskon_aman_rp) + ')'
-        + (poin > 0
-            ? '\n\nBila poin ditukar ' + formatRupiah(poin) + ':\n'
-              + 'Sisa margin       : ' + formatRupiah(r.sisa_margin_rp) + ' (' + r.sisa_margin_persen + '%)\n'
-              + 'Masih untung      : ' + (r.masih_untung ? 'YA' : 'TIDAK - rugi')
-            : '')
-      );
     });
 
     /* -------------------------------------------------------------------------
