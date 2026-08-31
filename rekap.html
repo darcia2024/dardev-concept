@@ -251,6 +251,29 @@
        sehingga satu kontrol di paling atas akan menggerakkan tabel yang tidak
        terlihat dari situ. Karena itu kontrolnya diulang di tiap panel dan
        diikat ke satu keadaan — mengubah salah satu memperbarui ketiganya. */
+    /* Papan angka ringkas di kepala panel audit */
+    .poin-stat {
+      display: grid; gap: 10px; padding: 2px 2px 16px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    .poin-stat > div {
+      padding: 11px 13px; border: 1px solid var(--border);
+      border-radius: var(--r-sm); background: var(--surface-sunk);
+    }
+    .poin-stat .lbl {
+      font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--fg-dim); margin-bottom: 4px;
+    }
+    .poin-stat .val { font-size: 19px; font-weight: 600; font-family: var(--mono); color: var(--text); }
+    .poin-stat .sub { font-size: 11px; color: var(--fg-dim); margin-top: 2px; }
+    .poin-pill {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; border: 1px solid;
+    }
+    .poin-pill.EARN   { color: var(--sage);  border-color: var(--sage); }
+    .poin-pill.REDEEM { color: var(--brand); border-color: var(--brand-line); }
+    .poin-pill.BONUS  { color: var(--brass); border-color: var(--brass); }
+
     .bulan-pilih {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
@@ -1135,6 +1158,51 @@
       </div>
     </div>
 
+    <!-- Audit Mutasi Poin -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Audit Mutasi Poin</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);" id="poinSub">
+            Setiap penambahan dan pengurangan poin, beserta kasir yang mencatatnya
+          </p>
+        </div>
+        <div class="bulan-pilih">
+          <input type="month" class="inp-bulan-poin" aria-label="Pilih bulan audit poin" />
+          <select id="poinTipe" aria-label="Saring jenis mutasi"
+                  style="font:inherit; font-size:13px; padding:7px 10px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm);">
+            <option value="">Semua jenis</option>
+            <option value="EARN">EARN &mdash; poin masuk</option>
+            <option value="REDEEM">REDEEM &mdash; poin dipakai</option>
+            <option value="BONUS">BONUS &mdash; poin retroaktif</option>
+          </select>
+          <input type="search" id="poinCari" placeholder="Nama, nota, atau kasir"
+                 aria-label="Cari mutasi poin"
+                 style="font:inherit; font-size:13px; padding:7px 10px; min-width:170px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm);" />
+          <button class="btn-nav" id="btnUnduhPoin">Unduh</button>
+        </div>
+      </div>
+
+      <div class="poin-stat" id="poinStat"></div>
+
+      <div class="table-scroll">
+        <table class="tx-table" id="poinTable">
+          <thead>
+            <tr>
+              <th>Waktu</th><th>Member</th><th>Jenis</th><th style="text-align:right;">Poin</th>
+              <th style="text-align:right;">Saldo</th><th>Nota</th><th>Kasir</th><th>Keterangan</th>
+            </tr>
+          </thead>
+          <tbody id="poinTableBody"></tbody>
+        </table>
+      </div>
+      <p style="font-size:11.5px; color:var(--fg-dim); padding:12px 4px 2px; line-height:1.55;">
+        Transaksi yang dihapus ikut membawa baris poinnya keluar dari daftar ini &mdash; poin yang
+        pernah terbit lalu ditarik kembali tidak muncul di sini. Jejaknya ada di panel
+        <strong>Transaksi yang Dihapus</strong> beserta alasan penghapusannya.
+      </p>
+    </div>
+
     <!-- Outlet -->
     <div class="table-panel">
       <div class="table-controls">
@@ -1236,6 +1304,8 @@
       await loadHpp();
       await Promise.all([loadReward(), loadPoinTier(), loadOutlet()]);
       pasangPemilihBulan();
+      pasangPemilihPoin();
+      await loadAuditPoin();
       await loadAbsensi();
       await muatArsip();
       await muatKelolaAkun();
@@ -1439,6 +1509,9 @@
       edHapus = opsi.onHapus || null;
       edSimpan = opsi.onSimpan;
 
+      // Penelusuran mutasi memakai kerangka yang sama tetapi menyembunyikan
+      // tombol Simpan; ia harus kembali untuk pemakaian berikutnya.
+      document.getElementById('edSave').hidden = false;
       edBackdrop.classList.add('is-open');
       edBackdrop.setAttribute('aria-hidden', 'false');
       const pertama = body.querySelector('input, select, textarea');
@@ -1487,6 +1560,187 @@
     edBackdrop.addEventListener('click', function (e) { if (e.target === edBackdrop) edTutup(); });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && edBackdrop.classList.contains('is-open')) edTutup();
+    });
+
+
+    /* =========================================================================
+       AUDIT MUTASI POIN
+
+       point_ledger sudah mencatat tiap pergerakan poin sejak awal, dan
+       member_ledger() sudah ada untuk membacanya — tetapi menerima satu nomor
+       telepon, sehingga mengaudit berarti membuka member satu per satu.
+       Panel ini membaca seluruhnya sekaligus, dengan nama kasir yang
+       mencatatnya: pertanyaannya bukan "berapa poin bertambah", melainkan
+       "siapa menambahkannya".
+       ========================================================================= */
+    let bulanPoin = sbJakartaToday().slice(0, 7);
+    let poinData = [];
+    let poinTimer = null;
+
+    async function loadAuditPoin() {
+      const tb = document.getElementById('poinTableBody');
+      const arg = {
+        p_bulan: bulanPoin + '-01',
+        p_tipe: document.getElementById('poinTipe').value || null,
+        p_cari: document.getElementById('poinCari').value.trim() || null
+      };
+      const [aud, rek] = await Promise.all([
+        sb.rpc('owner_point_audit', arg),
+        sb.rpc('owner_point_summary', { p_bulan: arg.p_bulan })
+      ]);
+
+      if (aud.error) {
+        tb.innerHTML = '<tr><td colspan="8" class="empty-row">Gagal memuat: '
+          + escapeHtml(aud.error.message) + '</td></tr>';
+        return;
+      }
+      poinData = aud.data || [];
+      renderStatPoin(rek.error ? null : (Array.isArray(rek.data) ? rek.data[0] : rek.data));
+      renderAuditPoin();
+    }
+
+    function renderStatPoin(r) {
+      const box = document.getElementById('poinStat');
+      if (!r) { box.innerHTML = ''; return; }
+      const kotak = function (lbl, val, sub) {
+        return '<div><div class="lbl">' + lbl + '</div><div class="val">' + val + '</div>'
+             + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>';
+      };
+      box.innerHTML =
+          kotak('Poin terbit', '+' + r.poin_terbit, namaBulan(bulanPoin))
+        + kotak('Poin dipakai', '-' + r.poin_ditukar, 'ditukar jadi potongan')
+        + kotak('Poin retroaktif', '+' + r.poin_bonus, 'dari backfill Fase 0')
+        + kotak('Saldo beredar', r.saldo_beredar,
+                'senilai ' + formatRupiah(r.nilai_beredar) + ' bila ditukar semua');
+    }
+
+    function renderAuditPoin() {
+      const tb = document.getElementById('poinTableBody');
+      if (!poinData.length) {
+        tb.innerHTML = '<tr><td colspan="8" class="empty-row">Tidak ada mutasi poin yang cocok.</td></tr>';
+        return;
+      }
+      tb.innerHTML = poinData.map(function (r) {
+        const naik = Number(r.poin) >= 0;
+        return ''
+          + '<tr>'
+          + '<td style="font-family:var(--mono); font-size:12px;">'
+          + new Date(r.waktu).toLocaleString('id-ID',
+              { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jakarta' }) + '</td>'
+          + '<td><strong>' + escapeHtml(r.member_name || '-') + '</strong>'
+          + '<span style="display:block; font-size:11px; color:var(--fg-dim); font-family:var(--mono);">'
+          + escapeHtml(r.member_code || r.member_phone || '') + '</span></td>'
+          + '<td><span class="poin-pill ' + escapeHtml(r.tipe) + '">' + escapeHtml(r.tipe) + '</span></td>'
+          + '<td style="font-family:var(--mono); text-align:right; font-weight:600; color:'
+          + (naik ? 'var(--sage)' : 'var(--brand)') + ';">' + (naik ? '+' : '') + r.poin + '</td>'
+          + '<td style="font-family:var(--mono); text-align:right; color:var(--fg-dim);">' + r.saldo_sesudah + '</td>'
+          + '<td style="font-family:var(--mono); font-size:11.5px;">' + escapeHtml(r.invoice_no || '—') + '</td>'
+          + '<td style="font-size:12px;">' + escapeHtml(r.kasir || '—') + '</td>'
+          + '<td style="font-size:11.5px; color:var(--fg-dim); max-width:260px;">' + escapeHtml(r.catatan || '') + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    function pasangPemilihPoin() {
+      const kini = sbJakartaToday().slice(0, 7);
+      document.querySelectorAll('.inp-bulan-poin').forEach(function (el) {
+        el.value = bulanPoin;
+        el.max = kini;
+        el.addEventListener('change', function () {
+          if (!el.value) { el.value = bulanPoin; return; }
+          bulanPoin = el.value;
+          document.getElementById('poinSub').textContent =
+            namaBulan(bulanPoin) + ' — setiap penambahan dan pengurangan poin, beserta kasir yang mencatatnya';
+          loadAuditPoin();
+        });
+      });
+      document.getElementById('poinTipe').addEventListener('change', loadAuditPoin);
+      // Diperlambat: tiap ketukan tombol memicu satu panggilan ke server
+      document.getElementById('poinCari').addEventListener('input', function () {
+        clearTimeout(poinTimer);
+        poinTimer = setTimeout(loadAuditPoin, 350);
+      });
+      document.getElementById('poinSub').textContent =
+        namaBulan(bulanPoin) + ' — setiap penambahan dan pengurangan poin, beserta kasir yang mencatatnya';
+    }
+
+    document.getElementById('btnUnduhPoin').addEventListener('click', function () {
+      if (!poinData.length) { alert('Tidak ada mutasi poin untuk diunduh.'); return; }
+      unduhCsv(
+        'Audit-Poin_' + bulanPoin + '.csv',
+        ['Waktu', 'Member', 'Kode Member', 'WhatsApp', 'Jenis', 'Poin', 'Saldo Sesudah',
+         'No Invoice', 'Kasir', 'Capster', 'Keterangan'],
+        poinData.map(function (r) {
+          return [
+            new Date(r.waktu).toLocaleString('id-ID',
+              { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jakarta' }),
+            r.member_name, r.member_code, r.member_phone, r.tipe, r.poin, r.saldo_sesudah,
+            r.invoice_no, r.kasir, r.capster, r.catatan
+          ];
+        })
+      );
+    });
+
+    /* Penelusuran satu member — memakai member_ledger() yang sudah ada sejak
+       migrasi 05 tetapi tidak pernah dipanggil dari halaman mana pun. */
+    document.getElementById('memberTableBody').addEventListener('click', async function (e) {
+      const b = e.target.closest('[data-mutasi]');
+      if (!b) return;
+      const telp = b.dataset.mutasi, nama = b.dataset.nama || '(tanpa nama)';
+      if (!telp) { alert('Member ini tidak punya nomor WhatsApp, mutasinya tidak dapat ditelusuri.'); return; }
+
+      bukaEditor({
+        judul: 'Mutasi Poin — ' + nama,
+        sub: 'Memuat…',
+        kolom: [],
+        onSimpan: null
+      });
+      document.getElementById('edSave').hidden = true;
+
+      const res = await sb.rpc('member_ledger', { p_phone: telp });
+      const body = document.getElementById('edBody');
+      if (res.error) {
+        document.getElementById('edSub').textContent = 'Gagal memuat.';
+        edPesan(res.error.message);
+        return;
+      }
+      const rows = res.data || [];
+      document.getElementById('edSub').textContent =
+        rows.length ? rows.length + ' mutasi tercatat, terbaru di atas.' : 'Belum ada mutasi poin.';
+
+      body.textContent = '';
+      rows.forEach(function (r) {
+        const naik = Number(r.poin) >= 0;
+        const baris = document.createElement('div');
+        baris.style.cssText = 'display:flex; justify-content:space-between; gap:12px; align-items:baseline;'
+          + 'padding:9px 0; border-bottom:1px solid var(--border-soft);';
+        const kiri = document.createElement('div');
+        kiri.style.cssText = 'min-width:0;';
+        const jam = document.createElement('div');
+        jam.style.cssText = 'font-family:var(--mono); font-size:11.5px; color:var(--fg-dim);';
+        jam.textContent = new Date(r.waktu).toLocaleString('id-ID',
+          { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jakarta' }) + ' · ' + r.tipe;
+        const cat = document.createElement('div');
+        cat.style.cssText = 'font-size:12.5px; line-height:1.45; overflow-wrap:anywhere;';
+        cat.textContent = r.catatan || '';
+        kiri.appendChild(jam); kiri.appendChild(cat);
+        const kanan = document.createElement('div');
+        kanan.style.cssText = 'font-family:var(--mono); font-weight:600; white-space:nowrap; color:'
+          + (naik ? 'var(--sage)' : 'var(--brand)') + ';';
+        kanan.textContent = (naik ? '+' : '') + r.poin;
+        const sisa = document.createElement('span');
+        sisa.style.cssText = 'display:block; font-weight:400; font-size:11px; color:var(--fg-dim); text-align:right;';
+        sisa.textContent = 'saldo ' + r.saldo_sesudah;
+        kanan.appendChild(sisa);
+        baris.appendChild(kiri); baris.appendChild(kanan);
+        body.appendChild(baris);
+      });
+      if (!rows.length) {
+        const kosong = document.createElement('p');
+        kosong.style.cssText = 'font-size:12.5px; color:var(--fg-dim); padding:6px 0;';
+        kosong.textContent = 'Member ini belum pernah menerima atau memakai poin.';
+        body.appendChild(kosong);
+      }
     });
 
 
@@ -2397,7 +2651,10 @@
           + '<td style="font-family:var(--mono); text-align:right;">' + formatRupiah(m.total_spend || 0) + '</td>'
           + '<td style="font-family:var(--mono);">' + (m.jumlah_transaksi || 0) + '</td>'
           + '<td style="font-family:var(--mono); font-size:12px; color:var(--fg-dim);">' + (m.terakhir || '—') + '</td>'
-          + '<td><button class="btn-hapus" data-hapus-member="' + m.member_id + '" '
+          + '<td style="white-space:nowrap;">'
+          + '<button class="btn-filter-date" data-mutasi="' + escapeHtml(m.phone_wa || '') + '" '
+          + 'data-nama="' + escapeHtml(m.name || '') + '" style="margin-right:6px;">Mutasi</button>'
+          + '<button class="btn-hapus" data-hapus-member="' + m.member_id + '" '
           + 'data-nama="' + escapeHtml(m.name || '') + '" data-tx="' + (m.jumlah_transaksi || 0) + '" '
           + 'title="Hapus member ini">&#215;</button></td>'
           + '</tr>';
