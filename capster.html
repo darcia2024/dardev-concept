@@ -170,6 +170,49 @@
     .cuti-pill.disetujui { color: var(--sage); border-color: var(--sage); }
     .cuti-pill.ditolak { color: var(--clay); border-color: var(--clay); }
 
+    /* Formulir pengajuan — menggantikan rantai prompt() bawaan peramban.
+       Empat prompt beruntun membuat kolom keterangan muncul paling akhir,
+       sesudah tiga dialog lain; di ponsel kolom itu praktis tidak pernah
+       sampai terlihat. Dengan satu formulir, semuanya tampak sekaligus. */
+    .cuti-form { display: none; gap: 12px; padding: 13px 0 4px;
+                 grid-template-columns: minmax(0, 1fr); }
+    .cuti-form.buka { display: grid; }
+    .cuti-lbl {
+      font-size: 11px; letter-spacing: .07em; text-transform: uppercase;
+      color: var(--fg-dim); margin-bottom: 6px;
+    }
+    .cuti-jenis { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+    .cuti-jenis button {
+      background: var(--surface-sunk);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--fg-mid);
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      padding: 12px 8px; cursor: pointer;
+      transition: border-color .15s ease, color .15s ease, background .15s ease;
+    }
+    .cuti-jenis button.pilih {
+      background: var(--brand-wash);
+      border-color: var(--brand);
+      color: var(--brand-deep);
+    }
+    .cuti-tgl-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+    .cuti-form input, .cuti-form textarea {
+      background: var(--surface-sunk);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      font-family: inherit; font-size: 15px;
+      padding: 11px 12px; width: 100%; outline: none;
+      transition: border-color .15s ease;
+    }
+    .cuti-form input[type="date"] { font-size: 14px; padding: 11px 8px; }
+    .cuti-form textarea { resize: vertical; min-height: 76px; line-height: 1.5; }
+    .cuti-form input:focus, .cuti-form textarea:focus { border-color: var(--brand-line); }
+    .cuti-msg { font-size: 12.5px; line-height: 1.45; border-radius: var(--r-sm); padding: 9px 11px; }
+    .cuti-msg.is-ok  { color: var(--ok);         background: var(--ok-wash);    border: 1px solid rgba(15, 115, 85, 0.28); }
+    .cuti-msg.is-bad { color: var(--brand-deep); background: var(--brand-wash); border: 1px solid var(--brand-line); }
+
     .empty { text-align: center; color: var(--fg-dim); font-size: 13px; padding: 22px 10px; line-height: 1.55; }
 
     /* Ganti sandi — satu-satunya jalan capster memperbarui kredensialnya
@@ -254,9 +297,42 @@
     <!-- Cuti -->
     <div class="card">
       <div class="card-head">
-        <h2>Cuti &amp; Izin</h2>
+        <h2>Izin &amp; Libur</h2>
         <button class="btn" id="btnAjukanCuti" style="font-size:11.5px; padding:5px 10px;">+ Ajukan</button>
       </div>
+
+      <div class="cuti-form" id="cutiForm">
+        <div>
+          <div class="cuti-lbl">Jenis pengajuan</div>
+          <div class="cuti-jenis">
+            <button type="button" data-jenis="Izin" class="pilih">Izin</button>
+            <button type="button" data-jenis="Libur">Libur</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="cuti-lbl">Tanggal</div>
+          <div class="cuti-tgl-grid">
+            <input type="date" id="cutiMulai" aria-label="Tanggal mulai" />
+            <input type="date" id="cutiSelesai" aria-label="Tanggal selesai" />
+          </div>
+        </div>
+
+        <div>
+          <div class="cuti-lbl">Keterangan</div>
+          <textarea id="cutiKeterangan" maxlength="300"
+                    placeholder="Tulis alasannya di sini, misalnya: ada acara keluarga di luar kota."></textarea>
+        </div>
+
+        <div class="cuti-msg is-bad" id="cutiMsg" hidden></div>
+
+        <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
+          <button class="btn-primary" id="btnKirimCuti">Kirim Pengajuan</button>
+          <button class="btn" id="btnBatalCuti" type="button">Batal</button>
+        </div>
+      </div>
+
+      <div class="cuti-msg is-ok" id="cutiKabar" hidden style="margin-top:12px;"></div>
       <div class="rows" id="cutiList"></div>
     </div>
 
@@ -512,7 +588,7 @@
     function renderCuti(rows) {
       const wrap = $('cutiList');
       if (!rows.length) {
-        wrap.innerHTML = '<div class="empty">Belum ada pengajuan cuti atau izin.</div>';
+        wrap.innerHTML = '<div class="empty">Belum ada pengajuan izin atau libur.</div>';
         return;
       }
       wrap.innerHTML = rows.map(function (c) {
@@ -539,32 +615,95 @@
       renderCuti(res.data || []);
     }
 
-    $('btnAjukanCuti').addEventListener('click', async function () {
-      const jenis = prompt('Jenis pengajuan:\n1 = Cuti Tahunan\n2 = Izin\n3 = Sakit', '1');
-      if (jenis === null) return;
-      const peta = { '1': 'Cuti Tahunan', '2': 'Izin', '3': 'Sakit' };
-      const kind = peta[String(jenis).trim()];
-      if (!kind) { alert('Pilihan tidak dikenali.'); return; }
+    // 'sv-SE' menghasilkan YYYY-MM-DD: format yang diminta input[type=date]
+    // sekaligus format yang diterima Postgres. Zonanya dipaksa Jakarta supaya
+    // capster yang membuka aplikasi lewat tengah malam waktu ponselnya tidak
+    // mendapat tanggal kemarin.
+    function hariIniJakarta() {
+      return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+    }
 
-      const mulai = prompt('Tanggal mulai (YYYY-MM-DD):', '');
-      if (!mulai) return;
-      const selesai = prompt('Tanggal selesai (YYYY-MM-DD):', mulai);
-      if (!selesai) return;
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(mulai) || !/^\d{4}-\d{2}-\d{2}$/.test(selesai)) {
-        alert('Format tanggal harus YYYY-MM-DD, contoh 2026-09-10.');
-        return;
+    let jenisCuti = 'Izin';
+
+    function pesanCuti(teks, baik) {
+      const el = $('cutiMsg');
+      if (!teks) { el.hidden = true; return; }
+      el.hidden = false;
+      el.textContent = teks;
+      el.className = 'cuti-msg ' + (baik ? 'is-ok' : 'is-bad');
+    }
+
+    function pilihJenis(nama) {
+      jenisCuti = nama;
+      Array.prototype.forEach.call(document.querySelectorAll('.cuti-jenis button'),
+        function (b) { b.classList.toggle('pilih', b.dataset.jenis === nama); });
+    }
+
+    function bukaFormCuti(buka) {
+      $('cutiForm').classList.toggle('buka', buka);
+      $('btnAjukanCuti').textContent = buka ? 'Tutup' : '+ Ajukan';
+      if (!buka) return;
+      $('cutiKabar').hidden = true;
+      const hariIni = hariIniJakarta();
+      $('cutiMulai').value = hariIni;
+      $('cutiSelesai').value = hariIni;
+      $('cutiKeterangan').value = '';
+      pesanCuti('');
+      pilihJenis('Izin');
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll('.cuti-jenis button'), function (b) {
+      b.addEventListener('click', function () { pilihJenis(b.dataset.jenis); });
+    });
+
+    $('btnAjukanCuti').addEventListener('click', function () {
+      bukaFormCuti(!$('cutiForm').classList.contains('buka'));
+    });
+    $('btnBatalCuti').addEventListener('click', function () { bukaFormCuti(false); });
+
+    // Satu hari adalah kasus yang paling sering diajukan. Menggeser tanggal
+    // selesai mengikuti tanggal mulai membuat kasus itu tidak perlu disentuh,
+    // sekaligus mencegah rentang terbalik yang pasti ditolak server.
+    $('cutiMulai').addEventListener('change', function () {
+      const sel = $('cutiSelesai');
+      if (!sel.value || sel.value < this.value) sel.value = this.value;
+    });
+
+    $('btnKirimCuti').addEventListener('click', async function () {
+      const btn = this;
+      const mulai = $('cutiMulai').value;
+      const selesai = $('cutiSelesai').value;
+      const keterangan = $('cutiKeterangan').value.trim();
+
+      if (!mulai || !selesai) { pesanCuti('Tanggal mulai dan selesai harus diisi.', false); return; }
+      if (selesai < mulai) { pesanCuti('Tanggal selesai tidak boleh sebelum tanggal mulai.', false); return; }
+      // Keterangan diwajibkan. Kolom ini ada justru supaya owner tahu sebabnya;
+      // bila boleh kosong ia akan dilewati, dan pertanyaan yang sama tetap
+      // ditanyakan lewat WhatsApp seperti sebelum ada sistem ini.
+      if (!keterangan) { pesanCuti('Tulis keterangannya dulu supaya owner tahu sebabnya.', false); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Mengirim…';
+      try {
+        const res = await sb.rpc('request_leave', {
+          p_kind: jenisCuti, p_mulai: mulai, p_selesai: selesai, p_alasan: keterangan
+        });
+        if (res.error) { pesanCuti(res.error.message, false); return; }
+        const r = Array.isArray(res.data) ? res.data[0] : res.data;
+        const jenis = jenisCuti;
+        bukaFormCuti(false);
+        await muatCuti();
+        // Pesan berhasil ditaruh di luar formulir yang baru saja ditutup,
+        // supaya menutup formulir tidak ikut menghapus kabar baiknya.
+        const kabar = $('cutiKabar');
+        kabar.hidden = false;
+        kabar.className = 'cuti-msg is-ok';
+        kabar.textContent = 'Pengajuan ' + jenis + ' ' + r.jumlah_hari
+                          + ' hari terkirim. Menunggu persetujuan owner.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Kirim Pengajuan';
       }
-      const alasan = prompt('Alasan (opsional):', '') || null;
-
-      const res = await sb.rpc('request_leave', {
-        p_kind: kind, p_mulai: mulai, p_selesai: selesai, p_alasan: alasan
-      });
-      if (res.error) { alert(res.error.message); return; }
-      const r = Array.isArray(res.data) ? res.data[0] : res.data;
-      alert('Pengajuan terkirim: ' + r.jumlah_hari + ' hari.\n'
-            + (kind === 'Cuti Tahunan' ? 'Sisa kuota cuti tahunan: ' + r.sisa_kuota + ' hari.\n' : '')
-            + 'Menunggu persetujuan owner.');
-      await muatCuti();
     });
 
     async function muatAbsenDanCuti() {
