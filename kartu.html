@@ -103,6 +103,12 @@
     .card-brand { font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--brass); }
     .card-name { font-size:21px; font-weight: 600; letter-spacing:-.02em; line-height:1.2; margin-top:5px; }
     .card-phone { font-family:var(--mono); font-size:11.5px; color:var(--fg-dim); margin-top:3px; }
+    /* Nomor member: yang disebut orang di kasir. Berbeda dari kode QR di
+       bawah, yang merupakan kunci tautan kartu ini dan tidak untuk dihafal. */
+    .member-no {
+      font-family: var(--mono); font-size: 11.5px; letter-spacing: .08em;
+      color: var(--fg-dim); margin-top: 3px;
+    }
     .tier-badge {
       flex:none; font-family:var(--mono); font-size:10.5px; font-weight: 600;
       letter-spacing:.12em; text-transform:uppercase;
@@ -286,6 +292,7 @@
           <img src="assets/logo.png" alt="Underrated Barbershop" class="brandmark" style="height:20px;margin-bottom:8px;" />
           <div class="card-name" id="mName">—</div>
           <div class="card-phone" id="mPhone"></div>
+          <div class="member-no" id="mNo"></div>
         </div>
         <div class="tier-badge" id="mTier">—</div>
       </div>
@@ -477,6 +484,7 @@
       $('mName').textContent = m.name;
       $('mPhone').textContent = m.phone_masked;
       $('mTier').textContent = m.tier;
+      $('mNo').textContent = m.member_no ? 'No. ' + m.member_no : '';
       $('mPoints').textContent = Number(m.points_balance).toLocaleString('id-ID');
       $('mCode').textContent = m.member_code;
       $('mVisits').textContent = m.visit_count;

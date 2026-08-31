@@ -908,7 +908,7 @@
         <table class="tx-table" id="memberTable">
           <thead>
             <tr>
-              <th>Nama</th><th>WhatsApp</th><th>Tier</th><th>Poin</th>
+              <th>No.</th><th>Nama</th><th>WhatsApp</th><th>Tier</th><th>Poin</th>
               <th>Kunjungan</th><th style="text-align:right;">Total Belanja</th>
               <th>Transaksi</th><th>Terakhir</th><th style="width:44px;"></th>
             </tr>
@@ -2875,16 +2875,17 @@
       const tb = document.getElementById('memberTableBody');
       const { data, error } = await sb.rpc('owner_members_list', { p_limit: 200 });
       if (error) {
-        tb.innerHTML = '<tr><td colspan="9" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
+        tb.innerHTML = '<tr><td colspan="10" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
         return;
       }
       const rows = data || [];
       if (!rows.length) {
-        tb.innerHTML = '<tr><td colspan="9" class="empty-row">Belum ada member.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="10" class="empty-row">Belum ada member.</td></tr>';
         return;
       }
       tb.innerHTML = rows.map(function (m) {
         return '<tr>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(m.member_no || '-') + '</td>'
           + '<td><strong>' + escapeHtml(m.name || '-') + '</strong></td>'
           + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(m.phone_wa || '-') + '</td>'
           + '<td>' + escapeHtml(m.tier || '-') + '</td>'

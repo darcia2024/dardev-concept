@@ -2801,7 +2801,11 @@
     function applyMemberBadge(m) {
       if (m.name) nameInput.value = m.name;
       badgeEl.className = 'member-status-badge is-exist';
-      badgeEl.innerHTML = `⭐ Member Terdaftar (${escapeHtml(m.tier || 'Silver')}) &middot; Kunjungan ke-${(m.visit_count || 0) + 1}`;
+      /* Nomor member ikut ditampilkan supaya kasir dapat menyebutnya saat
+         mencocokkan dengan kartu fisik pelanggan. */
+      badgeEl.innerHTML = `⭐ Member Terdaftar (${escapeHtml(m.tier || 'Silver')})`
+        + (m.member_no ? ` &middot; ${escapeHtml(m.member_no)}` : '')
+        + ` &middot; Kunjungan ke-${(m.visit_count || 0) + 1}`;
       memberAktif = m;
       renderRedeemBox();
     }
