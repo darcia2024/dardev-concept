@@ -1349,7 +1349,7 @@
 
       const [txRes, capRes, memRes] = await Promise.all([
         sb.from('transactions')
-          .select('*, transaction_items(service_name, price)')
+          .select('*, transaction_items(service_name, price, capster_name)')
           .gte('business_date', since)
           .order('created_at', { ascending: false }),
         sb.from('capsters').select('id, name, is_active'),
@@ -1361,7 +1361,11 @@
       // Samakan bentuk dengan yang dipahami komponen dashboard
       rawTransactions = (txRes.data || []).map(t => ({
         ...t,
-        services: (t.transaction_items || []).map(i => ({ name: i.service_name, price: Number(i.price) })),
+        /* capster_name ikut dibawa: pengelompokan omzet di laporan bergantung
+           padanya, dan tanpa itu ia jatuh diam-diam ke capster level nota. */
+        services: (t.transaction_items || []).map(i => ({
+          name: i.service_name, price: Number(i.price), capster_name: i.capster_name
+        })),
         subtotal: Number(t.subtotal),
         discount_points: Number(t.discount_points || 0),
         discount_manual: Number(t.discount_manual || 0),
@@ -2705,14 +2709,27 @@
         payBreakdown[method].sum += amt;
         payBreakdown[method].count += 1;
 
-        /* R-05: dasar bagi hasil capster adalah harga normal sebelum potongan,
-           bukan nilai yang dibayar. Seluruh potongan ditanggung pemilik.
-           Sebelumnya kolom ini memakai final_amount, sehingga capster yang
-           pelanggannya menukar poin diam-diam ikut menanggung potongannya. */
-        const capName = tx.capster_name || 'Tidak Ditentukan';
-        if (!capsterBreakdown[capName]) capsterBreakdown[capName] = { omzet: 0, heads: 0 };
-        capsterBreakdown[capName].omzet += Number(tx.subtotal) || amt;
-        capsterBreakdown[capName].heads += (tx.services ? tx.services.length : 1);
+        /* Dikelompokkan per ITEM, bukan per nota. Satu nota dapat dikerjakan
+           dua capster — potong sama Cena, cuci sama Lukman — dan POS memang
+           menyediakan pemilihnya. Sebelumnya seluruh nota dihitung untuk
+           capster yang tercatat di level nota saja, sehingga yang mengerjakan
+           sisanya mendapat nol di layar ini padahal pekerjaannya muncul di
+           dasbornya sendiri. Dasbor capster sudah lama membaca per item;
+           laporan ini yang tertinggal.
+
+           R-05: dasarnya harga normal tiap item, bukan nilai yang dibayar.
+           Seluruh potongan ditanggung pemilik, bukan ikut mengurangi hasil
+           kerja capster. */
+        const daftarItem = (tx.services && tx.services.length)
+          ? tx.services
+          : [{ capster_name: tx.capster_name, price: Number(tx.subtotal) || amt }];
+
+        daftarItem.forEach(it => {
+          const capName = it.capster_name || tx.capster_name || 'Tidak Ditentukan';
+          if (!capsterBreakdown[capName]) capsterBreakdown[capName] = { omzet: 0, heads: 0 };
+          capsterBreakdown[capName].omzet += Number(it.price) || 0;
+          capsterBreakdown[capName].heads += 1;
+        });
       });
 
       const avgBasket = txList.length > 0 ? Math.round(totalRevenue / txList.length) : 0;
@@ -2786,7 +2803,11 @@
               <td style="font-family:var(--mono); font-weight: 600; color:var(--fg);">${tx.invoice_no || '-'}</td>
               <td><strong>${tx.member_name || 'Umum'}</strong></td>
               <td style="font-family:var(--mono); font-size:12px;">${tx.member_phone || '-'}</td>
-              <td>${tx.capster_name || '-'}</td>
+              <td>
+                <button class="capster-ubah" data-ubah-capster="${tx.id}"
+                        data-nota="${escapeHtml(tx.invoice_no || '')}"
+                        title="Pindahkan pekerjaan ini ke capster lain">${escapeHtml(ringkasCapster(tx))}</button>
+              </td>
               <td>${srvNames}</td>
               <td><span class="pill-pay ${methodClass}">${tx.payment_method || 'Tunai'}</span></td>
               <td style="font-family:var(--mono); font-size:11.5px; color:var(--brass);">${tx.payment_ref || '-'}</td>
@@ -2801,6 +2822,69 @@
         }).join('');
       }
     }
+
+    /* Satu nota dapat dikerjakan lebih dari satu capster. Kolomnya menampilkan
+       pembagian sebenarnya, bukan hanya nama yang tercatat di level nota, sebab
+       nama itu cuma ringkasan dan bukan dasar bagi hasil. */
+    function ringkasCapster(tx) {
+      const per = {};
+      (tx.services || []).forEach(it => {
+        const nama = it.capster_name || tx.capster_name || 'Tidak Ditentukan';
+        per[nama] = (per[nama] || 0) + 1;
+      });
+      const nama = Object.keys(per);
+      if (!nama.length) return tx.capster_name || '-';
+      if (nama.length === 1) return nama[0];
+      return nama.map(x => x + ' (' + per[x] + ')').join(' + ');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       PINDAH CAPSTER
+
+       Diberi pintu sendiri supaya salah pilih capster tidak lagi dibetulkan
+       dengan menghapus nota. Menghapus nota menarik poin member, dapat
+       menurunkan levelnya, dan menghapus buku besar poinnya tanpa sisa —
+       harga yang terlalu mahal untuk kesalahan yang tidak menyentuh uang.
+
+       Poin member tidak ikut berpindah: poin milik member, bukan capster.
+       Yang berpindah hanya atribusi omzet dan jumlah kepala.
+       ═══════════════════════════════════════════════════════════════════════ */
+    document.addEventListener('click', async function (e) {
+      const btn = e.target.closest('[data-ubah-capster]');
+      if (!btn) return;
+
+      const tx = rawTransactions.find(x => x.id === btn.dataset.ubahCapster);
+      if (!tx) return;
+
+      const aktif = (capstersData || []).filter(c => c.is_active);
+      if (!aktif.length) return alert('Belum ada capster aktif.');
+
+      const daftar = aktif.map((c, i) => (i + 1) + '. ' + c.name).join('\n');
+      const pilih = prompt('Pindahkan SELURUH nota ' + btn.dataset.nota
+        + ' ke capster mana?\n\n' + daftar + '\n\nKetik nomornya:');
+      if (pilih === null) return;
+
+      const idx = parseInt(pilih, 10) - 1;
+      if (!(idx >= 0 && idx < aktif.length)) return alert('Nomor tidak dikenali.');
+
+      const alasan = prompt('Alasan pemindahan (tersimpan di arsip):',
+                            'Kasir salah pilih capster');
+      if (alasan === null) return;
+      if (!alasan.trim()) return alert('Alasan wajib diisi.');
+
+      btn.disabled = true;
+      const { data, error } = await sb.rpc('edit_transaction_capster', {
+        p_tx_id: tx.id, p_capster_id: aktif[idx].id, p_alasan: alasan.trim()
+      });
+      btn.disabled = false;
+
+      if (error) return alert(error.message || 'Pemindahan gagal.');
+      const h = Array.isArray(data) ? data[0] : data;
+      alert('Nota ' + h.invoice_no + ': ' + h.item_dipindah + ' layanan senilai '
+            + formatRupiah(h.nilai_dipindah) + ' dipindah dari ' + h.dari_capster
+            + ' ke ' + h.ke_capster + '.\n\nPoin member tidak berubah.');
+      await loadData();
+    });
 
     /* ═══════════════════════════════════════════════════════════════════════
        HAPUS TRANSAKSI
