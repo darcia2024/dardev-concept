@@ -214,6 +214,29 @@
       max-width:calc(100% - 32px); text-align:center;
     }
     .toast.show { transform:translate(-50%,0); }
+
+    /* ── Jadwal seminggu ────────────────────────────────────────────────────
+       Hari ini ditebalkan sedikit dan diberi dasar, supaya pelanggan yang
+       membuka sekilas langsung menemukan barisnya sendiri tanpa menghitung. */
+    .jadwal {
+      margin-top: 10px; background: var(--surface, #fff);
+      border: 1px solid var(--border-soft, #EEF0F3); border-radius: var(--r-sm, 8px);
+      padding: 12px 14px; display: flex; flex-direction: column; gap: 2px;
+    }
+    .jadwal-judul {
+      font-size: 10.5px; font-weight: 500; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--text-dim, #767D87); margin-bottom: 6px;
+    }
+    .jadwal-baris {
+      display: flex; justify-content: space-between; gap: 12px;
+      font-size: 13.5px; color: var(--text-mid, #565C66);
+      padding: 4px 7px; margin: 0 -7px; border-radius: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+    .jadwal-baris.is-kini {
+      color: var(--text, #16181C); font-weight: 500;
+      background: var(--surface-sunk, #EDEFF2);
+    }
   </style>
 </head>
 <body>
@@ -573,6 +596,9 @@
         wrap.innerHTML = `<div class="empty" style="color:var(--clay);">Gagal memuat lokasi: ${esc(outletRes.error.message)}</div>`;
         return;
       }
+      // Jadwal seminggu ikut diambil: Jumat buka lebih siang, dan pelanggan
+      // yang tidak diberi tahu akan datang di jam yang tokonya masih tutup.
+      const jadwalRes = await sb.rpc('jadwal_mingguan');
       const rows = outletRes.data || [];
       $('outletCount').textContent = rows.length ? rows.length + ' outlet' : '';
       if (!rows.length) {
@@ -627,6 +653,19 @@
             </div>` : ''}
           </div>`;
         }).join('');
+
+        const jadwal = jadwalRes.data || [];
+        if (jadwal.length) {
+          wrap.innerHTML += `
+            <div class="jadwal">
+              <div class="jadwal-judul">Jam Buka</div>
+              ${jadwal.map(j => `
+                <div class="jadwal-baris${j.hari_ini ? ' is-kini' : ''}">
+                  <span>${esc(j.hari)}</span>
+                  <span>${j.libur ? 'Tutup' : String(j.buka).slice(0,5) + ' – ' + String(j.tutup).slice(0,5)}</span>
+                </div>`).join('')}
+            </div>`;
+        }
       }
 
       const caps = capRes.data || [];

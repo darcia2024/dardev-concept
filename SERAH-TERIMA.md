@@ -139,7 +139,8 @@ Seluruh data berikut masih **contoh** dan wajib diganti:
 - [ ] Daftar reward dan biaya poinnya
 - [ ] Rasio poin dan nilai tukarnya
 - [ ] Syarat naik tier Silver → Black
-- [ ] Jam kerja, toleransi terlambat, kuota cuti tahunan
+- [x] ~~Jam kerja~~ — 10.00–21.00, Jumat 13.00–21.00
+- [ ] Toleransi terlambat dan kuota cuti tahunan
 - [ ] Ganti kata sandi owner dan perangkat POS
 - [ ] **Rotate Personal Access Token Supabase** yang dipakai saat pengembangan
 
@@ -154,6 +155,15 @@ Beberapa hal di bawah tampak berlebihan sampai keadaannya benar-benar terjadi.
 
 **Nomor nota dibuat server.** Bila dihitung di perangkat kasir, dua perangkat
 menghasilkan nomor kembar. Diuji dengan 12 transaksi serentak: 12 nomor unik.
+
+**Jam operasional disimpan per hari, di satu tempat.** Jumat buka pukul 13.00,
+hari lain pukul 10.00. Sebelumnya jam buka tersimpan dua kali — `outlets` untuk
+aplikasi pelanggan dan `work_rules` untuk perhitungan keterlambatan — dan
+keduanya tidak pernah saling memeriksa. Bila hanya angkanya diganti, setiap
+Jumat seluruh capster tercatat terlambat 180 menit; bukan karena mereka telat,
+melainkan karena diukur dari jam yang salah. Tuduhan itu terlihat seperti fakta
+karena dihitung mesin. Tabel `jam_operasional` kini menjadi satu-satunya sumber,
+dibaca oleh kartu member maupun `clock_in()`.
 
 **Batas hari memakai zona Asia/Jakarta.** `toISOString()` berbasis UTC
 menggeser batas hari ke pukul 07.00 WIB, sehingga transaksi dini hari masuk ke
