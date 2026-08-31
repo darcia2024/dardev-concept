@@ -9,6 +9,7 @@ Disusun oleh **Dardev**. Menyertai *Addendum Ruang Lingkup Revisi 02*.
 
 | Halaman | Alamat | Untuk siapa |
 | :--- | :--- | :--- |
+| Landing & booking | `/` atau `/booking` | pelanggan |
 | Pintu masuk | `/masuk` | semua peran |
 | POS Kasir | `/pos` | kasir (PIN) |
 | Dashboard Owner | `/rekap` | owner |
@@ -78,15 +79,17 @@ memanggil API secara langsung.
 ### Kasir
 
 1. Buka `/pos`, masukkan PIN.
-2. Pilih capster → pilih layanan (tab **Produk** untuk barang retail).
-3. Tekan **Scan QR** dan arahkan kamera ke kartu member pelanggan. Bila QR tidak
+2. Buka **Booking**. Hubungi pelanggan melalui tombol WhatsApp, lalu ubah
+   status permintaannya menjadi **Dikonfirmasi**, **Ditolak**, atau **Selesai**.
+3. Pilih capster → pilih layanan (tab **Produk** untuk barang retail).
+4. Tekan **Scan QR** dan arahkan kamera ke kartu member pelanggan. Bila QR tidak
    tersedia, isi nomor WhatsApp seperti biasa. Nama, tier, dan poin member
    muncul otomatis setelah kartu dikenali.
-4. Bila menukar poin: isi jumlah poin, atau tekan **Maks**.
-5. Bila pelanggan menunjukkan kode klaim reward: masukkan di kolom
+5. Bila menukar poin: isi jumlah poin, atau tekan **Maks**.
+6. Bila pelanggan menunjukkan kode klaim reward: masukkan di kolom
    **Kode Klaim Reward** dan tekan **Periksa** sebelum menghitung tagihan.
-6. Pilih metode bayar → **Proses Transaksi**.
-7. Kirim struk lewat WhatsApp. Struk memuat tautan kartu member.
+7. Pilih metode bayar → **Proses Transaksi**.
+8. Kirim struk lewat WhatsApp. Struk memuat tautan kartu member.
 
 ### Akhir shift kasir — Tutup Kas
 
@@ -275,8 +278,11 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 - **Sistem memerlukan internet.** Kasir tetap dapat melayani saat sinyal putus
   (transaksi masuk antrean dan terkirim otomatis), tetapi perubahan master
   data, tutup kas, dan absensi memerlukan koneksi.
-- **Di luar scope** sesuai proposal: komisi capster otomatis, booking online,
-  manajemen stok gudang, aplikasi Play Store, dan integrasi QRIS dinamis
+- **Booking publik adalah permintaan kunjungan**, bukan penguncian kursi atau
+  pemilihan capster otomatis. Kasir tetap harus mengonfirmasi lewat WhatsApp.
+- **Di luar scope** sesuai proposal: komisi capster otomatis, penguncian slot
+  dan capster secara otomatis, manajemen stok gudang, aplikasi Play Store,
+  dan integrasi QRIS dinamis
   (Level 2) maupun mesin EDC (Level 3).
 
 ---
@@ -286,6 +292,7 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | Berkas | Isi |
 | :--- | :--- |
 | `masuk.html` | Pintu masuk, perutean per peran |
+| `landing.html` | Halaman publik, katalog layanan, lokasi, dan permintaan booking |
 | `pos.html` | POS kasir |
 | `rekap.html` | Dashboard owner |
 | `capster.html` | Kinerja, absensi, cuti capster |
@@ -295,7 +302,7 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | `assets/logo.png` · `logo-putih.png` | Logo Underrated Barbershop (gelap & putih) |
 | `vendor/` | Library Supabase, pembuat QR, dan pembaca QR, di-host sendiri |
 | `supabase_schema.sql` | Skema dasar |
-| `supabase_migration_02..16_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
+| `supabase_migration_02..25_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
 
 Kunci di `sb-app.js` adalah *publishable key* yang memang dirancang untuk
 publik. Yang menjaga data adalah RLS. **Jangan pernah** menaruh `service_role`
@@ -311,6 +318,7 @@ atau `sb_secret_...` di berkas frontend.
 | "N TRANSAKSI GAGAL KIRIM" | Kegagalan berulang. Arahkan kursor ke label untuk melihat sebabnya. |
 | Menu kasir kosong | Master layanan belum diisi. Buka ⚙️ Pengaturan dengan akun owner. |
 | Kamera Scan QR tidak terbuka | Izinkan akses kamera untuk situs ini lalu tekan **Coba Kamera Lagi**. Kasir tetap dapat memasukkan kode member atau nomor WhatsApp secara manual. |
+| Booking tidak muncul di POS | Pastikan perangkat online dan migration 24 serta 25 sudah dijalankan. Tekan **Muat Ulang** pada modal Booking. |
 | Absen ditolak karena jarak | Koordinat outlet belum diisi atau salah. Perbaiki di tabel `outlets`. |
 | Poin tidak bertambah | Transaksi tanpa nomor WhatsApp tidak menghasilkan poin. |
 | Owner tidak melihat transaksi kasir | Perangkat kasir belum tersambung, atau masih ada antrean offline. |
