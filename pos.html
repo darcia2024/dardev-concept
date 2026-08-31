@@ -3138,36 +3138,82 @@
         refRow.style.display = 'none';
       }
 
-      // WhatsApp Direct Link
+      /* ── Pesan WhatsApp ke pelanggan ──────────────────────────────────────
+         Disusun sebagai daftar baris lalu disambung, bukan rangkaian teks
+         dengan baris-baru terselip di dalam sumbernya. Cara lama membuat
+         jarak antarbagian bergantung pada indentasi berkas ini: sekali
+         seseorang merapikan indentasi, spasi itu ikut terkirim ke pelanggan.
+
+         Penanda *tebal* dan _miring_ adalah format asli WhatsApp. Garis
+         pemisah panjang sengaja tidak dipakai — di layar ponsel ia melipat
+         dan justru terlihat rusak. */
       if (tx.member_phone && tx.member_phone.startsWith('62')) {
-        const waMsg = encodeURIComponent(
-          `*STRUK PEMBAYARAN BARBER*\n\n` +
-          `No. Nota: ${tx.invoice_no}\n` +
-          `Tanggal: ${new Date(tx.created_at).toLocaleString('id-ID')}\n` +
-          `Pelanggan: ${tx.member_name}\n` +
-          `Capster: ${tx.capster_name}\n` +
-          `Layanan: ${tx.services.map(s => s.name).join(', ')}\n` +
-          `------------------------------\n` +
-          `*TOTAL: ${formatRupiah(tx.final_amount)}* (${tx.payment_method})\n\n` +
-          (tx.points_earned > 0 ? `Poin didapat: +${tx.points_earned} (saldo ${tx.points_balance})
-` : '') +
-          `------------------------------
+        const waktuStruk = new Date(tx.created_at).toLocaleString('id-ID', {
+          dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta'
+        });
+        const sapaan = (tx.member_name && tx.member_name !== 'Pelanggan Umum')
+          ? 'Halo ' + tx.member_name + '!' : 'Halo!';
 
-` +
-          // Tautan kartu inilah cara pelanggan menerima kartu membernya —
-          // tidak ada pendaftaran akun, cukup menyimpan tautan ini.
-          (tx.member_code
-            ? `Kartu member Anda:
-${location.origin}/kartu?c=${tx.member_code}
+        const baris = [
+          sapaan,
+          '',
+          '*UNDERRATED BARBERSHOP*',
+          '_Struk pembayaran_',
+          '',
+          'Nota: ' + tx.invoice_no,
+          waktuStruk + ' WIB',
+          'Capster: ' + tx.capster_name,
+          '',
+          '*Layanan*'
+        ];
 
-` +
-              `Simpan tautan itu untuk melihat poin, menukar reward, dan menunjukkan QR saat datang lagi.
+        // Tiap layanan dengan harganya sendiri. Sebelumnya semuanya diringkas
+        // menjadi satu baris nama berkoma tanpa harga, sehingga pelanggan
+        // tidak punya cara memeriksa totalnya benar atau tidak.
+        tx.services.forEach(function (layanan) {
+          baris.push('• ' + layanan.name + ' — ' + formatRupiah(layanan.price));
+        });
+        baris.push('');
 
-`
-            : '') +
-          `Terima kasih sudah potong rambut hari ini!`
-        );
-        document.getElementById('btnSendWaReceipt').href = `https://wa.me/${tx.member_phone}?text=${waMsg}`;
+        // Subtotal hanya berarti bila ia bisa berbeda dari total
+        if (tx.discount_points > 0 || tx.services.length > 1) {
+          baris.push('Subtotal: ' + formatRupiah(tx.subtotal));
+        }
+        if (tx.discount_points > 0) {
+          baris.push('Diskon poin: -' + formatRupiah(tx.discount_points));
+        }
+        baris.push('*Total: ' + formatRupiah(tx.final_amount) + '* (' + tx.payment_method + ')');
+        if (tx.payment_method === 'Tunai' && tx.cash_paid > 0) {
+          baris.push('Tunai ' + formatRupiah(tx.cash_paid)
+                     + ' · Kembali ' + formatRupiah(tx.cash_change || 0));
+        }
+
+        if (tx.points_earned > 0 || tx.discount_points > 0) {
+          const poin = [];
+          if (tx.points_earned > 0) poin.push('Dapat +' + tx.points_earned + ' poin');
+          if (tx.points_balance != null) poin.push('Saldo ' + tx.points_balance + ' poin');
+          baris.push('', '⭐ ' + poin.join(' · '));
+          if (tx.tier_naik) baris.push('🎉 Naik level ke ' + tx.member_tier + '!');
+        }
+
+        // Tautan kartu inilah cara pelanggan menerima kartu membernya — tidak
+        // ada pendaftaran akun, cukup menyimpan tautan ini. Ia ditaruh pada
+        // barisnya sendiri supaya WhatsApp memunculkan pratinjau berlogo
+        // (lihat meta og: di kartu.html).
+        if (tx.member_code) {
+          baris.push(
+            '',
+            '*Kartu member Anda*',
+            location.origin + '/kartu?c=' + tx.member_code,
+            '',
+            'Simpan tautan itu untuk cek poin, tukar reward, dan tunjukkan QR saat datang lagi.'
+          );
+        }
+
+        baris.push('', 'Sampai jumpa di kunjungan berikutnya!');
+
+        document.getElementById('btnSendWaReceipt').href =
+          'https://wa.me/' + tx.member_phone + '?text=' + encodeURIComponent(baris.join('\n'));
         document.getElementById('btnSendWaReceipt').style.display = 'flex';
       } else {
         document.getElementById('btnSendWaReceipt').style.display = 'none';
