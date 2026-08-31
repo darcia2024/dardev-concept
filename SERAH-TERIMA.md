@@ -79,7 +79,9 @@ memanggil API secara langsung.
 
 1. Buka `/pos`, masukkan PIN.
 2. Pilih capster → pilih layanan (tab **Produk** untuk barang retail).
-3. Isi nomor WhatsApp pelanggan. Bila sudah member, poinnya muncul otomatis.
+3. Tekan **Scan QR** dan arahkan kamera ke kartu member pelanggan. Bila QR tidak
+   tersedia, isi nomor WhatsApp seperti biasa. Nama, tier, dan poin member
+   muncul otomatis setelah kartu dikenali.
 4. Bila menukar poin: isi jumlah poin, atau tekan **Maks**.
 5. Bila pelanggan menunjukkan kode klaim reward: masukkan di kolom
    **Kode Klaim Reward** dan tekan **Periksa** sebelum menghitung tagihan.
@@ -291,7 +293,7 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | `sb-app.js` | Konfigurasi, gerbang login, gerbang PIN, antrean offline |
 | `theme.css` | **Sistem desain** — palet, tipografi, komponen dasar. Mengubah warna cukup di sini. |
 | `assets/logo.png` · `logo-putih.png` | Logo Underrated Barbershop (gelap & putih) |
-| `vendor/` | Library Supabase & QR, di-host sendiri |
+| `vendor/` | Library Supabase, pembuat QR, dan pembaca QR, di-host sendiri |
 | `supabase_schema.sql` | Skema dasar |
 | `supabase_migration_02..16_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
 
@@ -308,6 +310,7 @@ atau `sb_secret_...` di berkas frontend.
 | Kasir melihat "OFFLINE" | Jaringan outlet putus. Transaksi tetap tercatat dan terkirim otomatis. |
 | "N TRANSAKSI GAGAL KIRIM" | Kegagalan berulang. Arahkan kursor ke label untuk melihat sebabnya. |
 | Menu kasir kosong | Master layanan belum diisi. Buka ⚙️ Pengaturan dengan akun owner. |
+| Kamera Scan QR tidak terbuka | Izinkan akses kamera untuk situs ini lalu tekan **Coba Kamera Lagi**. Kasir tetap dapat memasukkan kode member atau nomor WhatsApp secara manual. |
 | Absen ditolak karena jarak | Koordinat outlet belum diisi atau salah. Perbaiki di tabel `outlets`. |
 | Poin tidak bertambah | Transaksi tanpa nomor WhatsApp tidak menghasilkan poin. |
 | Owner tidak melihat transaksi kasir | Perangkat kasir belum tersambung, atau masih ada antrean offline. |
