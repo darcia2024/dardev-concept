@@ -578,26 +578,53 @@
       if (!rows.length) {
         wrap.innerHTML = '<div class="empty">Belum ada outlet terdaftar.</div>';
       } else {
+        /* ─────────────────────────────────────────────────────────────────
+           JANGAN MENGANTAR PELANGGAN KE TEMPAT YANG SALAH
+
+           Sebelum data outlet sungguhan masuk, koordinatnya masih titik bawaan
+           (-6.2, 106.8167 — pusat Jakarta) dan nomornya masih nomor karangan.
+           Tombol "Petunjuk Arah" yang menuruti nilai itu benar-benar mengantar
+           orang ke Monas, dan tombol WhatsApp menghubungi nomor yang bukan
+           siapa-siapa. Keduanya lebih merugikan daripada tidak ada sama sekali:
+           tombol yang tidak ada membuat orang bertanya, tombol yang salah
+           membuat orang berangkat.
+
+           Karena itu tombolnya baru muncul setelah datanya benar-benar terisi.
+           ───────────────────────────────────────────────────────────────── */
+        const KOORD_BAWAAN = { lat: -6.2, lng: 106.8166667 };
+        const TELP_BAWAAN = '6281200000000';
+
         wrap.innerHTML = rows.map(o => {
-          const maps = (o.latitude != null && o.longitude != null)
+          const alamatKosong = !o.address || /menyusul|belum diisi/i.test(o.address);
+          const koordBawaan = o.latitude != null && o.longitude != null
+            && Math.abs(Number(o.latitude) - KOORD_BAWAAN.lat) < 0.0001
+            && Math.abs(Number(o.longitude) - KOORD_BAWAAN.lng) < 0.0001;
+          const petaSiap = o.latitude != null && o.longitude != null && !koordBawaan;
+          const telpSiap = o.phone && String(o.phone) !== TELP_BAWAAN;
+
+          const maps = petaSiap
             ? `https://www.google.com/maps/search/?api=1&query=${o.latitude},${o.longitude}`
-            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.name + ' ' + (o.address || ''))}`;
+            : '';
+
           return `
           <div class="outlet">
             <div class="outlet-top">
               <div>
                 <div class="outlet-name">${esc(o.name)}</div>
-                <div class="outlet-addr">${esc(o.address || 'Alamat belum diisi')}</div>
+                <div class="outlet-addr">${alamatKosong
+                    ? 'Alamat lengkap menyusul. Hubungi kami lewat WhatsApp untuk arah jalan.'
+                    : esc(o.address)}</div>
               </div>
               <span class="open-pill ${o.sedang_buka ? 'buka' : 'tutup'}">${o.sedang_buka ? 'Buka' : 'Tutup'}</span>
             </div>
             <div style="font-family:var(--mono); font-size:11.5px; color:var(--fg-dim);">
               ${String(o.open_time).slice(0,5)}–${String(o.close_time).slice(0,5)} &middot; ${esc(o.catatan)}
             </div>
+            ${(petaSiap || telpSiap) ? `
             <div class="outlet-acts">
-              <a class="primary" href="${maps}" target="_blank" rel="noopener">🗺️ Petunjuk Arah</a>
-              ${o.phone ? `<a href="https://wa.me/${esc(o.phone)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
-            </div>
+              ${petaSiap ? `<a class="primary" href="${maps}" target="_blank" rel="noopener">Petunjuk Arah</a>` : ''}
+              ${telpSiap ? `<a href="https://wa.me/${esc(o.phone)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
+            </div>` : ''}
           </div>`;
         }).join('');
       }
