@@ -129,18 +129,10 @@
       display: grid; place-items: center;
       min-height: clamp(420px, 64vh, 580px);
       padding: clamp(48px, 7vw, 84px) 0;
-      background: var(--surface);
+      background: #FFFFFF;
     }
     .hero-kabut {
-      position: absolute; inset: -14%; pointer-events: none; filter: blur(58px);
-      background:
-        radial-gradient(40% 50% at 12% 38%, rgba(190,0,0,.34), transparent 70%),
-        radial-gradient(32% 44% at 31% 84%, rgba(190,0,0,.20), transparent 72%),
-        radial-gradient(28% 42% at 47% 8%,  rgba(22,24,28,.24), transparent 74%),
-        radial-gradient(37% 48% at 79% 26%, rgba(205,104,66,.26), transparent 72%),
-        radial-gradient(30% 44% at 93% 76%, rgba(190,0,0,.17), transparent 74%),
-        radial-gradient(26% 38% at 64% 92%, rgba(22,24,28,.14), transparent 76%),
-        radial-gradient(22% 30% at 88% 6%,  rgba(205,104,66,.16), transparent 76%);
+      display: none;
     }
     .hero-isi { position: relative; z-index: 1; text-align: center; }
     /* Logo dijaga tetap kecil. Di rujukan klien, ia berdiri sebagai penanda

@@ -16,7 +16,7 @@
    tidak pernah disimpan — bahkan tidak dijadikan cadangan saat luring.
    ============================================================================= */
 
-const VERSI = 'underrated-v3';
+const VERSI = 'underrated-v4';
 const KERANGKA = [
   '/kartu',
   '/kartu.html',
