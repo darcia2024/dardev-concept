@@ -14,6 +14,20 @@ const migrationJamTutup = fs.readFileSync(
   'utf8'
 );
 
+const berkasMigrasi = fs
+  .readdirSync(root)
+  .filter(nama => /^supabase_migration_\d+.*\.sql$/.test(nama))
+  .sort((a, b) => parseInt(a.match(/\d+/)[0], 10) - parseInt(b.match(/\d+/)[0], 10));
+const berkasCreateBooking = berkasMigrasi
+  .filter(nama =>
+    /CREATE OR REPLACE FUNCTION create_booking/.test(
+      fs.readFileSync(path.join(root, nama), 'utf8')
+    )
+  )
+  .at(-1);
+assert.ok(berkasCreateBooking, 'harus ada migrasi yang mendefinisikan create_booking');
+const migrationBooking = fs.readFileSync(path.join(root, berkasCreateBooking), 'utf8');
+
 function extractFunctionSource(source, functionName) {
   const start = source.indexOf(`function ${functionName}`);
   assert.notEqual(start, -1, `${functionName} harus tersedia`);
@@ -50,6 +64,51 @@ assert.equal(
 );
 assert.equal(buatSlotBooking(600, 1260, 30, 950)[0], '16:00');
 assert.deepEqual(buatSlotBooking(600, 1260, 30, 1240), []);
+
+// Slot yang sudah lewat tetap digambar, hanya dimatikan. Membuangnya membuat
+// grid sore hari terlihat pendek dan pengunjung mengira toko hampir tutup.
+const seluruhSumber =
+  extractFunctionSource(landing, 'buatSlotBooking') +
+  ';' +
+  extractFunctionSource(landing, 'seluruhSlotHari');
+const seluruhSlotHari = new Function(
+  `${seluruhSumber}; return seluruhSlotHari;`
+)();
+
+const sore = seluruhSlotHari(600, 1260, 45, 1080);
+assert.equal(sore.length, 21, 'seluruh jam hari itu harus tetap tampil');
+assert.equal(sore[0].jam, '10:00');
+assert.equal(sore[0].lewat, true);
+assert.equal(sore.at(-1).jam, '20:00');
+assert.equal(sore.at(-1).lewat, false);
+assert.equal(
+  sore.filter(x => !x.lewat).length,
+  buatSlotBooking(600, 1260, 45, 1080).length,
+  'jam yang dapat dipilih harus sama persis dengan hitungan server'
+);
+
+// Picker: batas di layar harus sama dengan batas di server, kalau tidak orang
+// memilih layanan kelima lalu ditolak setelah seluruh formulir terisi.
+assert.match(landing, /const MAKS_LAYANAN = 4;/);
+assert.match(migrationBooking, /array_length\(v_ids, 1\) > 4/);
+assert.match(landing, /p_service_ids: layananPilih,/);
+assert.doesNotMatch(landing, /p_service_id:/);
+assert.match(landing, /if \(!b \|\| b\.disabled\) return;/);
+
+// Pilihan ganda dirapikan di server, bukan dipercayakan pada layar.
+assert.match(migrationBooking, /array_agg\(DISTINCT x\)/);
+assert.match(migrationBooking, /Pilih minimal satu layanan/);
+// Ringkasan gabungan tetap ditulis supaya panel kasir di POS tidak perlu tahu
+// soal banyak layanan untuk dapat menampilkannya.
+assert.match(migrationBooking, /service_ids, service_name,/);
+assert.match(migrationBooking, /string_agg\(s\.name, ' \+ '/);
+// Jam tutup pada definisi yang benar-benar berjalan, bukan pada migrasi lama.
+assert.match(
+  migrationBooking,
+  /EXTRACT\(EPOCH FROM p_jam\) \/ 60 \+ v_durasi/
+);
+assert.doesNotMatch(migrationBooking, /p_jam \+ make_interval\(/);
+assert.match(migrationBooking, /REVOKE EXECUTE ON FUNCTION create_booking/);
 
 assert.match(landing, /id="bkKirim" disabled>Menyiapkan/);
 assert.match(landing, /function tampilkanGagalMuat/);
