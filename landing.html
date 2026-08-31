@@ -22,7 +22,10 @@
 
   <link rel="icon" href="assets/icon-192.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-  <link rel="preload" as="image" href="assets/hero-landing.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preload" as="image" href="assets/hero-merek.jpg" fetchpriority="high" />
   <link rel="stylesheet" href="theme.css" />
 
   <style>
@@ -37,14 +40,30 @@
        berpindah ke kartu membernya. Hero memang gelap, tetapi ia satu blok
        yang disengaja, bukan pembalikan tema. */
 
+    /* Sora hanya berlaku di halaman ini. Tujuh halaman lain masih memakai
+       Plus Jakarta Sans dari theme.css, jadi pelanggan yang berpindah dari
+       sini ke kartu membernya akan melihat huruf yang berbeda. Itu keputusan
+       yang perlu diambil sekali untuk seluruh produk, bukan diam-diam di satu
+       berkas. Bobot dimuat hanya sampai 600, mengikuti larangan huruf tebal.
+
+       Berat huruf tidak dinaikkan: 300 sampai 600 adalah rentang yang sama
+       dengan yang sudah dipakai theme.css. */
+    :root {
+      --sans: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
     * { box-sizing: border-box; }
     body {
-      margin: 0; background: var(--bg); color: var(--text);
+      margin: 0; background: var(--surface); color: var(--text);
       font-family: var(--sans); font-weight: var(--w-reg); line-height: 1.6;
       -webkit-font-smoothing: antialiased;
     }
-    .lembar { max-width: 980px; margin: 0 auto; background: var(--surface); }
-    .bungkus { padding: 0 28px; }
+    /* Penuh lebar layar. Sebelumnya isinya dikurung dalam lembar 980px di atas
+       latar abu, dan pada layar lebar itu tampak seperti kertas kecil yang
+       mengambang. Yang tetap dibatasi hanya lebar baca teksnya. */
+    .lembar { width: 100%; background: var(--surface); }
+    .bungkus { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 clamp(18px, 4vw, 40px); }
     section { scroll-margin-top: 76px; }
 
     /* ── Navigasi ──────────────────────────────────────────────────────── */
@@ -90,18 +109,29 @@
        dengan ibu jari. */
     .nav .pil { min-height: 44px; padding: 10px 18px; font-size: 14px; }
 
-    /* ── Hero ──────────────────────────────────────────────────────────── */
-    .hero {
-      position: relative; min-height: 380px; display: flex; align-items: center;
-      background: #0D0E10 url('assets/hero-landing.jpg') center/cover no-repeat;
+    /* ── Hero ──────────────────────────────────────────────────────────
+       Gambarnya adalah lockup merek: wordmark berada tepat di tengahnya.
+       Karena itu teks judul berdiri DI BAWAH gambar, bukan ditumpuk di
+       atasnya. Menumpuknya berarti dua tulisan besar berebut tempat yang
+       sama, dan yang kalah selalu wordmark kliennya.
+
+       Gambarnya persegi 1400px. Dibiarkan penuh, ia setinggi lebar layar dan
+       menghabiskan seluruh viewport sebelum satu kalimat pun terbaca. Tinggi
+       dikunci lalu object-fit memotong atas dan bawah, menyisakan pita tengah
+       tempat wordmark berada. */
+    .hero-gambar {
+      display: block; width: 100%;
+      height: clamp(240px, 40vh, 440px);
+      object-fit: cover; object-position: center;
+      background: var(--surface-sunk);
     }
-    .hero .bungkus { width: 100%; padding-block: 66px; }
+    .hero-teks { padding-block: clamp(34px, 5vw, 54px); }
     .hero h1 {
-      margin: 0 0 10px; max-width: 15ch;
-      font-size: clamp(31px, 5vw, 47px); font-weight: var(--w-semi);
-      line-height: 1.1; color: #FFFFFF; text-wrap: balance;
+      margin: 0 0 10px; max-width: 24ch;
+      font-size: clamp(27px, 4vw, 42px); font-weight: var(--w-semi);
+      line-height: 1.12; letter-spacing: -0.01em; text-wrap: balance;
     }
-    .hero p { margin: 0 0 26px; max-width: 34ch; font-size: 16px; color: rgba(255,255,255,.85); }
+    .hero p { margin: 0 0 24px; max-width: 40ch; font-size: 16.5px; color: var(--text-mid); }
 
     /* ── Bagian ────────────────────────────────────────────────────────── */
     .bagian { padding: 56px 0; border-top: 1px solid var(--border-soft); }
@@ -111,13 +141,20 @@
     }
     .catatan-kecil { margin: 18px 0 0; font-size: 12px; color: var(--text-mid); line-height: 1.55; }
 
-    /* ── Layanan: daftar polos, bukan kartu ────────────────────────────── */
-    .layanan { display: grid; gap: 13px; }
+    /* ── Layanan ───────────────────────────────────────────────────────
+       Enam layanan dalam tiga kolom menghasilkan dua baris penuh. Empat kolom
+       akan menyisakan satu baris berisi dua sel dan dua lubang, dan lubang itu
+       terbaca sebagai kesalahan tata letak, bukan sebagai ruang. */
+    .layanan { display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); }
     .layanan-baris {
-      display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; font-size: 17px;
+      display: flex; flex-direction: column; gap: 3px;
+      padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--r-md);
+      transition: border-color .16s ease;
     }
+    .layanan-baris:hover { border-color: var(--brand-line); }
+    .layanan-baris .nama { font-size: 16.5px; }
     .layanan-baris .rincian {
-      color: var(--brand-deep); font-variant-numeric: tabular-nums; font-size: 16px;
+      color: var(--brand-deep); font-variant-numeric: tabular-nums; font-size: 14.5px;
     }
 
     /* ── Kapster ───────────────────────────────────────────────────────── */
@@ -130,9 +167,13 @@
        orang lain sebagai Cena, Lukman, atau Wanda adalah kekeliruan yang tidak
        akan pernah disadari pengunjung. Bentuknya mengikuti avatar yang sudah
        dipakai halaman capster. */
+    /* Rasio 4:5 tegak, bentuk yang sama dipakai potret orang. Begitu foto tim
+       tersedia, gambarnya tinggal masuk ke kotak yang sama tanpa tata letaknya
+       bergeser sedikit pun. */
     .avatar {
-      width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center;
-      background: var(--text); color: #FFFFFF; font-size: 30px; font-weight: var(--w-med);
+      width: 100%; max-width: 148px; aspect-ratio: 4 / 5;
+      border-radius: 14px; display: grid; place-items: center;
+      background: var(--text); color: #FFFFFF; font-size: 40px; font-weight: var(--w-med);
     }
     .kapster-nama { font-size: 16px; font-weight: var(--w-med); }
     .kapster-peran { font-size: 12.5px; color: var(--text-mid); margin-top: -6px; }
@@ -185,6 +226,33 @@
     .medan ::placeholder { color: var(--text-mid); opacity: 1; }
     .medan-dua { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 
+    /* Beberapa layanan boleh dipilih sekaligus: orang datang untuk potong
+       sekaligus cuci rambut, dan memaksanya memilih salah satu membuat kasir
+       baru tahu sisanya ketika orangnya sudah duduk. Durasi dan harga di
+       bawahnya menjumlah, dan grid jam mengikuti durasi gabungan itu. */
+    .picker { display: grid; gap: 7px; grid-template-columns: repeat(2, 1fr); }
+    .picker button {
+      display: flex; flex-direction: column; gap: 2px; text-align: left;
+      min-height: 44px; padding: 10px 12px; border-radius: var(--r-sm);
+      border: 1px solid var(--border); background: var(--surface); color: var(--text);
+      font: inherit; font-size: 14px; cursor: pointer;
+      transition: border-color .13s ease, background .13s ease;
+    }
+    .picker button:hover { border-color: var(--brand-line); }
+    .picker button[aria-pressed="true"] {
+      border-color: var(--brand); background: var(--brand-wash);
+    }
+    .picker .p-nama { font-size: 14px; }
+    .picker .p-meta {
+      font-size: 11.5px; color: var(--text-mid); font-variant-numeric: tabular-nums;
+    }
+    .picker button[aria-pressed="true"] .p-meta { color: var(--brand-deep); }
+    .picker-total {
+      margin-top: 9px; font-size: 13px; color: var(--text-mid);
+      font-variant-numeric: tabular-nums;
+    }
+    .picker-total strong { color: var(--text); font-weight: var(--w-med); }
+
     .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
     .slot {
       min-height: 44px; padding: 10px 6px; border-radius: var(--r-sm);
@@ -192,8 +260,12 @@
       font: inherit; font-size: 14px; font-variant-numeric: tabular-nums; cursor: pointer;
       transition: border-color .13s ease, background .13s ease, color .13s ease;
     }
-    .slot:hover { border-color: var(--brand-line); }
+    .slot:hover:not(:disabled) { border-color: var(--brand-line); }
     .slot.pilih { background: var(--brand); border-color: var(--brand); color: #FFFFFF; }
+    /* Jam yang sudah lewat tetap ditampilkan, bukan dibuang. Membuangnya
+       membuat grid hari ini terlihat pendek tanpa alasan, dan pengunjung
+       mengira toko cuma buka beberapa jam. */
+    .slot:disabled { opacity: .32; cursor: not-allowed; }
     .slot-kosong {
       grid-column: 1 / -1; font-size: 13px; color: var(--text-mid);
       padding: 10px 2px; line-height: 1.5;
@@ -244,15 +316,21 @@
 
     @media (max-width: 820px) {
       .booking-isi, .lokasi-isi { grid-template-columns: 1fr; }
+      .layanan { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 560px) {
       .bungkus { padding: 0 18px; }
       .nav-kanan a:not(.pil) { display: none; }
       .medan-dua { grid-template-columns: 1fr; }
-      .hero { min-height: 320px; }
-      .hero .bungkus { padding-block: 48px; }
+      .layanan { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .layanan-baris { padding: 13px 14px; }
+      .layanan-baris .nama { font-size: 14.5px; }
+      .layanan-baris .rincian { font-size: 12.5px; }
+      .picker { grid-template-columns: 1fr; }
+      .slot-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+      .slot { font-size: 13px; padding: 10px 2px; }
       .kapster { grid-template-columns: repeat(3, 1fr); gap: 10px; }
-      .avatar { width: 58px; height: 58px; font-size: 21px; }
+      .avatar { max-width: 100%; border-radius: 10px; font-size: 26px; }
       .kapster-nama { font-size: 14px; }
       .kapster-peran { font-size: 11.5px; }
       .kapster .pil { padding: 9px 8px; font-size: 12.5px; width: 100%; }
@@ -267,7 +345,7 @@
       <a href="/" aria-label="Underrated Barbershop"><img src="assets/logo.png" alt="Underrated Barbershop" /></a>
       <div class="nav-kanan">
         <a href="#layanan">Layanan</a>
-        <a href="#tim">Tim</a>
+        <a href="#tim">Capster</a>
         <a href="#lokasi">Lokasi</a>
         <a class="pil pil-isi" href="#booking">Booking</a>
       </div>
@@ -275,8 +353,10 @@
   </nav>
 
   <header class="hero">
-    <div class="bungkus">
-      <h1>Rapi itu urusan detail.</h1>
+    <img class="hero-gambar" src="assets/hero-merek.jpg" width="1400" height="1400"
+         alt="Underrated Barbershop" fetchpriority="high" />
+    <div class="bungkus hero-teks">
+      <h1>Welcome to Underrated Barbershop</h1>
       <p>Pilih layanan, tanggal, dan jam. Kami pastikan lewat WhatsApp.</p>
       <a class="pil pil-isi" href="#booking">Booking</a>
     </div>
@@ -294,7 +374,7 @@
 
   <section class="bagian" id="tim">
     <div class="bungkus">
-      <h2>Tim</h2>
+      <h2>Our Capster</h2>
       <div class="kapster" id="kapsterDaftar"></div>
     </div>
   </section>
@@ -319,8 +399,9 @@
           <div class="pesan buruk" id="bookingPesan" hidden></div>
 
           <div class="medan">
-            <label for="bkLayanan">Layanan</label>
-            <select id="bkLayanan"></select>
+            <label id="bkLayananLabel">Layanan</label>
+            <div class="picker" id="bkLayanan" role="group" aria-labelledby="bkLayananLabel"></div>
+            <div class="picker-total" id="bkTotal"></div>
           </div>
 
           <div class="medan">
@@ -437,6 +518,17 @@
       return slot;
     }
 
+    /* Seluruh jam hari itu, termasuk yang sudah lewat. Yang lewat dikembalikan
+       dengan penanda lewat=true supaya tetap tampil tetapi tidak dapat dipilih:
+       pengunjung sore hari yang hanya melihat empat kotak akan mengira toko
+       buka empat jam, padahal ia buka sebelas jam. */
+    function seluruhSlotHari(awal, akhir, durasi, minimum) {
+      return buatSlotBooking(awal, akhir, durasi, awal).map(function (jam) {
+        const b = jam.split(':').map(Number);
+        return { jam: jam, lewat: (b[0] * 60 + b[1]) < minimum };
+      });
+    }
+
     /* Galat basis data dapat memuat nama fungsi, nama batasan, atau potongan
        kueri. Tidak satu pun berguna bagi orang yang hanya ingin potong rambut,
        dan meneruskannya apa adanya membocorkan bentuk dalam sistem ke halaman
@@ -487,7 +579,7 @@
       const daftar = ISI.layanan || [];
       if (!daftar.length) { $('layananMuat').textContent = 'Daftar layanan belum tersedia.'; return; }
       $('layananDaftar').innerHTML = daftar.map(function (s) {
-        return '<div class="layanan-baris muncul"><span>' + esc(s.nama) + '</span>'
+        return '<div class="layanan-baris muncul"><span class="nama">' + esc(s.nama) + '</span>'
              + '<span class="rincian">' + (s.menit ? s.menit + ' menit &middot; ' : '')
              + rupiah(s.harga) + '</span></div>';
       }).join('');
@@ -562,11 +654,54 @@
     }
 
     /* ── Booking ───────────────────────────────────────────────────────── */
-    function siapkanBooking() {
+    /* Maksimal empat, sama dengan batas server. Menahannya di sini berarti
+       orang tidak memilih yang kelima lalu ditolak setelah mengisi semuanya. */
+    const MAKS_LAYANAN = 4;
+    let layananPilih = [];
+
+    function layananTerpilih() {
+      return (ISI.layanan || []).filter(function (s) { return layananPilih.indexOf(s.id) !== -1; });
+    }
+    function durasiTotal() {
+      const t = layananTerpilih().reduce(function (a, s) { return a + (Number(s.menit) || 0); }, 0);
+      return Math.max(1, t || 30);
+    }
+
+    function gambarPicker() {
       $('bkLayanan').innerHTML = (ISI.layanan || []).map(function (s) {
-        return '<option value="' + esc(s.id) + '">' + esc(s.nama) + ' &middot; ' + rupiah(s.harga) + '</option>';
+        const on = layananPilih.indexOf(s.id) !== -1;
+        return '<button type="button" data-layanan="' + esc(s.id) + '" aria-pressed="' + on + '">'
+             + '<span class="p-nama">' + esc(s.nama) + '</span>'
+             + '<span class="p-meta">' + (s.menit ? s.menit + ' menit &middot; ' : '')
+             + rupiah(s.harga) + '</span></button>';
       }).join('');
-      $('bkLayanan').addEventListener('change', gambarSlot);
+
+      const dipilih = layananTerpilih();
+      $('bkTotal').innerHTML = dipilih.length
+        ? dipilih.length + ' layanan &middot; <strong>' + durasiTotal() + ' menit</strong> &middot; <strong>'
+          + rupiah(dipilih.reduce(function (a, s) { return a + Number(s.harga || 0); }, 0)) + '</strong>'
+        : 'Pilih satu layanan atau lebih.';
+    }
+
+    $('bkLayanan').addEventListener('click', function (e) {
+      const b = e.target.closest('[data-layanan]');
+      if (!b) return;
+      const id = b.dataset.layanan;
+      const i = layananPilih.indexOf(id);
+      if (i !== -1) layananPilih.splice(i, 1);
+      else if (layananPilih.length >= MAKS_LAYANAN) {
+        pesan('Maksimal ' + MAKS_LAYANAN + ' layanan dalam satu booking.', false);
+        return;
+      } else layananPilih.push(id);
+      pesan('');
+      gambarPicker();
+      gambarSlot();
+    });
+
+    function siapkanBooking() {
+      const pertama = (ISI.layanan || [])[0];
+      if (pertama) layananPilih = [pertama.id];
+      gambarPicker();
 
       const awal = new Date(hariIni() + 'T00:00:00');
       bulanTampil = new Date(awal.getFullYear(), awal.getMonth(), 1);
@@ -642,33 +777,36 @@
         return;
       }
 
-      const lay = (ISI.layanan || []).find(function (x) { return x.id === $('bkLayanan').value; });
-      const durasi = Math.max(1, Number(lay && lay.menit) || 30);
+      const durasi = durasiTotal();
       const b = jamPendek(j.buka).split(':').map(Number);
       const t = jamPendek(j.tutup).split(':').map(Number);
       const buka = b[0] * 60 + b[1], tutup = t[0] * 60 + t[1];
       const minimum = tglPilih === hariIni() ? menitSekarang() + JEDA_MENIT : buka;
 
-      const slot = buatSlotBooking(buka, tutup, durasi, minimum);
+      const semua = seluruhSlotHari(buka, tutup, durasi, minimum);
+      const slot = semua.filter(function (x) { return !x.lewat; }).map(function (x) { return x.jam; });
       if (!slot.length) {
         wrap.innerHTML = '<div class="slot-kosong">'
           + (tglPilih === hariIni()
-              ? 'Waktu hari ini sudah tidak cukup untuk layanan ini. Pilih tanggal lain.'
-              : 'Durasi layanan ini tidak muat dalam jam buka hari itu.')
+              ? 'Waktu hari ini sudah tidak cukup untuk ' + durasiTotal()
+                + ' menit layanan. Pilih tanggal lain.'
+              : durasiTotal() + ' menit tidak muat dalam jam buka hari itu. '
+                + 'Kurangi layanan atau pilih hari lain.')
           + '</div>';
         jamPilih = null;
         return;
       }
       if (slot.indexOf(jamPilih) === -1) jamPilih = null;
-      wrap.innerHTML = slot.map(function (s) {
-        return '<button type="button" class="slot' + (s === jamPilih ? ' pilih' : '')
-             + '" data-jam="' + s + '">' + s.replace(':', '.') + '</button>';
+      wrap.innerHTML = semua.map(function (x) {
+        return '<button type="button" class="slot' + (x.jam === jamPilih ? ' pilih' : '')
+             + '" data-jam="' + x.jam + '"' + (x.lewat ? ' disabled title="Sudah lewat"' : '')
+             + '>' + x.jam.replace(':', '.') + '</button>';
       }).join('');
     }
 
     $('slotGrid').addEventListener('click', function (e) {
       const b = e.target.closest('[data-jam]');
-      if (!b) return;
+      if (!b || b.disabled) return;
       jamPilih = b.dataset.jam;
       gambarSlot();
     });
@@ -688,6 +826,7 @@
       const nama = $('bkNama').value.trim();
       const telp = $('bkTelepon').value.trim();
 
+      if (!layananPilih.length) { pesan('Pilih minimal satu layanan.', false); return; }
       if (!tglPilih) { pesan('Pilih tanggal kunjungan.', false); return; }
       if (!jamPilih) { pesan('Pilih jam kedatangan.', false); return; }
       if (nama.length < 2) { pesan('Nama minimal 2 huruf.', false); $('bkNama').focus(); return; }
@@ -702,7 +841,7 @@
       try {
         const res = await sb.rpc('create_booking', {
           p_nama: nama, p_telepon: telp,
-          p_service_id: $('bkLayanan').value,
+          p_service_ids: layananPilih,
           p_tanggal: tglPilih, p_jam: jamPilih,
           p_catatan: $('bkCatatan').value.trim() || null
         });
