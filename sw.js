@@ -16,7 +16,7 @@
    tidak pernah disimpan — bahkan tidak dijadikan cadangan saat luring.
    ============================================================================= */
 
-const VERSI = 'underrated-v4';
+const VERSI = 'underrated-v5';
 const KERANGKA = [
   '/kartu',
   '/kartu.html',
@@ -26,11 +26,16 @@ const KERANGKA = [
   '/assets/logo.png',
   '/assets/icon-192.png',
   '/assets/icon-512.png',
-  '/assets/cena.png',
-  '/assets/lukman.png',
-  '/assets/wanda.png',
   '/manifest.json'
 ];
+
+/* Foto kapster pernah ada di daftar ini dan dikeluarkan karena dua alasan.
+   Pertama, kartu.html tidak pernah menampilkannya sama sekali, jadi tiga
+   megabita itu diunduh untuk sesuatu yang tidak akan pernah dilihat pemilik
+   kartu. Kedua, yang disimpan '/assets/cena.png' sementara halaman meminta
+   '/assets/cena.png?v=3', dan caches.match membandingkan URL berikut query
+   string kecuali diberi ignoreSearch, sehingga salinan itu tidak pernah
+   sekali pun terpakai. */
 
 self.addEventListener('install', (e) => {
   e.waitUntil(

@@ -49,6 +49,11 @@
       font-family: var(--mono); font-weight: 600; font-size: 15px;
       overflow: hidden;
     }
+    /* Kotak avatar adalah grid dan gambarnya diukur 100 persen terhadapnya.
+       Tanpa aturan ini, <picture> yang disisipkan menjadi butir grid, dan
+       karena ia inline serta diukur oleh isinya, persentase gambarnya jadi
+       melingkar lalu jatuh ke ukuran asli lalu meluber. */
+    .avatar picture { display: contents; }
     .avatar img {
       width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; border-radius: 10px;
     }
@@ -926,13 +931,16 @@
       meCapster = me;          // dipakai sebagai awalan jalur unggah selfie
       $('capsterName').textContent = me.name;
       const FOTO_KAPSTER = {
-        'cena': 'assets/cena.png?v=3',
-        'lukman': 'assets/lukman.png?v=3',
-        'wanda': 'assets/wanda.png?v=3'
+        'cena': 'assets/cena',
+        'lukman': 'assets/lukman',
+        'wanda': 'assets/wanda'
       };
       const capKey = (me.name || '').toLowerCase().trim();
       if (FOTO_KAPSTER[capKey]) {
-        $('avatar').innerHTML = '<img src="' + FOTO_KAPSTER[capKey] + '" alt="' + (me.name || '') + '" />';
+        $('avatar').innerHTML = '<picture>'
+          + '<source srcset="' + FOTO_KAPSTER[capKey] + '.webp" type="image/webp" />'
+          + '<img src="' + FOTO_KAPSTER[capKey] + '.png?v=3" alt="' + (me.name || '') + '" />'
+          + '</picture>';
       } else {
         $('avatar').textContent = me.name.charAt(0).toUpperCase();
       }

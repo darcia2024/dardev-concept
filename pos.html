@@ -230,6 +230,12 @@
       flex-shrink: 0;
     }
 
+    /* Kotak avatar adalah grid dan gambarnya diukur 100 persen terhadapnya.
+       Tanpa aturan ini, <picture> yang disisipkan menjadi butir grid, dan
+       karena ia inline serta diukur oleh isinya, persentase gambarnya jadi
+       melingkar lalu jatuh ke ukuran asli lalu meluber. */
+    .capster-avatar picture { display: contents; }
+
     .capster-avatar img {
       width: 100%;
       height: 100%;
@@ -2419,9 +2425,9 @@
       }
 
       const FOTO_KAPSTER = {
-        'cena': 'assets/cena.png?v=3',
-        'lukman': 'assets/lukman.png?v=3',
-        'wanda': 'assets/wanda.png?v=3'
+        'cena': 'assets/cena',
+        'lukman': 'assets/lukman',
+        'wanda': 'assets/wanda'
       };
 
       activeCapsters.forEach(c => {
@@ -2429,8 +2435,11 @@
         const key = (c.name || '').toLowerCase().trim();
         const foto = FOTO_KAPSTER[key];
         const initial = c.name.charAt(0).toUpperCase();
+        /* WebP dulu, PNG sebagai cadangan: Safari baru mengenal WebP sejak
+           iOS 14, dan iPad kasir yang lebih tua harus tetap melihat wajahnya. */
         const avatarHtml = foto
-          ? `<img src="${foto}" alt="${escapeHtml(c.name)}" loading="lazy" />`
+          ? `<picture><source srcset="${foto}.webp" type="image/webp" />`
+            + `<img src="${foto}.png?v=3" alt="${escapeHtml(c.name)}" loading="lazy" /></picture>`
           : escapeHtml(initial);
         const card = document.createElement('div');
         card.className = `capster-card ${isSel ? 'is-selected' : ''}`;

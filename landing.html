@@ -242,6 +242,13 @@
       background: var(--text); color: #FFFFFF; font-size: 40px; font-weight: var(--w-med);
       overflow: hidden;
     }
+    /* Kotak avatar adalah grid dan gambarnya diukur 100 persen terhadapnya.
+       Tanpa aturan ini, <picture> yang disisipkan menjadi butir grid, dan
+       karena ia inline serta diukur oleh isinya, persentase gambarnya jadi
+       melingkar lalu jatuh ke ukuran asli 761x950 dan meluber. display:
+       contents membuat <picture> tidak menghasilkan kotak sama sekali,
+       sehingga gambarnya kembali menjadi butir grid seperti sebelumnya. */
+    .avatar picture { display: contents; }
     .avatar img {
       width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; border-radius: 14px;
     }
@@ -516,19 +523,19 @@
       <h2 class="muncul">Our Capster</h2>
       <div class="kapster" id="kapsterDaftar">
         <div class="kapster-orang muncul">
-          <div class="avatar" aria-hidden="true"><img src="assets/cena.png?v=3" alt="Cena" loading="lazy" /></div>
+          <div class="avatar" aria-hidden="true"><picture><source srcset="assets/cena.webp" type="image/webp" /><img src="assets/cena.png?v=3" alt="Cena" loading="lazy" /></picture></div>
           <div class="kapster-nama">Cena</div>
           <div class="kapster-peran">Capster</div>
           <button type="button" class="pil pil-garis" data-kapster="Cena">Pilih Cena</button>
         </div>
         <div class="kapster-orang muncul">
-          <div class="avatar" aria-hidden="true"><img src="assets/lukman.png?v=3" alt="Lukman" loading="lazy" /></div>
+          <div class="avatar" aria-hidden="true"><picture><source srcset="assets/lukman.webp" type="image/webp" /><img src="assets/lukman.png?v=3" alt="Lukman" loading="lazy" /></picture></div>
           <div class="kapster-nama">Lukman</div>
           <div class="kapster-peran">Capster</div>
           <button type="button" class="pil pil-garis" data-kapster="Lukman">Pilih Lukman</button>
         </div>
         <div class="kapster-orang muncul">
-          <div class="avatar" aria-hidden="true"><img src="assets/wanda.png?v=3" alt="Wanda" loading="lazy" /></div>
+          <div class="avatar" aria-hidden="true"><picture><source srcset="assets/wanda.webp" type="image/webp" /><img src="assets/wanda.png?v=3" alt="Wanda" loading="lazy" /></picture></div>
           <div class="kapster-nama">Wanda</div>
           <div class="kapster-peran">Capster</div>
           <button type="button" class="pil pil-garis" data-kapster="Wanda">Pilih Wanda</button>
@@ -757,11 +764,23 @@
       }).join('');
     }
 
+    /* Yang disimpan batang namanya saja, sebab tiap foto punya dua bentuk.
+       WebP-nya sepersepuluh belas ukuran PNG pada piksel yang sama persis;
+       PNG tetap dipasang sebagai cadangan karena Safari baru mengenal WebP
+       sejak iOS 14, dan iPhone yang tertahan di bawah itu harus tetap
+       melihat wajah kapsternya, bukan gambar rusak. */
     const FOTO_KAPSTER = {
-      'cena': 'assets/cena.png?v=3',
-      'lukman': 'assets/lukman.png?v=3',
-      'wanda': 'assets/wanda.png?v=3'
+      'cena': 'assets/cena',
+      'lukman': 'assets/lukman',
+      'wanda': 'assets/wanda'
     };
+
+    function gambarKapster(batang, nama) {
+      return '<picture>'
+           + '<source srcset="' + batang + '.webp" type="image/webp" />'
+           + '<img src="' + batang + '.png?v=3" alt="' + esc(nama) + '" loading="lazy" />'
+           + '</picture>';
+    }
 
     function cariFotoKapster(nama) {
       const n = String(nama || '').toLowerCase();
@@ -777,7 +796,7 @@
       $('kapsterDaftar').innerHTML = daftar.map(function (nama) {
         const foto = cariFotoKapster(nama);
         const avatarKonten = foto
-          ? '<img src="' + foto + '" alt="' + esc(nama) + '" loading="lazy" />'
+          ? gambarKapster(foto, nama)
           : esc(String(nama).slice(0, 1).toUpperCase());
         return '<div class="kapster-orang muncul">'
              + '<div class="avatar" aria-hidden="true">' + avatarKonten + '</div>'
