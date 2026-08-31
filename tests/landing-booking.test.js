@@ -110,6 +110,24 @@ assert.match(
 assert.doesNotMatch(migrationBooking, /p_jam \+ make_interval\(/);
 assert.match(migrationBooking, /REVOKE EXECUTE ON FUNCTION create_booking/);
 
+// Hero digambar CSS. Kalau suatu saat ada yang menautkan berkas gambar lagi,
+// berkasnya sudah tidak ada di repositori dan hero akan kosong tanpa suara.
+assert.doesNotMatch(landing, /hero-merek|hero-landing|hero-gambar/);
+assert.match(landing, /\.hero-kabut \{/);
+assert.match(landing, /src="assets\/logo\.png"/);
+
+// Animasi gulir tidak boleh menunggu data. Kalau amati() hanya dipanggil
+// setelah render, satu kegagalan jaringan meninggalkan seluruh halaman tak
+// terlihat, bukan sekadar tanpa daftar layanan.
+assert.match(landing.replace(/\s+/g, ' '), /amati\(\); muat\(\);/);
+assert.match(landing, /<noscript><style>\.muncul/);
+
+// Peta hanya diambil saat bagiannya mendekati layar, dan tidak boleh merampas
+// gulir halaman sebelum orangnya memang menyentuhnya.
+assert.match(landing, /f\.loading = 'lazy';/);
+assert.match(landing, /peta-tirai/);
+assert.match(landing, /www\.google\.com\/maps\?q=/);
+
 assert.match(landing, /id="bkKirim" disabled>Menyiapkan/);
 assert.match(landing, /function tampilkanGagalMuat/);
 assert.doesNotMatch(landing, /pesan\(res\.error\.message/);
