@@ -9,6 +9,10 @@ const migration = fs.readFileSync(
   path.join(root, 'supabase_migration_25_booking_hardening.sql'),
   'utf8'
 );
+const migrationJamTutup = fs.readFileSync(
+  path.join(root, 'supabase_migration_26_jam_tutup.sql'),
+  'utf8'
+);
 
 function extractFunctionSource(source, functionName) {
   const start = source.indexOf(`function ${functionName}`);
@@ -60,7 +64,17 @@ assert.match(pos, /sb\.rpc\('decide_booking'/);
 assert.match(pos, /Hubungi WhatsApp/);
 
 assert.match(migration, /INTERVAL '30 minutes'/);
-assert.match(migration, /make_interval\(mins => v_srv\.duration_minutes\)/);
+// Jam tutup harus dihitung dalam menit sejak tengah malam. Penjumlahan pada
+// tipe time berputar: '23:30' + 45 menit menghasilkan '00:15', dan
+// '00:15' > '21:00' bernilai salah, sehingga booking tengah malam lolos.
+assert.match(
+  migrationJamTutup,
+  /EXTRACT\(EPOCH FROM p_jam\) \/ 60 \+ v_srv\.duration_minutes/
+);
+assert.doesNotMatch(
+  migrationJamTutup,
+  /p_jam \+ make_interval\(mins => v_srv\.duration_minutes\)/
+);
 assert.match(migration, /length\(COALESCE\(v_catatan, ''\)\) > 300/);
 assert.match(migration, /pg_advisory_xact_lock/);
 assert.match(migration, /REVOKE EXECUTE ON FUNCTION create_booking/);
