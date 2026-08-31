@@ -47,6 +47,10 @@
       border-radius: 10px;
       display: grid; place-items: center;
       font-family: var(--mono); font-weight: 600; font-size: 15px;
+      overflow: hidden;
+    }
+    .avatar img {
+      width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; border-radius: 10px;
     }
     .who-text { min-width: 0; }
     .who-name { font-size: 15px; font-weight: 600; line-height: 1.2; }
@@ -921,7 +925,17 @@
 
       meCapster = me;          // dipakai sebagai awalan jalur unggah selfie
       $('capsterName').textContent = me.name;
-      $('avatar').textContent = me.name.charAt(0).toUpperCase();
+      const FOTO_KAPSTER = {
+        'cena': 'assets/cena.png',
+        'lukman': 'assets/lukman.png',
+        'wanda': 'assets/wanda.png'
+      };
+      const capKey = (me.name || '').toLowerCase().trim();
+      if (FOTO_KAPSTER[capKey]) {
+        $('avatar').innerHTML = '<img src="' + FOTO_KAPSTER[capKey] + '" alt="' + (me.name || '') + '" />';
+      } else {
+        $('avatar').textContent = me.name.charAt(0).toUpperCase();
+      }
       $('todayLabel').textContent = new Date().toLocaleDateString('id-ID',
         { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' });
       $('mainArea').hidden = false;
