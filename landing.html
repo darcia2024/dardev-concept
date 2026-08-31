@@ -38,8 +38,7 @@
 
        Mode gelap tidak dibuat. Seluruh produk ini terang, dan satu halaman
        yang membalik warnanya akan terasa seperti situs lain begitu pengunjung
-       berpindah ke kartu membernya. Hero memang gelap, tetapi ia satu blok
-       yang disengaja, bukan pembalikan tema. */
+       berpindah ke kartu membernya. */
 
     /* Sora hanya berlaku di halaman ini. Tujuh halaman lain masih memakai
        Plus Jakarta Sans dari theme.css, jadi pelanggan yang berpindah dari
@@ -52,6 +51,8 @@
     :root {
       --sans: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       --mono: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --hero-red-rgb: 190, 0, 0;
+      --hero-ink-rgb: 24, 25, 28;
     }
 
     * { box-sizing: border-box; }
@@ -71,7 +72,12 @@
     .nav {
       position: sticky; top: 0; z-index: 40; height: 64px;
       display: flex; align-items: center;
-      background: rgba(255,255,255,.9);
+      background-color: rgba(255,255,255,.92);
+      background-image: linear-gradient(90deg,
+        rgba(var(--hero-red-rgb), .18) 0%,
+        rgba(255,255,255,.94) 31%,
+        rgba(255,255,255,.94) 68%,
+        rgba(var(--hero-ink-rgb), .22) 100%);
       backdrop-filter: saturate(180%) blur(14px);
       -webkit-backdrop-filter: saturate(180%) blur(14px);
       border-bottom: 1px solid var(--border-soft);
@@ -111,19 +117,8 @@
     .nav .pil { min-height: 44px; padding: 10px 18px; font-size: 14px; }
 
     /* ── Hero ──────────────────────────────────────────────────────────
-       Satu pita lebar berisi kabut cat air, dan seluruh isi hero menumpuk di
-       tengahnya: logo, judul, kalimat pembuka, lalu ajakan. Latarnya digambar
-       peramban, bukan diunduh; berkas lama 211 KB hanya berisi wordmark di
-       atas gradasi, dan gradasi itu sendiri tidak perlu melintasi jaringan.
-
-       Kabutnya adalah beberapa gumpalan radial beralfa rendah yang saling
-       menimpa lalu dikaburkan sekaligus. Bentuk bergeometri tegas, seperti
-       kerucut atau segitiga, akan terbaca sebagai grafik; gumpalan tak
-       beraturan terbaca sebagai sapuan warna, dan itu yang membuatnya tenang.
-
-       Alfa ditahan rendah dengan sengaja. Merah pekat di belakang tulisan akan
-       memaksa judulnya dibuat putih dan tebal supaya terbaca, dan huruf tebal
-       tidak dipakai di produk ini. */
+       Merah dan hitam berhenti sebelum pusat hero. Bidang putih di tengah
+       menjaga wordmark, judul, dan ajakan tetap menjadi fokus utama. */
     .hero-panggung {
       position: relative; overflow: hidden;
       display: grid; place-items: center;
@@ -132,7 +127,18 @@
       background: #FFFFFF;
     }
     .hero-kabut {
-      display: none;
+      position: absolute; inset: -1px; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 115% at -9% 8%,
+          rgba(var(--hero-red-rgb), .42) 0%,
+          rgba(var(--hero-red-rgb), .26) 33%,
+          rgba(var(--hero-red-rgb), .08) 57%,
+          rgba(var(--hero-red-rgb), 0) 74%),
+        radial-gradient(ellipse 68% 120% at 109% 10%,
+          rgba(var(--hero-ink-rgb), .64) 0%,
+          rgba(var(--hero-ink-rgb), .36) 35%,
+          rgba(var(--hero-ink-rgb), .12) 57%,
+          rgba(var(--hero-ink-rgb), 0) 74%);
     }
     .hero-isi { position: relative; z-index: 1; text-align: center; }
     /* Logo dijaga tetap kecil. Di rujukan klien, ia berdiri sebagai penanda
@@ -391,7 +397,25 @@
     }
     @media (max-width: 560px) {
       .bungkus { padding: 0 18px; }
+      .nav {
+        background-image: linear-gradient(90deg,
+          rgba(var(--hero-red-rgb), .16) 0%,
+          rgba(255,255,255,.95) 38%,
+          rgba(255,255,255,.95) 64%,
+          rgba(var(--hero-ink-rgb), .18) 100%);
+      }
       .nav-kanan a:not(.pil) { display: none; }
+      .hero-kabut {
+        background:
+          radial-gradient(ellipse 92% 95% at -35% 0%,
+            rgba(var(--hero-red-rgb), .36) 0%,
+            rgba(var(--hero-red-rgb), .18) 42%,
+            rgba(var(--hero-red-rgb), 0) 76%),
+          radial-gradient(ellipse 90% 100% at 135% 4%,
+            rgba(var(--hero-ink-rgb), .48) 0%,
+            rgba(var(--hero-ink-rgb), .22) 42%,
+            rgba(var(--hero-ink-rgb), 0) 76%);
+      }
       .medan-dua { grid-template-columns: 1fr; }
       .layanan { grid-template-columns: repeat(2, 1fr); gap: 8px; }
       .layanan-baris { padding: 13px 14px; }
