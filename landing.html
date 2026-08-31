@@ -457,7 +457,26 @@
   <section class="bagian" id="tim">
     <div class="bungkus">
       <h2 class="muncul">Our Capster</h2>
-      <div class="kapster" id="kapsterDaftar"></div>
+      <div class="kapster" id="kapsterDaftar">
+        <div class="kapster-orang muncul">
+          <div class="avatar" aria-hidden="true"><img src="assets/cena.png" alt="Cena" loading="lazy" /></div>
+          <div class="kapster-nama">Cena</div>
+          <div class="kapster-peran">Capster</div>
+          <button type="button" class="pil pil-garis" data-kapster="Cena">Pilih Cena</button>
+        </div>
+        <div class="kapster-orang muncul">
+          <div class="avatar" aria-hidden="true"><img src="assets/lukman.png" alt="Lukman" loading="lazy" /></div>
+          <div class="kapster-nama">Lukman</div>
+          <div class="kapster-peran">Capster</div>
+          <button type="button" class="pil pil-garis" data-kapster="Lukman">Pilih Lukman</button>
+        </div>
+        <div class="kapster-orang muncul">
+          <div class="avatar" aria-hidden="true"><img src="assets/wanda.png" alt="Wanda" loading="lazy" /></div>
+          <div class="kapster-nama">Wanda</div>
+          <div class="kapster-peran">Capster</div>
+          <button type="button" class="pil pil-garis" data-kapster="Wanda">Pilih Wanda</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -637,7 +656,7 @@
         + 'Hubungi kami lewat WhatsApp.</div>';
       $('bkKirim').disabled = true;
       $('bkKirim').textContent = 'Booking sedang tidak tersedia';
-      $('tim').hidden = true;
+      isiKapster();
     }
 
     /* ── Muat isi toko ─────────────────────────────────────────────────── */
@@ -686,12 +705,19 @@
       'wanda': 'assets/wanda.png'
     };
 
+    function cariFotoKapster(nama) {
+      const n = String(nama || '').toLowerCase();
+      if (n.indexOf('cena') !== -1) return FOTO_KAPSTER.cena;
+      if (n.indexOf('lukman') !== -1) return FOTO_KAPSTER.lukman;
+      if (n.indexOf('wanda') !== -1) return FOTO_KAPSTER.wanda;
+      return null;
+    }
+
     function isiKapster() {
-      const daftar = ISI.kapster || [];
-      if (!daftar.length) { $('tim').hidden = true; return; }
+      const daftar = (ISI && ISI.kapster && ISI.kapster.length) ? ISI.kapster : ['Cena', 'Lukman', 'Wanda'];
+      $('tim').hidden = false;
       $('kapsterDaftar').innerHTML = daftar.map(function (nama) {
-        const key = String(nama || '').toLowerCase().trim();
-        const foto = FOTO_KAPSTER[key];
+        const foto = cariFotoKapster(nama);
         const avatarKonten = foto
           ? '<img src="' + foto + '" alt="' + esc(nama) + '" loading="lazy" />'
           : esc(String(nama).slice(0, 1).toUpperCase());
