@@ -247,6 +247,21 @@
       .ed-foot { grid-template-columns: 1fr; }
     }
 
+    /* Pemilih bulan absensi. Ketiga panel absensi terpencar di halaman,
+       sehingga satu kontrol di paling atas akan menggerakkan tabel yang tidak
+       terlihat dari situ. Karena itu kontrolnya diulang di tiap panel dan
+       diikat ke satu keadaan — mengubah salah satu memperbarui ketiganya. */
+    .bulan-pilih {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .bulan-pilih input[type="month"] {
+      font: inherit; font-size: 13px; padding: 7px 10px;
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: var(--r-sm);
+      outline: none;
+    }
+    .bulan-pilih input[type="month"]:focus { border-color: var(--brand); }
+
     .export-group {
       display: flex;
       align-items: center;
@@ -760,9 +775,13 @@
       <div class="table-controls">
         <div>
           <h2 style="font-size: 15px; font-weight: 600;">Absensi &amp; Izin Karyawan</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Rekap bulan berjalan &mdash; waktu, jarak, dan status terlambat ditentukan server
+          <p style="font-size: 12px; color: var(--fg-dim);" id="absenSub">
+            Waktu, jarak, dan status terlambat ditentukan server
           </p>
+        </div>
+        <div class="bulan-pilih">
+          <input type="month" class="inp-bulan" aria-label="Pilih bulan absensi" />
+          <button class="btn-nav" id="btnUnduhRekapAbsen">Unduh Rekap</button>
         </div>
       </div>
       <div class="table-scroll">
@@ -828,9 +847,13 @@
       <div class="table-controls">
         <div>
           <h2 style="font-size: 15px; font-weight: 600;">Catatan Absensi Harian</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Bulan berjalan. Menghapus catatan tidak menghapus fotonya &mdash; foto tetap tersimpan.
+          <p style="font-size: 12px; color: var(--fg-dim);" id="absenRowSub">
+            Menghapus catatan tidak menghapus fotonya &mdash; foto tetap tersimpan.
           </p>
+        </div>
+        <div class="bulan-pilih">
+          <input type="month" class="inp-bulan" aria-label="Pilih bulan catatan absensi" />
+          <button class="btn-nav" id="btnUnduhCatatanAbsen">Unduh Catatan</button>
         </div>
       </div>
       <div class="table-scroll">
@@ -953,11 +976,14 @@
       <div class="table-controls">
         <div>
           <h2 style="font-size: 15px; font-weight: 600;">Foto Absensi Karyawan</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Bulan berjalan. Tautan foto berumur pendek dan dibuat ulang tiap halaman dibuka.
+          <p style="font-size: 12px; color: var(--fg-dim);" id="fotoSub">
+            Tautan foto berumur pendek dan dibuat ulang tiap halaman dibuka.
           </p>
         </div>
-        <button class="btn-hdr" id="btnMuatFoto">Muat Foto</button>
+        <div class="bulan-pilih">
+          <input type="month" class="inp-bulan" aria-label="Pilih bulan foto absensi" />
+          <button class="btn-hdr" id="btnMuatFoto">Muat Foto</button>
+        </div>
       </div>
       <div style="padding: 4px 2px 2px;">
         <div class="foto-grid" id="fotoGrid"></div>
@@ -1209,6 +1235,7 @@
       await loadClosings();
       await loadHpp();
       await Promise.all([loadReward(), loadPoinTier(), loadOutlet()]);
+      pasangPemilihBulan();
       await loadAbsensi();
       await muatArsip();
       await muatKelolaAkun();
@@ -1905,8 +1932,149 @@
 
     let cutiData = [];
 
+    /* =========================================================================
+       BULAN ABSENSI & UNDUHAN
+
+       attendance_report(), attendance_rows(), dan attendance_photos() ketiganya
+       sudah menerima p_bulan sejak dibuat, tetapi selalu dipanggil tanpa
+       argumen — sehingga owner terkunci di bulan berjalan dan tidak punya cara
+       melihat bulan lalu sama sekali.
+       ========================================================================= */
+    let bulanAbsensi = sbJakartaToday().slice(0, 7);   // 'YYYY-MM'
+
+    function bulanKeTanggal(b) { return b + '-01'; }
+
+    function namaBulan(b) {
+      const [th, bl] = b.split('-').map(Number);
+      return new Date(th, bl - 1, 1)
+        .toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    }
+
+    function pasangPemilihBulan() {
+      const kini = sbJakartaToday().slice(0, 7);
+      document.querySelectorAll('.inp-bulan').forEach(function (el) {
+        el.value = bulanAbsensi;
+        // Bulan depan belum punya catatan apa pun; membiarkannya dipilih
+        // hanya menghasilkan tabel kosong yang terlihat seperti kerusakan.
+        el.max = kini;
+        el.addEventListener('change', function () {
+          if (!el.value) { el.value = bulanAbsensi; return; }
+          bulanAbsensi = el.value;
+          document.querySelectorAll('.inp-bulan').forEach(function (lain) { lain.value = bulanAbsensi; });
+          tulisJudulBulan();
+          muatSemuaAbsensi();
+        });
+      });
+      tulisJudulBulan();
+    }
+
+    function tulisJudulBulan() {
+      const nb = namaBulan(bulanAbsensi);
+      const set = function (id, teks) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = teks;
+      };
+      set('absenSub', nb + ' — waktu, jarak, dan status terlambat ditentukan server');
+      set('absenRowSub', nb + '. Menghapus catatan tidak menghapus fotonya — foto tetap tersimpan.');
+      set('fotoSub', nb + '. Tautan foto berumur pendek dan dibuat ulang tiap halaman dibuka.');
+    }
+
+    async function muatSemuaAbsensi() {
+      await Promise.all([loadAbsensi(), muatAbsenBaris()]);
+      // Foto tidak ikut dimuat ulang: tiap gambar butuh tautan bertanda
+      // tersendiri, dan owner memintanya sendiri lewat tombol.
+      const grid = document.getElementById('fotoGrid');
+      const pesan = document.getElementById('fotoPesan');
+      if (grid && grid.children.length) {
+        grid.innerHTML = '';
+        pesan.textContent = 'Bulan berubah. Tekan "Muat Foto" untuk menampilkan foto ' + namaBulan(bulanAbsensi) + '.';
+      }
+    }
+
+    /* Penulis CSV.
+       Pendahulunya merangkai data:text/csv lalu melewatkannya ke encodeURI.
+       Tiga hal bocor di sana: encodeURI tidak menyandikan '#', sehingga satu
+       tanda pagar pada nama memotong berkasnya di tengah; tanda kutip di dalam
+       nilai tidak digandakan, sehingga satu kutip merusak seluruh struktur
+       kolom; dan tanpa penanda BOM, Excel di Windows membaca berkas UTF-8
+       sebagai ANSI dan mengacak setiap karakter beraksen. */
+    function unduhCsv(namaBerkas, kepala, baris) {
+      const kutip = function (v) {
+        return '"' + String(v === null || v === undefined ? '' : v).replace(/"/g, '""') + '"';
+      };
+      const isi = [kepala.map(kutip).join(',')]
+        .concat(baris.map(function (r) { return r.map(kutip).join(','); }))
+        .join('\r\n');
+
+      const blob = new Blob(['﻿' + isi], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = namaBerkas;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Objek URL menahan blob-nya di memori sampai dilepas
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function jamMenit(menit) {
+      const m = Number(menit) || 0;
+      return Math.floor(m / 60) + 'j ' + (m % 60) + 'm';
+    }
+
+    document.getElementById('btnUnduhRekapAbsen').addEventListener('click', async function () {
+      const btn = this, label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Menyiapkan…';
+      try {
+        const res = await sb.rpc('attendance_report', { p_bulan: bulanKeTanggal(bulanAbsensi) });
+        if (res.error) { alert('Gagal menyiapkan rekap: ' + res.error.message); return; }
+        const rows = res.data || [];
+        if (!rows.length) { alert('Tidak ada karyawan aktif untuk diekspor.'); return; }
+        unduhCsv(
+          'Rekap-Absensi_' + bulanAbsensi + '.csv',
+          ['Karyawan', 'Hari Hadir', 'Hari Terlambat', 'Jam Kerja', 'Total Menit Kerja',
+           'Izin Disetujui', 'Izin Menunggu'],
+          rows.map(function (r) {
+            return [r.nama, r.hadir, r.terlambat, jamMenit(r.total_menit_kerja),
+                    r.total_menit_kerja, r.cuti_disetujui, r.cuti_menunggu];
+          })
+        );
+      } finally {
+        btn.disabled = false; btn.textContent = label;
+      }
+    });
+
+    document.getElementById('btnUnduhCatatanAbsen').addEventListener('click', async function () {
+      const btn = this, label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Menyiapkan…';
+      try {
+        const res = await sb.rpc('attendance_rows', { p_bulan: bulanKeTanggal(bulanAbsensi) });
+        if (res.error) { alert('Gagal menyiapkan catatan: ' + res.error.message); return; }
+        const rows = res.data || [];
+        if (!rows.length) { alert('Tidak ada catatan absensi pada ' + namaBulan(bulanAbsensi) + '.'); return; }
+        const jam = function (t) {
+          return t ? new Date(t).toLocaleTimeString('id-ID',
+            { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '';
+        };
+        unduhCsv(
+          'Catatan-Absensi_' + bulanAbsensi + '.csv',
+          ['Tanggal', 'Karyawan', 'Masuk', 'Pulang', 'Status', 'Terlambat (menit)',
+           'Menit Kerja', 'Jarak (m)', 'Ada Foto'],
+          rows.map(function (r) {
+            return [r.business_date, r.capster_name, jam(r.check_in_time), jam(r.check_out_time),
+                    r.status, r.terlambat_menit, r.menit_kerja,
+                    r.jarak_m == null ? '' : r.jarak_m, r.ada_foto ? 'ya' : 'tidak'];
+          })
+        );
+      } finally {
+        btn.disabled = false; btn.textContent = label;
+      }
+    });
+
+
     async function loadAbsensi() {
-      const res = await sb.rpc('attendance_report');
+      const res = await sb.rpc('attendance_report', { p_bulan: bulanKeTanggal(bulanAbsensi) });
       const tb = document.getElementById('absenTableBody');
       if (res.error) {
         tb.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--clay); font-size:13px;">Gagal memuat: '
@@ -2297,7 +2465,7 @@
        ═══════════════════════════════════════════════════════════════════════ */
     async function muatAbsenBaris() {
       const tb = document.getElementById('absenRowBody');
-      const { data, error } = await sb.rpc('attendance_rows');
+      const { data, error } = await sb.rpc('attendance_rows', { p_bulan: bulanKeTanggal(bulanAbsensi) });
       if (error) {
         tb.innerHTML = '<tr><td colspan="9" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
         return;
@@ -2392,7 +2560,7 @@
       const btn = document.getElementById('btnMuatFoto');
       btn.disabled = true; pesan.textContent = 'Memuat…'; grid.innerHTML = '';
 
-      const { data, error } = await sb.rpc('attendance_photos');
+      const { data, error } = await sb.rpc('attendance_photos', { p_bulan: bulanKeTanggal(bulanAbsensi) });
       if (error) {
         pesan.textContent = 'Gagal memuat: ' + error.message;
         btn.disabled = false; return;
@@ -2599,27 +2767,25 @@
         return;
       }
 
-      const headers = ['Waktu', 'No Invoice', 'Nama Pelanggan', 'No WhatsApp', 'Capster', 'Layanan', 'Metode Bayar', 'Kode Ref/Approval', 'Total (Rp)'];
-      const rows = txList.map(tx => [
-        `"${tx.created_at ? new Date(tx.created_at).toLocaleString('id-ID') : ''}"`,
-        `"${tx.invoice_no || ''}"`,
-        `"${tx.member_name || ''}"`,
-        `"${tx.member_phone || ''}"`,
-        `"${tx.capster_name || ''}"`,
-        `"${(tx.services || []).map(s => s.name).join(' + ')}"`,
-        `"${tx.payment_method || ''}"`,
-        `"${tx.payment_ref || ''}"`,
-        tx.final_amount || 0
-      ]);
-
-      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement('a');
-      link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `Rekap_Barber_${selectedDateFilter}_${sbJakartaToday()}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Memakai penulis CSV yang sama dengan unduhan absensi. Bentuk lama
+      // merangkai data:text/csv lalu melewatkannya ke encodeURI — satu tanda
+      // pagar pada nama pelanggan memotong berkasnya, dan satu tanda kutip
+      // merusak seluruh struktur kolomnya.
+      unduhCsv(
+        'Transaksi_' + selectedDateFilter + '_' + sbJakartaToday() + '.csv',
+        ['Waktu', 'No Invoice', 'Nama Pelanggan', 'No WhatsApp', 'Capster',
+         'Layanan', 'Metode Bayar', 'Kode Ref/Approval', 'Total (Rp)'],
+        txList.map(function (tx) {
+          return [
+            tx.created_at ? new Date(tx.created_at).toLocaleString('id-ID',
+              { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jakarta' }) : '',
+            tx.invoice_no || '', tx.member_name || '', tx.member_phone || '',
+            tx.capster_name || '',
+            (tx.services || []).map(function (x) { return x.name; }).join(' + '),
+            tx.payment_method || '', tx.payment_ref || '', tx.final_amount || 0
+          ];
+        })
+      );
     });
 
     // Date Filters
