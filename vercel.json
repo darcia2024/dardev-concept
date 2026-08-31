@@ -2,7 +2,15 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/masuk.html"
+      "destination": "/landing.html"
+    },
+    {
+      "source": "/landing",
+      "destination": "/landing.html"
+    },
+    {
+      "source": "/booking",
+      "destination": "/landing.html"
     },
     {
       "source": "/perencanaan",

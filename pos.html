@@ -1531,6 +1531,77 @@
       .scanner-manual-row .btn-hdr { width: 100%; }
     }
 
+    /* ── Inbox booking publik ────────────────────────────────────────────── */
+    #btnOpenBookings { position: relative; }
+    .booking-count {
+      min-width: 20px; height: 20px; padding: 0 6px;
+      display: inline-grid; place-items: center;
+      border-radius: 10px; background: var(--brand); color: #fff;
+      font-size: 11px; font-variant-numeric: tabular-nums;
+    }
+    .booking-count[hidden] { display: none; }
+    .booking-modal-card { width: min(100%, 760px); max-width: 760px; padding: 20px; }
+    .booking-modal-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px;
+    }
+    .booking-modal-head h2 { margin: 0; font-size: 19px; font-weight: var(--w-semi); }
+    .booking-modal-head p { margin: 4px 0 0; color: var(--text-mid); font-size: 12.5px; }
+    .booking-toolbar {
+      display: grid; grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) auto;
+      gap: 8px; align-items: end;
+    }
+    .booking-toolbar label {
+      display: block; margin-bottom: 5px;
+      color: var(--text-mid); font-size: 11.5px; font-weight: var(--w-med);
+    }
+    .booking-toolbar .input-field { min-height: 44px; }
+    .booking-toolbar .btn-hdr { min-height: 44px; }
+    .booking-list { display: grid; gap: 10px; }
+    .booking-state {
+      min-height: 120px; display: grid; place-items: center;
+      padding: 24px; border: 1px dashed var(--border);
+      color: var(--text-mid); text-align: center; font-size: 13px;
+    }
+    .booking-item {
+      padding: 15px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface);
+    }
+    .booking-item-top {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    }
+    .booking-code { font-family: var(--mono); font-size: 12px; color: var(--text-mid); }
+    .booking-name { margin-top: 2px; font-size: 15px; font-weight: var(--w-semi); }
+    .booking-status {
+      flex: none; padding: 4px 8px; border-radius: 5px;
+      font-size: 11px; font-weight: var(--w-med); text-transform: uppercase;
+    }
+    .booking-status.is-new { background: var(--brand-wash); color: var(--brand); }
+    .booking-status.is-confirmed { background: var(--ok-wash); color: var(--ok); }
+    .booking-status.is-closed { background: var(--surface-sunk); color: var(--text-mid); }
+    .booking-detail {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px;
+      margin-top: 11px; color: var(--text-mid); font-size: 12.5px;
+    }
+    .booking-detail strong { color: var(--text); font-weight: var(--w-med); }
+    .booking-note {
+      margin-top: 10px; padding: 9px 10px;
+      background: var(--surface-sunk); color: var(--text-mid);
+      font-size: 12px; line-height: 1.5;
+    }
+    .booking-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .booking-actions .btn-hdr { min-height: 44px; }
+    .booking-actions .is-primary { border-color: var(--ok); color: var(--ok); }
+    .booking-actions .is-danger { border-color: var(--brand-line); color: var(--brand); }
+
+    @media (max-width: 600px) {
+      .booking-modal-card { padding: 16px; }
+      .booking-toolbar { grid-template-columns: 1fr 1fr; }
+      .booking-toolbar > :last-child { grid-column: 1 / -1; width: 100%; }
+      .booking-detail { grid-template-columns: 1fr; }
+      .booking-actions .btn-hdr { flex: 1 1 130px; justify-content: center; }
+    }
+
     /* ── Modal yang isinya lebih tinggi dari layar ──────────────────────────
        .receipt-modal-card tidak punya max-height maupun overflow, sehingga
        ketika isinya melampaui tinggi jendela ia membludak keluar tanpa ada
@@ -1620,6 +1691,9 @@
       <span class="sb-conn-pill" id="connPill" title="Status koneksi ke server">MEMERIKSA</span>
       <button class="sb-cashier-chip" id="chipCashier" title="Ganti kasir bertugas">
         <span class="dot"></span><span id="lblCashierName">—</span>
+      </button>
+      <button class="btn-hdr" id="btnOpenBookings" title="Lihat permintaan booking pelanggan">
+        Booking <span class="booking-count" id="bookingCount" hidden>0</span>
       </button>
       <button class="btn-hdr" id="btnOpenClosing" title="Setor hitungan uang tunai akhir shift">Tutup Kas</button>
       <button class="btn-hdr" id="btnOpenSettings" title="Kelola Layanan & Capster" hidden>Pengaturan</button>
@@ -1915,6 +1989,42 @@
                  placeholder="Contoh: BKAB23CD45" autocomplete="off" autocapitalize="characters" />
           <button type="button" class="btn-hdr" id="btnLookupMemberCode">Cari Kode</button>
         </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- BOOKING MASUK -->
+  <div class="modal-backdrop" id="bookingModal" aria-hidden="true">
+    <section class="receipt-modal-card booking-modal-card" role="dialog" aria-modal="true" aria-labelledby="bookingModalTitle">
+      <div class="booking-modal-head">
+        <div>
+          <h2 id="bookingModalTitle">Booking Masuk</h2>
+          <p>Permintaan pelanggan belum mengunci kursi sampai dikonfirmasi kasir.</p>
+        </div>
+        <button type="button" class="scanner-close" id="btnCloseBookings" aria-label="Tutup daftar booking">&times;</button>
+      </div>
+
+      <div class="booking-toolbar">
+        <div>
+          <label for="bookingStatusFilter">Status</label>
+          <select id="bookingStatusFilter" class="input-field">
+            <option value="baru">Baru</option>
+            <option value="dikonfirmasi">Dikonfirmasi</option>
+            <option value="selesai">Selesai</option>
+            <option value="ditolak">Ditolak</option>
+            <option value="batal">Batal</option>
+            <option value="">Semua status</option>
+          </select>
+        </div>
+        <div>
+          <label for="bookingDateFilter">Tanggal kunjungan</label>
+          <input type="date" id="bookingDateFilter" class="input-field" />
+        </div>
+        <button type="button" class="btn-hdr" id="btnRefreshBookings">Muat Ulang</button>
+      </div>
+
+      <div class="booking-list" id="bookingList" aria-live="polite">
+        <div class="booking-state">Buka daftar untuk memuat booking.</div>
       </div>
     </section>
   </div>
@@ -3295,6 +3405,175 @@
       window.print();
     });
 
+    /* =========================================================================
+       BOOKING MASUK
+
+       Landing page menyimpan permintaan, bukan reservasi kursi. Inbox ini
+       membuat permintaan itu terlihat di alat kerja kasir yang memang selalu
+       terbuka, lalu memberi jalur langsung untuk menghubungi pelanggan.
+       ========================================================================= */
+    const bookingModal = document.getElementById('bookingModal');
+    const bookingList = document.getElementById('bookingList');
+    const bookingCount = document.getElementById('bookingCount');
+    const bookingStatusFilter = document.getElementById('bookingStatusFilter');
+    const bookingDateFilter = document.getElementById('bookingDateFilter');
+    let bookingRows = [];
+    let bookingRequestSeq = 0;
+
+    function bookingStatusText(status) {
+      return {
+        baru: 'Baru', dikonfirmasi: 'Dikonfirmasi', ditolak: 'Ditolak',
+        selesai: 'Selesai', batal: 'Batal'
+      }[status] || status || 'Tidak diketahui';
+    }
+
+    function bookingStatusClass(status) {
+      if (status === 'baru') return 'is-new';
+      if (status === 'dikonfirmasi') return 'is-confirmed';
+      return 'is-closed';
+    }
+
+    function formatBookingDate(value) {
+      if (!value) return 'Tanggal tidak tersedia';
+      return new Date(value + 'T00:00:00').toLocaleDateString('id-ID', {
+        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+      });
+    }
+
+    function bookingWaUrl(row) {
+      const phone = normalizePhone(row.telepon);
+      const message = 'Halo ' + (row.nama || '') + ', kami menghubungi terkait booking '
+        + row.kode + ' untuk ' + (row.service_name || 'layanan pilihan Anda') + ' pada '
+        + formatBookingDate(row.tanggal) + ' pukul ' + String(row.jam || '').slice(0, 5) + '.';
+      return 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+    }
+
+    function renderBookings() {
+      if (!bookingRows.length) {
+        bookingList.innerHTML = '<div class="booking-state">Tidak ada booking untuk filter ini.</div>';
+        return;
+      }
+
+      bookingList.innerHTML = bookingRows.map(row => {
+        let statusActions = '';
+        if (row.status === 'baru') {
+          statusActions = '<button type="button" class="btn-hdr is-primary" data-booking-status="dikonfirmasi" data-id="' + row.id + '">Konfirmasi</button>'
+            + '<button type="button" class="btn-hdr is-danger" data-booking-status="ditolak" data-id="' + row.id + '">Tolak</button>';
+        } else if (row.status === 'dikonfirmasi') {
+          statusActions = '<button type="button" class="btn-hdr is-primary" data-booking-status="selesai" data-id="' + row.id + '">Tandai Selesai</button>'
+            + '<button type="button" class="btn-hdr is-danger" data-booking-status="batal" data-id="' + row.id + '">Batalkan</button>';
+        }
+
+        return '<article class="booking-item">'
+          + '<div class="booking-item-top"><div><div class="booking-code">' + escapeHtml(row.kode) + '</div>'
+          + '<div class="booking-name">' + escapeHtml(row.nama) + '</div></div>'
+          + '<span class="booking-status ' + bookingStatusClass(row.status) + '">' + escapeHtml(bookingStatusText(row.status)) + '</span></div>'
+          + '<div class="booking-detail">'
+          + '<span><strong>' + escapeHtml(formatBookingDate(row.tanggal)) + '</strong> · ' + escapeHtml(String(row.jam || '').slice(0, 5)) + '</span>'
+          + '<span><strong>' + escapeHtml(row.service_name || 'Layanan') + '</strong> · ' + escapeHtml(String(row.durasi_menit || 0)) + ' menit</span>'
+          + '<span>WhatsApp: <strong>' + escapeHtml(formatWa(row.telepon)) + '</strong></span>'
+          + '<span>Harga: <strong>' + escapeHtml(formatRupiah(row.harga)) + '</strong></span>'
+          + '</div>'
+          + (row.catatan ? '<div class="booking-note">Catatan: ' + escapeHtml(row.catatan) + '</div>' : '')
+          + '<div class="booking-actions"><a class="btn-hdr" target="_blank" rel="noopener" href="' + bookingWaUrl(row) + '">Hubungi WhatsApp</a>'
+          + statusActions + '</div></article>';
+      }).join('');
+    }
+
+    function setBookingCount(count) {
+      const total = Math.max(0, Number(count) || 0);
+      bookingCount.textContent = total > 99 ? '99+' : String(total);
+      bookingCount.hidden = total === 0;
+      document.getElementById('btnOpenBookings').setAttribute(
+        'aria-label', total ? 'Booking, ' + total + ' permintaan baru' : 'Booking, tidak ada permintaan baru'
+      );
+    }
+
+    async function refreshBookingBadge() {
+      if (!SBConn.online) return;
+      try {
+        const { data, error } = await sb.rpc('bookings_list', { p_status: 'baru', p_tanggal: null });
+        if (!error) setBookingCount((data || []).length);
+      } catch (_) {}
+    }
+
+    async function loadBookings() {
+      if (!SBConn.online) {
+        bookingList.innerHTML = '<div class="booking-state">Daftar booking membutuhkan koneksi internet.</div>';
+        return;
+      }
+
+      const seq = ++bookingRequestSeq;
+      bookingList.innerHTML = '<div class="booking-state">Memuat booking...</div>';
+      try {
+        const status = bookingStatusFilter.value || null;
+        const tanggal = bookingDateFilter.value || null;
+        const { data, error } = await sb.rpc('bookings_list', { p_status: status, p_tanggal: tanggal });
+        if (seq !== bookingRequestSeq) return;
+        if (error) throw error;
+        bookingRows = data || [];
+        renderBookings();
+        if (status === 'baru' && !tanggal) setBookingCount(bookingRows.length);
+        else await refreshBookingBadge();
+      } catch (error) {
+        if (seq !== bookingRequestSeq) return;
+        bookingRows = [];
+        bookingList.innerHTML = '<div class="booking-state">Booking gagal dimuat. Periksa koneksi lalu coba lagi.</div>';
+      }
+    }
+
+    async function decideBooking(id, status) {
+      const row = bookingRows.find(item => item.id === id);
+      if (!row || !SBConn.online) return showToast('Perubahan booking membutuhkan koneksi internet.');
+      if (!confirm(bookingStatusText(status) + ' booking ' + row.kode + ' atas nama ' + row.nama + '?')) return;
+
+      const { error } = await sb.rpc('decide_booking', {
+        p_id: id, p_status: status, p_catatan: null
+      });
+      if (error) return showToast('Status booking gagal diubah. Coba lagi.');
+      showToast('Booking ' + row.kode + ': ' + bookingStatusText(status) + '.');
+      await loadBookings();
+    }
+
+    document.getElementById('btnOpenBookings').addEventListener('click', () => {
+      bookingModal.classList.add('is-open');
+      bookingModal.setAttribute('aria-hidden', 'false');
+      document.getElementById('btnCloseBookings').focus();
+      loadBookings();
+    });
+    document.getElementById('btnCloseBookings').addEventListener('click', () => {
+      bookingModal.classList.remove('is-open');
+      bookingModal.setAttribute('aria-hidden', 'true');
+      document.getElementById('btnOpenBookings').focus();
+    });
+    document.getElementById('btnRefreshBookings').addEventListener('click', loadBookings);
+    bookingStatusFilter.addEventListener('change', loadBookings);
+    bookingDateFilter.addEventListener('change', loadBookings);
+    bookingList.addEventListener('click', event => {
+      const button = event.target.closest('[data-booking-status]');
+      if (button) decideBooking(button.dataset.id, button.dataset.bookingStatus);
+    });
+    bookingModal.addEventListener('click', event => {
+      if (event.target === bookingModal) document.getElementById('btnCloseBookings').click();
+    });
+    bookingModal.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        document.getElementById('btnCloseBookings').click();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(bookingModal.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled])'))
+        .filter(element => element.offsetParent !== null);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    });
+
     // Settings Modal Handlers
     const settingsModal = document.getElementById('settingsModal');
     document.getElementById('btnOpenSettings').addEventListener('click', () => {
@@ -4007,6 +4286,12 @@
       // Tahap 2 — kasir: PIN pribadi tiap mulai bertugas
       kasirAktif = await sbRequirePin(false);
       document.getElementById('lblCashierName').textContent = kasirAktif.name;
+
+      refreshBookingBadge();
+      window.setInterval(refreshBookingBadge, 60000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshBookingBadge();
+      });
 
       // Kirim sisa antrean dari sesi sebelumnya
       if (SBConn.online && SBQueue.count()) {

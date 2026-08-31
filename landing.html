@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FFFFFF" />
+  <title>Underrated Barbershop, BSD City</title>
+
+  <meta name="description" content="Barbershop di BSD City. Lihat layanan dan harga, lalu atur waktu kunjungan Anda. Buka setiap hari pukul 10.00, Jumat mulai 13.00." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Underrated Barbershop" />
+  <meta property="og:title" content="Underrated Barbershop, BSD City" />
+  <meta property="og:description" content="Lihat layanan dan harga, lalu atur waktu kunjungan Anda." />
+  <meta property="og:url" content="https://underratedbarbershop.com/" />
+  <!-- 1200x630 adalah ukuran baku OpenGraph. Berkasnya JPEG, bukan PNG:
+       isinya gradien halus, dan PNG menyimpannya sebagai 977 KB sementara
+       JPEG mutu 92 cukup 46 KB tanpa pita warna. WhatsApp kerap menolak
+       menampilkan pratinjau yang berkasnya terlalu besar, sehingga ukuran
+       di sini menentukan gambarnya muncul atau tidak sama sekali. -->
+  <meta property="og:image" content="https://underratedbarbershop.com/assets/og-landing.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Logo Underrated Barbershop" />
+  <meta property="og:locale" content="id_ID" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="preload" as="image" href="assets/login-panel.webp" />
+  <link rel="stylesheet" href="theme.css" />
+
+  <style>
+    /* ══ HALAMAN DEPAN ═══════════════════════════════════════════════════════
+       Memakai token yang sama dengan tujuh halaman lain di proyek ini
+       (theme.css). Bobot huruf tidak pernah melewati 600: klien meminta
+       tegas agar tidak ada huruf tebal di mana pun, dan aturan itu berlaku
+       juga di halaman yang dilihat publik.
+
+       Mode gelap sengaja tidak dibuat. Seluruh produk ini terang, dan satu
+       halaman yang membalik warnanya akan terasa seperti situs lain begitu
+       pengunjung berpindah ke kartu membernya. */
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--surface);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: var(--w-reg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    .bungkus { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 22px; }
+    section { scroll-margin-top: 84px; }
+
+    /* ── Navigasi ──────────────────────────────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 40;
+      height: 68px; display: flex; align-items: center;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .nav .bungkus { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .nav a[aria-label] {
+      min-width: 44px; min-height: 44px;
+      display: inline-flex; align-items: center;
+    }
+    .nav img { height: 27px; width: auto; display: block; }
+    .nav-tautan { display: flex; align-items: center; gap: 26px; }
+    /* :not(.tombol) wajib. Tanpanya aturan ini (spesifisitas 0,2,0)
+       mengalahkan .tombol-utama (0,1,0) dan mewarnai teks tombol Booking
+       abu-abu di atas merah: rasio kontras 1.02, praktis tak terbaca. */
+    .nav-tautan a:not(.tombol) {
+      color: var(--text-mid); text-decoration: none; font-size: 14px;
+      transition: color .15s ease;
+    }
+    .nav-tautan a:not(.tombol):hover { color: var(--text); }
+    .nav-tautan a.tombol { text-decoration: none; }
+    .tombol {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; border-radius: var(--r-sm); border: 1px solid transparent;
+      font-family: inherit; font-size: 14.5px; font-weight: var(--w-med);
+      padding: 11px 20px; cursor: pointer; text-decoration: none;
+      transition: transform .12s ease, background .15s ease, border-color .15s ease;
+    }
+    .tombol:active { transform: translateY(1px); }
+    .tombol-utama { background: var(--brand); color: #FFFFFF; }
+    .tombol-utama:hover { background: var(--brand-deep); }
+    .tombol-garis { background: transparent; color: var(--text); border-color: var(--border); }
+    .tombol-garis:hover { border-color: var(--text-mid); }
+    .nav .tombol { min-height: 44px; padding: 9px 17px; font-size: 14px; }
+
+    /* ── Hero ──────────────────────────────────────────────────────────── */
+    .hero { padding: 56px 0 68px; }
+    .hero .bungkus {
+      display: grid; gap: 44px; align-items: center;
+      grid-template-columns: 1.05fr 0.95fr;
+    }
+    .hero h1 {
+      margin: 0 0 18px;
+      font-size: clamp(34px, 5.2vw, 54px);
+      font-weight: var(--w-semi);
+      line-height: 1.08;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+    .hero h1 .aksen { color: var(--brand); }
+    .hero p {
+      margin: 0 0 28px; max-width: 46ch;
+      font-size: 16.5px; color: var(--text-mid); line-height: 1.65;
+    }
+    .hero-aksi { display: flex; flex-wrap: wrap; gap: 11px; }
+    /* Grafis mereknya persegi dengan wordmark di tengah. Dibiarkan selebar
+       kolomnya, tingginya ikut melar sampai judul hero terdorong keluar
+       layar, dan object-fit memotong wordmark di kedua sisi. Dibatasi
+       lebarnya, keduanya selesai sekaligus. */
+    .hero-gambar {
+      width: 100%; max-width: 400px; margin-left: auto;
+      /* height:auto wajib. Atribut height="1200" pada tag img menjadi petunjuk
+         presentasi yang membuat tingginya eksplisit, dan aspect-ratio hanya
+         berlaku ketika salah satu dimensinya auto. Tanpa baris ini gambarnya
+         menjadi 400x1200 dan wordmark-nya terpotong. */
+      height: auto; aspect-ratio: 1; object-fit: cover; display: block;
+      border-radius: var(--r-md); border: 1px solid var(--border-soft);
+    }
+
+    /* ── Bagian umum ───────────────────────────────────────────────────── */
+    .bagian { padding: 68px 0; border-top: 1px solid var(--border-soft); }
+    .bagian h2 {
+      margin: 0 0 10px;
+      font-size: clamp(24px, 3.4vw, 33px);
+      font-weight: var(--w-semi); letter-spacing: 0; line-height: 1.18;
+    }
+    .bagian .pengantar {
+      margin: 0 0 34px; max-width: 54ch;
+      font-size: 15px; color: var(--text-mid);
+    }
+
+    /* ── Layanan ───────────────────────────────────────────────────────── */
+    .layanan-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
+    }
+    .layanan-kartu {
+      display: flex; flex-direction: column; justify-content: space-between; gap: 18px;
+      padding: 22px; border: 1px solid var(--border); border-radius: var(--r-md);
+      background: var(--surface); transition: border-color .18s ease, transform .18s ease;
+    }
+    .layanan-kartu:hover { border-color: var(--brand-line); transform: translateY(-2px); }
+    .layanan-nama { font-size: 16.5px; font-weight: var(--w-med); }
+    .layanan-menit { font-size: 12.5px; color: var(--text-mid); margin-top: 3px; }
+    .layanan-harga {
+      font-size: 22px; font-weight: var(--w-semi);
+      font-variant-numeric: tabular-nums; letter-spacing: 0;
+    }
+
+    /* ── Booking ───────────────────────────────────────────────────────── */
+    .booking { background: var(--surface-tint); }
+    .booking-isi { display: grid; gap: 46px; grid-template-columns: 0.9fr 1.1fr; align-items: start; }
+    .booking-cara { display: grid; gap: 20px; }
+    .cara-baris { display: flex; gap: 14px; align-items: flex-start; }
+    .cara-nomor {
+      flex: none; width: 27px; height: 27px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: var(--brand-wash); color: var(--brand);
+      font-size: 13px; font-weight: var(--w-med);
+      font-variant-numeric: tabular-nums;
+    }
+    .cara-teks { font-size: 14.5px; color: var(--text-mid); line-height: 1.55; }
+    .cara-teks b { color: var(--text); font-weight: var(--w-med); }
+
+    .form-kartu {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-md); padding: 26px;
+    }
+    .form-baris { display: grid; gap: 14px; margin-bottom: 14px; }
+    .form-dua { grid-template-columns: 1fr 1fr; }
+    .form-medan label {
+      display: block; margin-bottom: 6px;
+      font-size: 12.5px; font-weight: var(--w-med); color: var(--text-mid);
+    }
+    .form-medan input, .form-medan select, .form-medan textarea {
+      width: 100%; padding: 11px 13px; font-family: inherit; font-size: 15px;
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: var(--r-sm);
+      outline: none; transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .form-medan textarea { min-height: 74px; resize: vertical; line-height: 1.5; }
+    .form-medan input:focus, .form-medan select:focus, .form-medan textarea:focus {
+      border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-wash);
+    }
+    .form-medan ::placeholder { color: var(--text-mid); opacity: 1; }
+    .form-bantuan { margin-top: 5px; font-size: 11.5px; color: var(--text-mid); line-height: 1.45; }
+    .form-kartu .tombol-utama { width: 100%; padding: 13px 20px; font-size: 15px; }
+    .tombol:disabled {
+      cursor: not-allowed; transform: none;
+      background: var(--surface-sunk); border-color: var(--border);
+      color: var(--text-mid);
+    }
+
+    .pesan {
+      margin-bottom: 14px; padding: 12px 14px; border-radius: var(--r-sm);
+      font-size: 13.5px; line-height: 1.55;
+    }
+    .pesan.buruk { color: var(--brand-deep); background: var(--brand-wash); border: 1px solid var(--brand-line); }
+    .pesan.baik  { color: var(--ok); background: var(--ok-wash); border: 1px solid rgba(15, 115, 85, .28); }
+    .kode-booking {
+      display: block; margin-top: 8px;
+      font-size: 25px; font-weight: var(--w-semi);
+      letter-spacing: 0; font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Lokasi ────────────────────────────────────────────────────────── */
+    .lokasi-isi { display: grid; gap: 46px; grid-template-columns: 1.1fr 0.9fr; align-items: start; }
+    .alamat { font-size: 15.5px; color: var(--text-mid); line-height: 1.72; margin: 0 0 22px; max-width: 40ch; }
+    .lokasi-aksi { display: flex; flex-wrap: wrap; gap: 11px; }
+    .jam-tabel { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+    .jam-tabel th {
+      text-align: left; padding: 0 0 10px;
+      font-size: 12px; font-weight: var(--w-med);
+      color: var(--text-mid) !important;
+      background: transparent !important;
+      border-bottom: 1px solid var(--border);
+    }
+    .jam-tabel td { padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
+    .jam-tabel td:last-child {
+      text-align: right; font-variant-numeric: tabular-nums; color: var(--text-mid);
+    }
+    .jam-tabel tr.kini td { color: var(--text); font-weight: var(--w-med); }
+    .jam-tabel tr.kini td:first-child::before {
+      content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--brand); margin-right: 8px; vertical-align: middle;
+    }
+
+    /* ── Member ────────────────────────────────────────────────────────── */
+    .member { background: var(--brand-wash); border-top: 1px solid var(--brand-line); }
+    .member-isi { max-width: 46ch; }
+    .member .tombol-garis { border-color: var(--brand-line); }
+    .member .tombol-garis:hover { border-color: var(--brand); }
+
+    /* ── Footer ────────────────────────────────────────────────────────── */
+    .kaki { padding: 34px 0; border-top: 1px solid var(--border-soft); }
+    .kaki .bungkus {
+      display: flex; flex-wrap: wrap; gap: 16px;
+      align-items: center; justify-content: space-between;
+    }
+    .kaki img { height: 22px; width: auto; opacity: .85; }
+    .kaki p { margin: 0; font-size: 12.5px; color: var(--text-mid); }
+    .kaki a { color: var(--text-mid); font-size: 12.5px; text-decoration: none; }
+    .kaki a:hover { color: var(--text); }
+
+    /* ── Gerak ─────────────────────────────────────────────────────────
+       Hanya masuknya bagian saat digulir. Tidak ada pembajakan gulir dan
+       tidak ada animasi berulang: halaman ini dibuka orang yang mencari
+       alamat dan ingin memesan, bukan untuk ditonton. */
+    .muncul { opacity: 0; transform: translateY(14px); }
+    .muncul.tampak {
+      opacity: 1; transform: none;
+      transition: opacity .55s cubic-bezier(.16, 1, .3, 1),
+                  transform .55s cubic-bezier(.16, 1, .3, 1);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .muncul, .muncul.tampak { opacity: 1; transform: none; transition: none; }
+      .layanan-kartu:hover, .tombol:active { transform: none; }
+    }
+
+    /* ── Ponsel ────────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero .bungkus, .booking-isi, .lokasi-isi { grid-template-columns: 1fr; }
+      .hero { padding: 40px 0 52px; }
+      .hero-gambar { max-width: 300px; margin-inline: auto; }
+      .bagian { padding: 52px 0; }
+    }
+    @media (max-width: 640px) {
+      .nav-tautan a:not(.tombol) { display: none; }
+      .form-dua { grid-template-columns: 1fr; }
+      .hero-aksi .tombol, .lokasi-aksi .tombol { flex: 1 1 auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="bungkus">
+      <a href="/" aria-label="Underrated Barbershop"><img src="assets/logo.png" alt="Underrated Barbershop" /></a>
+      <div class="nav-tautan">
+        <a href="#layanan">Layanan</a>
+        <a href="#lokasi">Lokasi</a>
+        <a href="#member">Member</a>
+        <a class="tombol tombol-utama" href="#booking">Booking</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="bungkus">
+      <div>
+        <h1>Rambut rapi, <span class="aksen">tanpa antre lama.</span></h1>
+        <p>Pilih layanan dan sebutkan kapan Anda ingin datang. Kami konfirmasi lewat WhatsApp.</p>
+        <div class="hero-aksi">
+          <a class="tombol tombol-utama" href="#booking">Booking</a>
+          <a class="tombol tombol-garis" href="#layanan">Lihat harga</a>
+        </div>
+      </div>
+      <img class="hero-gambar" src="assets/login-panel.webp" width="1200" height="1200"
+           alt="Identitas visual Underrated Barbershop" fetchpriority="high" />
+    </div>
+  </header>
+
+  <section class="bagian" id="layanan">
+    <div class="bungkus">
+      <h2>Layanan dan harga</h2>
+      <p class="pengantar">Harga tetap, tanpa biaya tambahan di kasir. Durasi di bawah adalah perkiraan waktu pengerjaan.</p>
+      <div class="layanan-grid" id="layananGrid">
+        <p class="pengantar" id="layananMuat" role="status">Memuat daftar layanan.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bagian booking" id="booking">
+    <div class="bungkus">
+      <h2>Atur kunjungan Anda</h2>
+      <p class="pengantar">Ini permintaan, bukan kursi yang langsung terkunci. Kami balas lewat WhatsApp untuk memastikan jamnya.</p>
+
+      <div class="booking-isi">
+        <div class="booking-cara">
+          <div class="cara-baris">
+            <span class="cara-nomor">1</span>
+            <span class="cara-teks">Isi <b>layanan, tanggal, dan jam</b> yang Anda inginkan.</span>
+          </div>
+          <div class="cara-baris">
+            <span class="cara-nomor">2</span>
+            <span class="cara-teks">Anda menerima <b>kode booking</b> di layar ini. Simpan atau sebutkan saat datang.</span>
+          </div>
+          <div class="cara-baris">
+            <span class="cara-nomor">3</span>
+            <span class="cara-teks">Kami <b>hubungi lewat WhatsApp</b> untuk memastikan jamnya sebelum Anda berangkat.</span>
+          </div>
+          <div class="cara-baris">
+            <span class="cara-nomor">4</span>
+            <span class="cara-teks">Datang, dicukur, selesai. Poin masuk otomatis bila nomor Anda sudah terdaftar.</span>
+          </div>
+        </div>
+
+        <form class="form-kartu" id="formBooking" novalidate>
+          <div class="pesan buruk" id="bookingPesan" role="status" aria-live="polite" hidden></div>
+
+          <div class="form-baris form-dua">
+            <div class="form-medan">
+              <label for="bkNama">Nama</label>
+              <input type="text" id="bkNama" maxlength="80" autocomplete="name" placeholder="Nama Anda" required disabled />
+            </div>
+            <div class="form-medan">
+              <label for="bkTelepon">Nomor WhatsApp</label>
+              <input type="tel" id="bkTelepon" autocomplete="tel" placeholder="0812xxxxxxx" required disabled />
+            </div>
+          </div>
+
+          <div class="form-baris">
+            <div class="form-medan">
+              <label for="bkLayanan">Layanan</label>
+              <select id="bkLayanan" required disabled><option>Memuat layanan...</option></select>
+            </div>
+          </div>
+
+          <div class="form-baris form-dua">
+            <div class="form-medan">
+              <label for="bkTanggal">Tanggal</label>
+              <input type="date" id="bkTanggal" required disabled />
+            </div>
+            <div class="form-medan">
+              <label for="bkJam">Jam</label>
+              <select id="bkJam" required aria-describedby="bkJamBantuan" disabled><option>Memuat jam...</option></select>
+              <div class="form-bantuan" id="bkJamBantuan"></div>
+            </div>
+          </div>
+
+          <div class="form-baris">
+            <div class="form-medan">
+              <label for="bkCatatan">Catatan (opsional)</label>
+              <textarea id="bkCatatan" maxlength="300" placeholder="Misalnya: minta capster yang sama seperti kunjungan lalu." disabled></textarea>
+            </div>
+          </div>
+
+          <button type="submit" class="tombol tombol-utama" id="bkKirim" disabled>Menyiapkan...</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="bagian" id="lokasi">
+    <div class="bungkus">
+      <h2>Tempat dan jam buka</h2>
+      <div class="lokasi-isi">
+        <div>
+          <p class="alamat" id="alamatToko">Memuat alamat.</p>
+          <div class="lokasi-aksi" id="lokasiAksi"></div>
+        </div>
+        <table class="jam-tabel">
+          <thead><tr><th>Hari</th><th style="text-align:right;">Jam buka</th></tr></thead>
+          <tbody id="jamTabel"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="bagian member" id="member">
+    <div class="bungkus">
+      <div class="member-isi">
+        <h2>Setiap kunjungan dihitung</h2>
+        <p class="pengantar" id="poinPengantar">
+          Cukup sebutkan nomor WhatsApp di kasir. Poin masuk sendiri, dan bisa ditukar jadi potongan harga.
+        </p>
+        <div class="hero-aksi">
+          <a class="tombol tombol-garis" href="#booking">Booking</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="kaki">
+    <div class="bungkus">
+      <img src="assets/logo.png" alt="Underrated Barbershop" />
+      <p id="kakiAlamat"></p>
+      <a href="/masuk">Masuk karyawan</a>
+    </div>
+  </footer>
+
+  <script src="vendor/supabase.js"></script>
+  <script>
+    /* Kunci publishable, sama dengan sb-app.js. Halaman ini sengaja tidak
+       memuat sb-app.js: berkas itu membawa gerbang login dan papan PIN kasir,
+       dan tidak ada alasan mengirimkan keduanya ke pengunjung biasa. */
+    const SB_URL = 'https://grzjfnqljjzjkvmgtohe.supabase.co';
+    const SB_KEY = 'sb_publishable_AzRYnslGL0V71KfhQ1tRBg_5wLjfQ6I';
+    const sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
+
+    const $ = function (id) { return document.getElementById(id); };
+    const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const WA_TOKO = '6281510474646';
+    const MIN_LEAD_MENIT = 30;
+    let ISI = null;
+    let sedangMuat = false;
+
+    function esc(t) {
+      return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function rupiah(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
+    function hariIni() { return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' }); }
+    function jamPendek(t) { return String(t || '').slice(0, 5); }
+
+    function menitSekarangJakarta() {
+      const bagian = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+      }).formatToParts(new Date());
+      const nilai = {};
+      bagian.forEach(function (x) { nilai[x.type] = x.value; });
+      return Number(nilai.hour) * 60 + Number(nilai.minute);
+    }
+
+    function buatSlotBooking(awal, akhir, durasi, minimum) {
+      const slot = [];
+      for (let menit = awal; menit + durasi <= akhir; menit += 30) {
+        if (menit < minimum) continue;
+        slot.push(String(Math.floor(menit / 60)).padStart(2, '0') + ':'
+          + String(menit % 60).padStart(2, '0'));
+      }
+      return slot;
+    }
+
+    function aturFormAktif(aktif) {
+      $('formBooking').querySelectorAll('input, select, textarea, button').forEach(function (el) {
+        el.disabled = !aktif;
+      });
+      $('bkKirim').textContent = aktif ? 'Kirim permintaan' : 'Menyiapkan...';
+    }
+
+    function tampilkanGagalMuat() {
+      const wrap = $('layananGrid');
+      wrap.innerHTML = '';
+      const teks = document.createElement('p');
+      teks.className = 'pengantar';
+      teks.id = 'layananMuat';
+      teks.setAttribute('role', 'alert');
+      teks.textContent = 'Daftar layanan sedang tidak dapat dimuat.';
+      const ulang = document.createElement('button');
+      ulang.type = 'button';
+      ulang.className = 'tombol tombol-garis';
+      ulang.textContent = 'Coba lagi';
+      ulang.addEventListener('click', muat);
+      wrap.append(teks, ulang);
+
+      $('alamatToko').textContent = 'Informasi lokasi sedang tidak dapat dimuat.';
+      $('lokasiAksi').innerHTML = '<a class="tombol tombol-garis" target="_blank" rel="noopener" href="https://wa.me/'
+        + WA_TOKO + '">Hubungi WhatsApp</a>';
+      $('jamTabel').innerHTML = '<tr><td colspan="2">Jam buka sedang tidak dapat dimuat.</td></tr>';
+      pesan('Data layanan dan jam buka gagal dimuat. Tekan Coba lagi sebelum mengirim booking.', false);
+      aturFormAktif(false);
+      $('bkKirim').textContent = 'Data belum tersedia';
+    }
+
+    /* ── Memuat isi toko ───────────────────────────────────────────────── */
+    async function muat() {
+      if (sedangMuat) return;
+      sedangMuat = true;
+      aturFormAktif(false);
+      $('bkKirim').textContent = 'Menyiapkan...';
+      try {
+        const res = await sb.rpc('public_landing');
+        if (res.error || !res.data) throw res.error || new Error('data_kosong');
+        ISI = res.data;
+        isiLayanan();
+        isiLokasi();
+        isiPoin();
+        siapkanForm();
+        pesan('', false);
+      } catch (error) {
+        console.error('Landing gagal dimuat:', error);
+        tampilkanGagalMuat();
+      } finally {
+        sedangMuat = false;
+      }
+    }
+
+    function isiLayanan() {
+      const wrap = $('layananGrid');
+      const daftar = ISI.layanan || [];
+      if (!daftar.length) { $('layananMuat').textContent = 'Daftar layanan belum tersedia.'; return; }
+      wrap.innerHTML = daftar.map(function (s) {
+        return '<article class="layanan-kartu muncul">'
+             + '<div><div class="layanan-nama">' + esc(s.nama) + '</div>'
+             + '<div class="layanan-menit">' + (s.menit ? s.menit + ' menit' : 'Durasi menyesuaikan') + '</div></div>'
+             + '<div class="layanan-harga">' + rupiah(s.harga) + '</div>'
+             + '</article>';
+      }).join('');
+      amati();
+    }
+
+    function isiLokasi() {
+      const o = ISI.outlet || {};
+      $('alamatToko').textContent = o.alamat || 'Alamat belum tersedia.';
+      $('kakiAlamat').textContent = (o.nama || 'Underrated Barbershop')
+        + (o.alamat ? ', ' + String(o.alamat).split(',').slice(-3).join(',').trim() : '');
+
+      const aksi = $('lokasiAksi');
+      aksi.innerHTML = '';
+      if (o.lat != null && o.lng != null) {
+        const a = document.createElement('a');
+        a.className = 'tombol tombol-utama';
+        a.href = 'https://www.google.com/maps/search/?api=1&query=' + o.lat + ',' + o.lng;
+        a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = 'Petunjuk arah';
+        aksi.appendChild(a);
+      }
+      if (o.telepon) {
+        const w = document.createElement('a');
+        w.className = 'tombol tombol-garis';
+        w.href = 'https://wa.me/' + o.telepon;
+        w.target = '_blank'; w.rel = 'noopener';
+        w.textContent = 'WhatsApp';
+        aksi.appendChild(w);
+      }
+
+      // hariIni() sudah dalam zona Jakarta; membacanya sebagai tengah malam
+      // setempat memberi hari yang benar tanpa memanggil Intl sama sekali.
+      const dowKini = new Date(hariIni() + 'T00:00:00').getDay();
+      $('jamTabel').innerHTML = (ISI.jam || []).map(function (j) {
+        const kini = Number(j.dow) === dowKini;
+        return '<tr' + (kini ? ' class="kini"' : '') + '>'
+             + '<td>' + HARI[j.dow] + '</td>'
+             + '<td>' + (j.libur ? 'Tutup' : jamPendek(j.buka) + ' sampai ' + jamPendek(j.tutup)) + '</td>'
+             + '</tr>';
+      }).join('');
+    }
+
+    function isiPoin() {
+      const p = ISI.poin;
+      if (!p || !p.aktif) return;
+      $('poinPengantar').textContent =
+        'Cukup sebutkan nomor WhatsApp di kasir. Setiap belanja ' + rupiah(p.rupiah_per_poin)
+        + ' menghasilkan 1 poin, dan tiap poin bernilai ' + rupiah(p.nilai_poin)
+        + ' saat ditukar jadi potongan harga.';
+    }
+
+    /* ── Formulir booking ──────────────────────────────────────────────── */
+    function siapkanForm() {
+      const sel = $('bkLayanan');
+      const layanan = ISI.layanan || [];
+      if (!layanan.length) {
+        sel.innerHTML = '<option value="">Belum ada layanan tersedia</option>';
+        pesan('Booking belum dapat dibuat karena layanan belum tersedia.', false);
+        aturFormAktif(false);
+        $('bkKirim').textContent = 'Layanan belum tersedia';
+        return;
+      }
+
+      aturFormAktif(true);
+      sel.innerHTML = layanan.map(function (s) {
+        return '<option value="' + esc(s.id) + '">' + esc(s.nama) + ' &middot; ' + rupiah(s.harga) + '</option>';
+      }).join('');
+
+      const tgl = $('bkTanggal');
+      const kini = hariIni();
+      const batas = new Date(Date.now() + 30 * 864e5).toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+      tgl.min = kini; tgl.max = batas; tgl.value = kini;
+      tgl.onchange = isiJam;
+      sel.onchange = isiJam;
+      isiJam();
+    }
+
+    /* Pilihan jam dibentuk dari jam operasional hari yang dipilih, bukan
+       kolom waktu bebas. Server tetap memeriksa ulang, tetapi menawarkan
+       jam yang mustahil hanya membuat orang ditolak setelah mengisi semuanya. */
+    function isiJam() {
+      const sel = $('bkJam');
+      const bantuan = $('bkJamBantuan');
+      const nilai = $('bkTanggal').value;
+      sel.innerHTML = '';
+      if (!nilai) {
+        bantuan.textContent = 'Pilih tanggal dulu.';
+        sel.disabled = true;
+        $('bkKirim').disabled = true;
+        return;
+      }
+
+      const dow = new Date(nilai + 'T00:00:00').getDay();
+      const j = (ISI.jam || []).find(function (x) { return Number(x.dow) === dow; });
+      if (!j || j.libur) {
+        bantuan.textContent = 'Toko tutup pada ' + HARI[dow] + '. Silakan pilih hari lain.';
+        sel.innerHTML = '<option value="">Tidak tersedia</option>';
+        sel.disabled = true;
+        $('bkKirim').disabled = true;
+        return;
+      }
+
+      const layanan = (ISI.layanan || []).find(function (x) { return x.id === $('bkLayanan').value; });
+      const durasi = Math.max(1, Number(layanan && layanan.menit) || 30);
+      const mulai = jamPendek(j.buka).split(':').map(Number);
+      const habis = jamPendek(j.tutup).split(':').map(Number);
+      const awal = mulai[0] * 60 + mulai[1];
+      const akhir = habis[0] * 60 + habis[1];
+      const minimum = nilai === hariIni() ? menitSekarangJakarta() + MIN_LEAD_MENIT : awal;
+      const opsi = buatSlotBooking(awal, akhir, durasi, minimum).map(function (t) {
+        return '<option value="' + t + '">' + t.replace(':', '.') + '</option>';
+      });
+
+      if (!opsi.length) {
+        sel.innerHTML = '<option value="">Tidak tersedia</option>';
+        sel.disabled = true;
+        $('bkKirim').disabled = true;
+        bantuan.textContent = nilai === hariIni()
+          ? 'Tidak ada waktu yang cukup untuk layanan ini hari ini. Pilih tanggal lain.'
+          : 'Durasi layanan ini tidak muat dalam jam operasional. Pilih layanan atau tanggal lain.';
+        return;
+      }
+
+      sel.disabled = false;
+      $('bkKirim').disabled = false;
+      sel.innerHTML = opsi.join('');
+      bantuan.textContent = HARI[dow] + ' buka ' + jamPendek(j.buka).replace(':', '.')
+        + ' sampai ' + jamPendek(j.tutup).replace(':', '.') + '. Durasi layanan sekitar '
+        + durasi + ' menit.';
+    }
+
+    function pesan(teks, baik) {
+      const el = $('bookingPesan');
+      if (!teks) { el.hidden = true; return; }
+      el.hidden = false;
+      el.className = 'pesan ' + (baik ? 'baik' : 'buruk');
+      el.textContent = teks;
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    function pesanAmanBooking(error) {
+      const teks = String(error && error.message || '');
+      const awalanAman = [
+        'Nama harus ', 'Nomor WhatsApp ', 'Tanggal booking ', 'Booking hanya ',
+        'Layanan tidak ', 'Toko tutup ', 'Jam booking ', 'Layanan ini harus ',
+        'Pilih jam ', 'Sudah ada ', 'Terlalu banyak ', 'Catatan maksimal ',
+        'Gagal membuat kode booking'
+      ];
+      return awalanAman.some(function (x) { return teks.startsWith(x); })
+        ? teks
+        : 'Permintaan belum berhasil dikirim. Periksa koneksi lalu coba lagi.';
+    }
+
+    $('formBooking').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const btn = $('bkKirim');
+      const nama = $('bkNama').value.trim();
+      const telp = $('bkTelepon').value.trim();
+      const jam = $('bkJam').value;
+      const layanan = $('bkLayanan').value;
+      const tanggal = $('bkTanggal').value;
+
+      if (nama.length < 2) { pesan('Nama minimal 2 huruf.', false); $('bkNama').focus(); return; }
+      if (telp.replace(/[^0-9]/g, '').length < 9) {
+        pesan('Nomor WhatsApp belum lengkap. Contoh: 081510474646', false); $('bkTelepon').focus(); return;
+      }
+      if (!layanan || !tanggal) { pesan('Pilih layanan dan tanggal kedatangan.', false); return; }
+      if (!jam) { pesan('Pilih jam kedatangan. Bila kosong, berarti toko tutup pada tanggal itu.', false); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Mengirim...';
+      try {
+        const res = await sb.rpc('create_booking', {
+          p_nama: nama,
+          p_telepon: telp,
+          p_service_id: layanan,
+          p_tanggal: tanggal,
+          p_jam: jam,
+          p_catatan: $('bkCatatan').value.trim() || null
+        });
+        if (res.error) { pesan(pesanAmanBooking(res.error), false); return; }
+
+        const b = Array.isArray(res.data) ? res.data[0] : res.data;
+        const el = $('bookingPesan');
+        el.hidden = false;
+        el.className = 'pesan baik';
+        el.innerHTML = 'Permintaan Anda tercatat. Kami hubungi lewat WhatsApp untuk memastikan jamnya.'
+          + '<span class="kode-booking">' + esc(b.kode) + '</span>';
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        $('formBooking').reset();
+        siapkanForm();
+      } catch (err) {
+        pesan('Gagal mengirim. Periksa koneksi lalu coba lagi.', false);
+      } finally {
+        btn.disabled = !ISI || !$('bkJam').value;
+        btn.textContent = 'Kirim permintaan';
+      }
+    });
+
+    /* IntersectionObserver, bukan penyimak gulir: penyimak gulir berjalan
+       pada tiap bingkai dan membuat ponsel tersendat tanpa memberi apa pun. */
+    function amati() {
+      const io = new IntersectionObserver(function (entri) {
+        entri.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('tampak'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.15 });
+      document.querySelectorAll('.muncul:not(.tampak)').forEach(function (el) { io.observe(el); });
+    }
+
+    muat();
+  </script>
+</body>
+</html>
