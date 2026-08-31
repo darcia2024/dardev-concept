@@ -217,8 +217,8 @@
     }
 
     .capster-avatar {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: var(--line);
       color: var(--fg);
@@ -226,6 +226,17 @@
       place-items: center;
       font-weight: 600;
       font-size: 12px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .capster-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+      border-radius: 50%;
     }
 
     .capster-card.is-selected .capster-avatar {
@@ -2332,13 +2343,24 @@
         return;
       }
 
+      const FOTO_KAPSTER = {
+        'cena': 'assets/cena.png',
+        'lukman': 'assets/lukman.png',
+        'wanda': 'assets/wanda.png'
+      };
+
       activeCapsters.forEach(c => {
         const isSel = selectedCapster && selectedCapster.id === c.id;
+        const key = (c.name || '').toLowerCase().trim();
+        const foto = FOTO_KAPSTER[key];
         const initial = c.name.charAt(0).toUpperCase();
+        const avatarHtml = foto
+          ? `<img src="${foto}" alt="${escapeHtml(c.name)}" loading="lazy" />`
+          : escapeHtml(initial);
         const card = document.createElement('div');
         card.className = `capster-card ${isSel ? 'is-selected' : ''}`;
         card.innerHTML = `
-          <div class="capster-avatar">${escapeHtml(initial)}</div>
+          <div class="capster-avatar">${avatarHtml}</div>
           <div class="capster-name">${escapeHtml(c.name)}</div>
         `;
         card.onclick = () => {

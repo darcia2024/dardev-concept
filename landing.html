@@ -207,6 +207,10 @@
       width: 100%; max-width: 148px; aspect-ratio: 4 / 5;
       border-radius: 14px; display: grid; place-items: center;
       background: var(--text); color: #FFFFFF; font-size: 40px; font-weight: var(--w-med);
+      overflow: hidden;
+    }
+    .avatar img {
+      width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; border-radius: 14px;
     }
     .kapster-nama { font-size: 16px; font-weight: var(--w-med); }
     .kapster-peran { font-size: 12.5px; color: var(--text-mid); margin-top: -6px; }
@@ -676,12 +680,23 @@
       }).join('');
     }
 
+    const FOTO_KAPSTER = {
+      'cena': 'assets/cena.png',
+      'lukman': 'assets/lukman.png',
+      'wanda': 'assets/wanda.png'
+    };
+
     function isiKapster() {
       const daftar = ISI.kapster || [];
       if (!daftar.length) { $('tim').hidden = true; return; }
       $('kapsterDaftar').innerHTML = daftar.map(function (nama) {
+        const key = String(nama || '').toLowerCase().trim();
+        const foto = FOTO_KAPSTER[key];
+        const avatarKonten = foto
+          ? '<img src="' + foto + '" alt="' + esc(nama) + '" loading="lazy" />'
+          : esc(String(nama).slice(0, 1).toUpperCase());
         return '<div class="kapster-orang muncul">'
-             + '<div class="avatar" aria-hidden="true">' + esc(String(nama).slice(0, 1).toUpperCase()) + '</div>'
+             + '<div class="avatar" aria-hidden="true">' + avatarKonten + '</div>'
              + '<div class="kapster-nama">' + esc(nama) + '</div>'
              + '<div class="kapster-peran">Capster</div>'
              + '<button type="button" class="pil pil-garis" data-kapster="' + esc(nama) + '">'
