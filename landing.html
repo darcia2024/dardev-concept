@@ -25,8 +25,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="preload" as="image" href="assets/hero-merek.jpg" fetchpriority="high" />
+  <link rel="preload" as="image" href="assets/logo.png" fetchpriority="high" />
   <link rel="stylesheet" href="theme.css" />
+  <noscript><style>.muncul { opacity: 1 !important; transform: none !important; }</style></noscript>
 
   <style>
     /* ══ HALAMAN DEPAN ═══════════════════════════════════════════════════════
@@ -110,36 +111,68 @@
     .nav .pil { min-height: 44px; padding: 10px 18px; font-size: 14px; }
 
     /* ── Hero ──────────────────────────────────────────────────────────
-       Gambarnya adalah lockup merek: wordmark berada tepat di tengahnya.
-       Karena itu teks judul berdiri DI BAWAH gambar, bukan ditumpuk di
-       atasnya. Menumpuknya berarti dua tulisan besar berebut tempat yang
-       sama, dan yang kalah selalu wordmark kliennya.
+       Satu pita lebar berisi kabut cat air, dan seluruh isi hero menumpuk di
+       tengahnya: logo, judul, kalimat pembuka, lalu ajakan. Latarnya digambar
+       peramban, bukan diunduh; berkas lama 211 KB hanya berisi wordmark di
+       atas gradasi, dan gradasi itu sendiri tidak perlu melintasi jaringan.
 
-       Gambarnya persegi 1400px. Dibiarkan penuh, ia setinggi lebar layar dan
-       menghabiskan seluruh viewport sebelum satu kalimat pun terbaca. Tinggi
-       dikunci lalu object-fit memotong atas dan bawah, menyisakan pita tengah
-       tempat wordmark berada. */
-    .hero-gambar {
-      display: block; width: 100%;
-      height: clamp(240px, 40vh, 440px);
-      object-fit: cover; object-position: center;
-      background: var(--surface-sunk);
+       Kabutnya adalah beberapa gumpalan radial beralfa rendah yang saling
+       menimpa lalu dikaburkan sekaligus. Bentuk bergeometri tegas, seperti
+       kerucut atau segitiga, akan terbaca sebagai grafik; gumpalan tak
+       beraturan terbaca sebagai sapuan warna, dan itu yang membuatnya tenang.
+
+       Alfa ditahan rendah dengan sengaja. Merah pekat di belakang tulisan akan
+       memaksa judulnya dibuat putih dan tebal supaya terbaca, dan huruf tebal
+       tidak dipakai di produk ini. */
+    .hero-panggung {
+      position: relative; overflow: hidden;
+      display: grid; place-items: center;
+      min-height: clamp(420px, 64vh, 580px);
+      padding: clamp(48px, 7vw, 84px) 0;
+      background: var(--surface);
     }
-    .hero-teks { padding-block: clamp(34px, 5vw, 54px); }
+    .hero-kabut {
+      position: absolute; inset: -14%; pointer-events: none; filter: blur(58px);
+      background:
+        radial-gradient(40% 50% at 12% 38%, rgba(190,0,0,.34), transparent 70%),
+        radial-gradient(32% 44% at 31% 84%, rgba(190,0,0,.20), transparent 72%),
+        radial-gradient(28% 42% at 47% 8%,  rgba(22,24,28,.24), transparent 74%),
+        radial-gradient(37% 48% at 79% 26%, rgba(205,104,66,.26), transparent 72%),
+        radial-gradient(30% 44% at 93% 76%, rgba(190,0,0,.17), transparent 74%),
+        radial-gradient(26% 38% at 64% 92%, rgba(22,24,28,.14), transparent 76%),
+        radial-gradient(22% 30% at 88% 6%,  rgba(205,104,66,.16), transparent 76%);
+    }
+    .hero-isi { position: relative; z-index: 1; text-align: center; }
+    /* Logo dijaga tetap kecil. Di rujukan klien, ia berdiri sebagai penanda
+       merek di atas judul, bukan sebagai judul itu sendiri. */
+    .hero-logo { width: min(52vw, 236px); height: auto; margin: 0 auto 30px; display: block; }
     .hero h1 {
-      margin: 0 0 10px; max-width: 24ch;
-      font-size: clamp(27px, 4vw, 42px); font-weight: var(--w-semi);
-      line-height: 1.12; letter-spacing: -0.01em; text-wrap: balance;
+      margin: 0 auto 16px; max-width: 20ch;
+      font-size: clamp(30px, 5.2vw, 54px); font-weight: var(--w-semi);
+      line-height: 1.08; letter-spacing: -0.015em; text-wrap: balance;
     }
-    .hero p { margin: 0 0 24px; max-width: 40ch; font-size: 16.5px; color: var(--text-mid); }
+    /* Bukan var(--text-mid). Di atas kabut merah termuda pun #565C66 hanya
+       mencapai 4,1 banding 1, di bawah ambang 4,5 yang dipakai seluruh produk
+       ini, dan di titik kabut terpekat ia turun ke 3,4. Nilai ini menahan 4,9
+       bahkan di titik tergelap pita, jadi ia tetap aman ke berapa pun teksnya
+       membungkus di lebar layar lain. */
+    .hero p { margin: 0 auto 28px; max-width: 52ch; font-size: 16.5px; color: #40454E; }
 
     /* ── Bagian ────────────────────────────────────────────────────────── */
     .bagian { padding: 56px 0; border-top: 1px solid var(--border-soft); }
     .bagian h2 {
       margin: 0 0 26px; font-size: clamp(21px, 2.8vw, 27px);
-      font-weight: var(--w-semi); line-height: 1.2;
+      font-weight: var(--w-semi); line-height: 1.2; text-align: center;
     }
-    .catatan-kecil { margin: 18px 0 0; font-size: 12px; color: var(--text-mid); line-height: 1.55; }
+    /* Rata tengah berlaku untuk tulisan yang dibaca, bukan untuk kendali yang
+       dipakai. Label formulir tetap rata kiri: mata menyusuri satu tepi lurus
+       saat mengisi, dan menengahkannya membuat tiap baris mulai di tempat
+       berbeda. */
+    .catatan-kecil {
+      margin: 18px auto 0; max-width: 56ch; font-size: 12px;
+      color: var(--text-mid); line-height: 1.55; text-align: center;
+    }
+    .panel .catatan-kecil, .medan .catatan-kecil { text-align: left; margin-inline: 0; }
 
     /* ── Layanan ───────────────────────────────────────────────────────
        Enam layanan dalam tiga kolom menghasilkan dua baris penuh. Empat kolom
@@ -147,9 +180,9 @@
        terbaca sebagai kesalahan tata letak, bukan sebagai ruang. */
     .layanan { display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); }
     .layanan-baris {
-      display: flex; flex-direction: column; gap: 3px;
+      display: flex; flex-direction: column; gap: 3px; align-items: center;
       padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--r-md);
-      transition: border-color .16s ease;
+      text-align: center; transition: border-color .16s ease;
     }
     .layanan-baris:hover { border-color: var(--brand-line); }
     .layanan-baris .nama { font-size: 16.5px; }
@@ -278,9 +311,41 @@
     .kode { display: block; margin-top: 7px; font-size: 24px; font-weight: var(--w-semi); letter-spacing: .06em; }
 
     /* ── Lokasi ────────────────────────────────────────────────────────── */
-    .lokasi-isi { display: grid; gap: 34px; grid-template-columns: 1.15fr .85fr; align-items: start; }
-    .alamat { margin: 0 0 18px; font-size: 15px; color: var(--text-mid); line-height: 1.7; max-width: 38ch; }
-    .lokasi-aksi { display: flex; flex-wrap: wrap; gap: 10px; }
+    .lokasi-isi { display: grid; gap: 26px; grid-template-columns: 1.3fr .7fr; align-items: start; }
+    .alamat {
+      margin: 0 auto 16px; font-size: 15px; color: var(--text-mid);
+      line-height: 1.7; max-width: 46ch; text-align: center;
+    }
+    .lokasi-aksi { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 26px; }
+
+    /* Peta disematkan, bukan sekadar ditautkan. Alamat ruko di BSD sulit
+       dibayangkan dari teks, dan pengunjung yang belum pernah ke sana ingin
+       tahu bentuk jalannya sebelum memutuskan berangkat. Tautan Petunjuk arah
+       tetap ada di atasnya untuk yang sudah siap jalan.
+
+       loading=lazy: peta hanya diambil ketika bagian ini mendekati layar,
+       jadi ia tidak ikut memperlambat pembukaan halaman. */
+    .peta {
+      position: relative; border: 1px solid var(--border); border-radius: var(--r-md);
+      overflow: hidden; background: var(--surface-sunk); aspect-ratio: 16 / 11;
+    }
+    .peta iframe { display: block; width: 100%; height: 100%; border: 0; }
+
+    /* Peta yang disematkan merampas gulir: di ponsel, jari yang menyapu ke
+       bawah menggeser peta dan halaman berhenti di situ, sementara di komputer
+       roda tetikus memperbesar peta alih-alih melanjutkan halaman. Tirai ini
+       menahan sentuhan sampai orangnya memang bermaksud memakai petanya. */
+    .peta-tirai {
+      position: absolute; inset: 0; width: 100%; padding: 0 0 16px;
+      display: flex; align-items: flex-end; justify-content: center;
+      border: 0; background: transparent; font: inherit; cursor: pointer;
+    }
+    .peta-tirai span {
+      padding: 8px 14px; border-radius: 999px; font-size: 12.5px;
+      background: rgba(255,255,255,.94); color: var(--text);
+      border: 1px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,.1);
+    }
+    .peta-tirai:hover span, .peta-tirai:focus-visible span { border-color: var(--brand-line); }
     .jam-baris {
       display: flex; justify-content: space-between; gap: 14px; padding: 9px 0;
       font-size: 14.5px; border-bottom: 1px solid var(--border-soft);
@@ -353,38 +418,41 @@
   </nav>
 
   <header class="hero">
-    <img class="hero-gambar" src="assets/hero-merek.jpg" width="1400" height="1400"
-         alt="Underrated Barbershop" fetchpriority="high" />
-    <div class="bungkus hero-teks">
-      <h1>Welcome to Underrated Barbershop</h1>
-      <p>Pilih layanan, tanggal, dan jam. Kami pastikan lewat WhatsApp.</p>
-      <a class="pil pil-isi" href="#booking">Booking</a>
+    <div class="hero-panggung">
+      <span class="hero-kabut" aria-hidden="true"></span>
+      <div class="bungkus hero-isi">
+        <img class="hero-logo muncul" src="assets/logo.png" width="880" height="184"
+             alt="Underrated Barbershop" fetchpriority="high" />
+        <h1 class="muncul">Welcome to Underrated Barbershop</h1>
+        <p class="muncul">Pilih layanan, tanggal, dan jam. Kami pastikan lewat WhatsApp.</p>
+        <a class="pil pil-isi muncul" href="#booking">Booking</a>
+      </div>
     </div>
   </header>
 
   <section class="bagian" id="layanan">
     <div class="bungkus">
-      <h2>Layanan</h2>
+      <h2 class="muncul">Layanan</h2>
       <div class="layanan" id="layananDaftar">
         <p class="catatan-kecil" id="layananMuat">Memuat daftar layanan.</p>
       </div>
-      <p class="catatan-kecil">Harga tetap, tanpa biaya tambahan di kasir.</p>
+      <p class="catatan-kecil muncul">Harga tetap, tanpa biaya tambahan di kasir.</p>
     </div>
   </section>
 
   <section class="bagian" id="tim">
     <div class="bungkus">
-      <h2>Our Capster</h2>
+      <h2 class="muncul">Our Capster</h2>
       <div class="kapster" id="kapsterDaftar"></div>
     </div>
   </section>
 
   <section class="bagian booking" id="booking">
     <div class="bungkus">
-      <h2>Booking</h2>
+      <h2 class="muncul">Booking</h2>
       <div class="booking-isi">
 
-        <div class="panel">
+        <div class="panel muncul">
           <div class="kal-atas">
             <span class="kal-bulan" id="kalBulan"></span>
             <div class="kal-nav">
@@ -395,7 +463,7 @@
           <div class="kal-grid" id="kalGrid"></div>
         </div>
 
-        <form class="panel" id="formBooking" novalidate>
+        <form class="panel muncul" id="formBooking" novalidate>
           <div class="pesan buruk" id="bookingPesan" hidden></div>
 
           <div class="medan">
@@ -438,15 +506,14 @@
 
   <section class="bagian" id="lokasi">
     <div class="bungkus">
-      <h2>Lokasi</h2>
+      <h2 class="muncul">Lokasi</h2>
+      <p class="alamat muncul" id="alamatToko">Memuat alamat.</p>
+      <div class="lokasi-aksi muncul" id="lokasiAksi"></div>
       <div class="lokasi-isi">
-        <div>
-          <p class="alamat" id="alamatToko">Memuat alamat.</p>
-          <div class="lokasi-aksi" id="lokasiAksi"></div>
-          <p class="catatan-kecil" id="poinCatatan"></p>
-        </div>
-        <div id="jamDaftar"></div>
+        <div class="peta muncul" id="petaBungkus" hidden></div>
+        <div class="muncul" id="jamDaftar"></div>
       </div>
+      <p class="catatan-kecil muncul" id="poinCatatan"></p>
     </div>
   </section>
 
@@ -627,6 +694,33 @@
         a.textContent = 'Petunjuk arah';
         aksi.appendChild(a);
       }
+      /* Koordinatnya dibaca dari outlet, bukan ditulis tetap. Pemilik dapat
+         memindahkan titiknya sendiri lewat layar master data, dan peta di sini
+         ikut berpindah tanpa halaman ini perlu disentuh. */
+      const peta = $('petaBungkus');
+      if (o.lat != null && o.lng != null) {
+        const f = document.createElement('iframe');
+        /* www.google.com, bukan maps.google.com, dan koma dibiarkan apa adanya:
+           itu bentuk yang dipakai tautan bagikan Google sendiri. Bentuk lain
+           sempat gagal memuat ubin peta dan hanya menyisakan kotak abu. */
+        f.src = 'https://www.google.com/maps?q=' + o.lat + ',' + o.lng
+              + '&z=17&hl=id&output=embed';
+        f.loading = 'lazy';
+        f.referrerPolicy = 'no-referrer-when-downgrade';
+        f.title = 'Peta lokasi ' + (o.nama || 'Underrated Barbershop');
+        f.setAttribute('allowfullscreen', '');
+        const tirai = document.createElement('button');
+        tirai.type = 'button';
+        tirai.className = 'peta-tirai';
+        tirai.innerHTML = '<span>Ketuk untuk menggeser peta</span>';
+        tirai.addEventListener('click', function () { tirai.remove(); f.focus(); });
+
+        peta.innerHTML = '';
+        peta.appendChild(f);
+        peta.appendChild(tirai);
+        peta.hidden = false;
+      }
+
       if (o.telepon) {
         const w = document.createElement('a');
         w.className = 'pil pil-garis';
@@ -876,6 +970,11 @@
       document.querySelectorAll('.muncul:not(.tampak)').forEach(function (el) { io.observe(el); });
     }
 
+    /* Dipanggil sebelum data diminta, dan sekali lagi setelah data digambar
+       untuk baris yang baru disisipkan. Kalau ia hanya menunggu data, satu
+       kegagalan jaringan meninggalkan seluruh halaman tak terlihat, bukan
+       sekadar tanpa daftar layanan. */
+    amati();
     muat();
   </script>
 </body>
