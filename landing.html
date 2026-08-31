@@ -330,6 +330,16 @@
       overflow: hidden; background: var(--surface-sunk); aspect-ratio: 16 / 11;
     }
     .peta iframe { display: block; width: 100%; height: 100%; border: 0; }
+    /* Karena dimuat malas, petanya baru diambil ketika bagian ini mendekati
+       layar dan butuh beberapa detik untuk tergambar. Tanpa kalimat ini yang
+       terlihat hanyalah kotak abu kosong, dan kotak abu kosong terbaca sebagai
+       rusak. Kalimatnya dicabut pada peristiwa load iframe: menimpanya dengan
+       urutan gambar tidak cukup, sebab elemen berposisi absolut selalu digambar
+       lebih akhir daripada iframe yang mengalir biasa. */
+    .peta-memuat {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      font-size: 13px; color: var(--text-mid);
+    }
 
     /* Peta yang disematkan merampas gulir: di ponsel, jari yang menyapu ke
        bawah menggeser peta dan halaman berhenti di situ, sementara di komputer
@@ -640,6 +650,20 @@
         try { fn(); } catch (e) { console.error('Bagian halaman gagal dirender:', e); }
       });
       amati();
+
+      /* Daftar layanan, kapster, dan jam baru masuk sesudah data tiba, dan
+         semuanya berada di atas bagian Lokasi. Orang yang membuka
+         /#lokasi langsung akan mendarat di tempat bagian itu berada sebelum
+         isinya masuk, lalu terdorong ke bawah. Jangkarnya diluruskan ulang
+         sekali setelah semuanya tergambar. */
+      if (/^#[A-Za-z][\w-]*$/.test(location.hash)) {
+        const sasaran = document.getElementById(location.hash.slice(1));
+        if (sasaran) {
+          requestAnimationFrame(function () {
+            sasaran.scrollIntoView({ block: 'start' });
+          });
+        }
+      }
     }
 
     function isiLayanan() {
@@ -715,7 +739,13 @@
         tirai.innerHTML = '<span>Ketuk untuk menggeser peta</span>';
         tirai.addEventListener('click', function () { tirai.remove(); f.focus(); });
 
+        const memuat = document.createElement('span');
+        memuat.className = 'peta-memuat';
+        memuat.textContent = 'Memuat peta.';
+        f.addEventListener('load', function () { memuat.remove(); });
+
         peta.innerHTML = '';
+        peta.appendChild(memuat);
         peta.appendChild(f);
         peta.appendChild(tirai);
         peta.hidden = false;
