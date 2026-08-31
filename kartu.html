@@ -486,7 +486,8 @@
         const butuh = Number(m.poin_ke_tier_berikut);
         const total = Number(m.lifetime_points) + butuh;
         $('progressFill').style.width = Math.min(100, (m.lifetime_points / total) * 100) + '%';
-        $('progressText').textContent = `${butuh} poin lagi menuju ${m.tier_berikut}`;
+        $('progressText').textContent =
+          `${butuh.toLocaleString('id-ID')} poin lagi menuju ${m.tier_berikut}`;
       } else {
         $('progressFill').style.width = '100%';
         $('progressText').textContent = 'Anda sudah di level tertinggi';
@@ -510,7 +511,7 @@
           <div class="rw-main">
             <div class="rw-name">${esc(r.name)}</div>
             ${r.description ? `<div class="rw-desc">${esc(r.description)}</div>` : ''}
-            <div class="rw-cost">${r.point_cost} poin${r.stock != null ? ` · sisa ${r.stock}` : ''}</div>
+            <div class="rw-cost">${Number(r.point_cost).toLocaleString('id-ID')} poin${r.stock != null ? ` · sisa ${r.stock}` : ''}</div>
           </div>
           <button class="btn-rw" data-reward="${esc(r.id)}" data-nama="${esc(r.name)}"
                   data-poin="${r.point_cost}" ${bisa ? '' : 'disabled'}>${alasan}</button>

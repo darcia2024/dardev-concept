@@ -1950,9 +1950,10 @@
       const box = document.getElementById('rasioRingkas');
       if (rasioData) {
         box.innerHTML = ''
-          + 'Setiap <strong>' + formatRupiah(rasioData.rupiah_per_point) + '</strong> belanja menghasilkan <strong>1 poin</strong>. '
+          + 'Poin didapat <strong>' + Number(rasioData.earn_percent) + '%</strong> dari nilai yang dibayar, '
+          + 'dikali pengali level. '
           + 'Saat ditukar, 1 poin bernilai <strong>' + formatRupiah(rasioData.rupiah_per_point_redeem) + '</strong>.<br />'
-          + 'Minimal tukar <strong>' + rasioData.min_redeem_points + ' poin</strong>, '
+          + 'Minimal tukar <strong>' + Number(rasioData.min_redeem_points).toLocaleString('id-ID') + ' poin</strong>, '
           + 'maksimal <strong>' + Number(rasioData.max_redeem_percent) + '%</strong> dari tagihan. '
           + (rasioData.is_active ? '' : '<span style="color:var(--clay);">Mesin poin sedang NONAKTIF.</span>');
       }
@@ -1961,7 +1962,7 @@
         return ''
           + '<tr>'
           + '<td><strong>' + escapeHtml(t.tier) + '</strong></td>'
-          + '<td style="font-family:var(--mono);">' + t.min_lifetime_points + '</td>'
+          + '<td style="font-family:var(--mono);">' + Number(t.min_lifetime_points).toLocaleString('id-ID') + '</td>'
           + '<td style="font-family:var(--mono);">&times;' + Number(t.earn_multiplier).toFixed(2) + '</td>'
           + '<td style="font-size:12px; color:var(--fg-dim);">' + escapeHtml(t.note || '') + '</td>'
           + '<td>' + (TIER_URUT.indexOf(t.tier) === 0
@@ -1973,8 +1974,8 @@
 
     document.getElementById('btnUbahRasio').addEventListener('click', function () {
       const kolom = [
-        { key: 'per', label: 'Rupiah belanja untuk 1 poin', tipe: 'angka', min: 1,
-          hint: 'Contoh 10000 berarti belanja Rp 10.000 menghasilkan 1 poin.' },
+        { key: 'persen', label: 'Poin didapat (% dari nilai dibayar)', tipe: 'angka', min: 0.1, langkah: '0.1',
+          hint: 'Dihitung dari nilai setelah potongan poin, lalu dikali pengali level, lalu dibulatkan ke bawah.' },
         { key: 'tukar', label: 'Nilai 1 poin saat ditukar (Rp)', tipe: 'angka', min: 1 },
         { key: 'min', label: 'Minimal poin untuk menukar', tipe: 'angka', min: 0 },
         { key: 'maks', label: 'Maksimal potongan (% dari tagihan)', tipe: 'angka', min: 1, langkah: '0.1',
@@ -1986,14 +1987,14 @@
         sub: 'Berlaku untuk transaksi berikutnya. Poin yang sudah diberikan tidak dihitung ulang.',
         kolom: kolom,
         nilai: {
-          per: rasioData.rupiah_per_point, tukar: rasioData.rupiah_per_point_redeem,
+          persen: Number(rasioData.earn_percent), tukar: rasioData.rupiah_per_point_redeem,
           min: rasioData.min_redeem_points, maks: Number(rasioData.max_redeem_percent),
           aktif: rasioData.is_active
         },
         onSimpan: async function () {
           const d = edAmbil(kolom);
           const res = await sb.rpc('update_loyalty_settings', {
-            p_rupiah_per_point: d.per, p_rupiah_per_point_redeem: d.tukar,
+            p_earn_percent: d.persen, p_rupiah_per_point_redeem: d.tukar,
             p_min_redeem_points: d.min, p_max_redeem_percent: d.maks, p_is_active: d.aktif
           });
           if (!res.error) await loadPoinTier();
@@ -2704,9 +2705,13 @@
         payBreakdown[method].sum += amt;
         payBreakdown[method].count += 1;
 
+        /* R-05: dasar bagi hasil capster adalah harga normal sebelum potongan,
+           bukan nilai yang dibayar. Seluruh potongan ditanggung pemilik.
+           Sebelumnya kolom ini memakai final_amount, sehingga capster yang
+           pelanggannya menukar poin diam-diam ikut menanggung potongannya. */
         const capName = tx.capster_name || 'Tidak Ditentukan';
         if (!capsterBreakdown[capName]) capsterBreakdown[capName] = { omzet: 0, heads: 0 };
-        capsterBreakdown[capName].omzet += amt;
+        capsterBreakdown[capName].omzet += Number(tx.subtotal) || amt;
         capsterBreakdown[capName].heads += (tx.services ? tx.services.length : 1);
       });
 

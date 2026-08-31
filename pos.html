@@ -3140,7 +3140,10 @@
       }
       box.hidden = false;
       document.getElementById('lblPointBalance').textContent =
-        `Saldo ${memberAktif.points_balance} poin · 1 poin = ${formatRupiah(loyalty.rupiah_per_point_redeem)}`;
+        /* Sejak satuannya berubah, saldo lazim berangka lima sampai enam
+           digit. Tanpa pemisah ribuan, 73099 dan 7309 nyaris tidak terbedakan
+           oleh kasir yang sedang buru-buru. */
+        `Saldo ${Number(memberAktif.points_balance).toLocaleString('id-ID')} poin · 1 poin = ${formatRupiah(loyalty.rupiah_per_point_redeem)}`;
       hitungDiskon();
     }
 
@@ -3151,8 +3154,8 @@
       let pesan = '';
 
       if (poin > 0) {
-        if (poin > memberAktif.points_balance) pesan = `Poin tidak cukup. Saldo ${memberAktif.points_balance}.`;
-        else if (poin < loyalty.min_redeem_points) pesan = `Penukaran minimal ${loyalty.min_redeem_points} poin.`;
+        if (poin > memberAktif.points_balance) pesan = `Poin tidak cukup. Saldo ${Number(memberAktif.points_balance).toLocaleString('id-ID')}.`;
+        else if (poin < loyalty.min_redeem_points) pesan = `Penukaran minimal ${Number(loyalty.min_redeem_points).toLocaleString('id-ID')} poin.`;
         else if (poin * loyalty.rupiah_per_point_redeem > subtotal * loyalty.max_redeem_percent / 100)
           pesan = `Diskon poin maksimal ${loyalty.max_redeem_percent}% dari subtotal.`;
       }

@@ -889,9 +889,13 @@
 
       const p = ISI.poin;
       if (p && p.aktif) {
+        /* Dinyatakan sebagai persen, bukan sebagai rasio rupiah per poin.
+           Dengan 1 poin bernilai Rp 1, kalimat lama berbunyi "tiap poin
+           bernilai Rp 1" dan membuat programnya terdengar tidak berharga,
+           padahal justru naik dari 5 persen ke 7 persen. */
         $('poinCatatan').textContent = 'Sebutkan nomor WhatsApp di kasir dan poin masuk sendiri. '
-          + 'Setiap belanja ' + rupiah(p.rupiah_per_poin) + ' menghasilkan 1 poin, tiap poin '
-          + 'bernilai ' + rupiah(p.nilai_poin) + ' saat ditukar.';
+          + 'Setiap kunjungan mengembalikan ' + Number(p.persen_poin) + '% dari yang Anda bayar '
+          + 'sebagai poin, dan poin itu langsung dapat dipakai memotong tagihan berikutnya.';
       }
     }
 
