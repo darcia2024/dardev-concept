@@ -209,6 +209,26 @@
     .cuti-form input[type="date"] { font-size: 14px; padding: 11px 8px; }
     .cuti-form textarea { resize: vertical; min-height: 76px; line-height: 1.5; }
     .cuti-form input:focus, .cuti-form textarea:focus { border-color: var(--brand-line); }
+    /* Lampiran memakai tombol sendiri, bukan input berkas telanjang.
+       Tampilan bawaan input file berbeda-beda di tiap peramban dan tidak
+       pernah menyatu dengan formulir di sekitarnya. */
+    .cuti-lampir {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .cuti-lampir button {
+      background: var(--surface-sunk); border: 1px dashed var(--border);
+      border-radius: var(--r-sm); color: var(--fg-mid);
+      font-family: inherit; font-size: 13.5px; padding: 11px 14px; cursor: pointer;
+      transition: border-color .15s ease, color .15s ease;
+    }
+    .cuti-lampir button:hover { border-color: var(--brand-line); color: var(--brand-deep); }
+    .cuti-lampir .nama {
+      font-size: 12px; color: var(--fg-dim); overflow-wrap: anywhere; min-width: 0; flex: 1;
+    }
+    .cuti-lampir .buang {
+      border: none; background: none; color: var(--brand); padding: 4px 6px;
+      font-size: 18px; line-height: 1; cursor: pointer;
+    }
     .cuti-msg { font-size: 12.5px; line-height: 1.45; border-radius: var(--r-sm); padding: 9px 11px; }
     .cuti-msg.is-ok  { color: var(--ok);         background: var(--ok-wash);    border: 1px solid rgba(15, 115, 85, 0.28); }
     .cuti-msg.is-bad { color: var(--brand-deep); background: var(--brand-wash); border: 1px solid var(--brand-line); }
@@ -322,6 +342,21 @@
           <div class="cuti-lbl">Keterangan</div>
           <textarea id="cutiKeterangan" maxlength="300"
                     placeholder="Tulis alasannya di sini, misalnya: ada acara keluarga di luar kota."></textarea>
+        </div>
+
+        <div>
+          <div class="cuti-lbl">Lampiran <span style="text-transform:none; letter-spacing:0;">(opsional)</span></div>
+          <div class="cuti-lampir">
+            <input type="file" id="cutiBerkas" accept="image/*" hidden />
+            <button type="button" id="btnPilihLampiran">Pilih foto surat</button>
+            <span class="nama" id="cutiNamaBerkas">Belum ada berkas dipilih</span>
+            <button type="button" class="buang" id="btnBuangLampiran" hidden
+                    aria-label="Buang lampiran">&times;</button>
+          </div>
+          <div style="font-size:11.5px; color:var(--fg-dim); margin-top:6px; line-height:1.45;">
+            Foto surat dokter atau bukti lain. Hanya gambar, maksimal 3 MB.
+            Yang bisa membukanya cuma Anda dan owner.
+          </div>
         </div>
 
         <div class="cuti-msg is-bad" id="cutiMsg" hidden></div>
@@ -639,6 +674,45 @@
         function (b) { b.classList.toggle('pilih', b.dataset.jenis === nama); });
     }
 
+    /* Lampiran ditaruh di folder yang sama dengan selfie absensi: kebijakan
+       Storage hanya memeriksa segmen pertama jalur, yaitu id capster, sehingga
+       subfolder izin/ tidak memerlukan bucket maupun kebijakan baru. */
+    async function unggahLampiran(file) {
+      const ext = (file.type === 'image/png') ? 'png'
+                : (file.type === 'image/webp') ? 'webp' : 'jpg';
+      const acak = Math.random().toString(36).slice(2, 8);
+      const path = meCapster.id + '/izin/' + sbJakartaToday() + '-' + acak + '.' + ext;
+      const res = await sb.storage.from('absensi').upload(path, file, {
+        contentType: file.type || 'image/jpeg',
+        upsert: false
+      });
+      if (res.error) throw res.error;
+      return path;
+    }
+
+    function setLampiran(file) {
+      $('cutiNamaBerkas').textContent = file ? file.name : 'Belum ada berkas dipilih';
+      $('btnBuangLampiran').hidden = !file;
+      if (!file) $('cutiBerkas').value = '';
+    }
+
+    $('btnPilihLampiran').addEventListener('click', function () { $('cutiBerkas').click(); });
+    $('btnBuangLampiran').addEventListener('click', function () { setLampiran(null); });
+    $('cutiBerkas').addEventListener('change', function () {
+      const f = this.files && this.files[0];
+      if (!f) { setLampiran(null); return; }
+      // Bucket menolak di atas 3 MB, tetapi penolakan itu baru terjadi setelah
+      // berkas terkirim penuh — di jaringan outlet itu berarti menunggu lama
+      // untuk sebuah kegagalan yang sudah bisa diketahui sejak awal.
+      if (f.size > 3 * 1024 * 1024) {
+        pesanCuti('Berkas ' + Math.round(f.size / 1048576 * 10) / 10 + ' MB, melebihi batas 3 MB. Pilih foto yang lebih kecil.', false);
+        setLampiran(null);
+        return;
+      }
+      pesanCuti('');
+      setLampiran(f);
+    });
+
     function bukaFormCuti(buka) {
       $('cutiForm').classList.toggle('buka', buka);
       $('btnAjukanCuti').textContent = buka ? 'Tutup' : '+ Ajukan';
@@ -648,6 +722,7 @@
       $('cutiMulai').value = hariIni;
       $('cutiSelesai').value = hariIni;
       $('cutiKeterangan').value = '';
+      setLampiran(null);
       pesanCuti('');
       pilihJenis('Izin');
     }
@@ -685,8 +760,25 @@
       btn.disabled = true;
       btn.textContent = 'Mengirim…';
       try {
+        // Berkas diunggah lebih dulu. Bila unggahannya gagal, pengajuan tidak
+        // dikirim sama sekali — lebih baik capster mencoba ulang daripada
+        // punya pengajuan yang menyebut lampiran yang tidak pernah sampai.
+        let lampiran = null;
+        const berkas = $('cutiBerkas').files && $('cutiBerkas').files[0];
+        if (berkas) {
+          btn.textContent = 'Mengunggah lampiran…';
+          try {
+            lampiran = await unggahLampiran(berkas);
+          } catch (e) {
+            pesanCuti('Lampiran gagal diunggah: ' + (e.message || e) + '. Pengajuan belum dikirim.', false);
+            return;
+          }
+          btn.textContent = 'Mengirim…';
+        }
+
         const res = await sb.rpc('request_leave', {
-          p_kind: jenisCuti, p_mulai: mulai, p_selesai: selesai, p_alasan: keterangan
+          p_kind: jenisCuti, p_mulai: mulai, p_selesai: selesai,
+          p_alasan: keterangan, p_lampiran: lampiran
         });
         if (res.error) { pesanCuti(res.error.message, false); return; }
         const r = Array.isArray(res.data) ? res.data[0] : res.data;

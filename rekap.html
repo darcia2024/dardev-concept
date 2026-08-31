@@ -251,6 +251,36 @@
        sehingga satu kontrol di paling atas akan menggerakkan tabel yang tidak
        terlihat dari situ. Karena itu kontrolnya diulang di tiap panel dan
        diikat ke satu keadaan — mengubah salah satu memperbarui ketiganya. */
+    /* Kalender tim: satu baris per karyawan, satu kotak per tanggal.
+       Sengaja bukan grid kalender bergaya bulanan — yang dicari owner adalah
+       membandingkan orang, bukan mencari tanggal, dan perbandingan itu paling
+       terbaca bila tiap orang punya barisnya sendiri. */
+    .kal-scroll { overflow-x: auto; padding-bottom: 6px; }
+    .kal-grid { display: grid; gap: 3px; min-width: max-content; }
+    .kal-nama {
+      font-size: 12.5px; font-weight: 600; padding-right: 12px;
+      white-space: nowrap; position: sticky; left: 0;
+      background: var(--surface); z-index: 1;
+    }
+    .kal-hari {
+      width: 26px; height: 26px; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10.5px; font-family: var(--mono);
+      border: 1px solid var(--border); background: var(--surface-sunk);
+      color: var(--fg-dim); cursor: default;
+    }
+    .kal-hari.hadir     { background: var(--sage-wash);  border-color: var(--sage);  color: var(--sage); }
+    .kal-hari.terlambat { background: var(--brass-wash); border-color: var(--brass); color: var(--brass); }
+    .kal-hari.Izin,
+    .kal-hari.Libur     { background: var(--surface); border-style: dashed; border-color: var(--fg-dim); color: var(--fg-mid); }
+    .kal-hari.mangkir   { background: var(--brand-wash); border-color: var(--brand); color: var(--brand); font-weight: 600; }
+    .kal-hari.tutup     { background: repeating-linear-gradient(45deg, var(--surface-sunk), var(--surface-sunk) 3px, var(--surface) 3px, var(--surface) 6px); color: transparent; }
+    .kal-hari.belum     { opacity: .38; }
+    .kal-kepala { font-size: 9.5px; color: var(--fg-dim); text-align: center; font-family: var(--mono); }
+    .kal-legenda { display: flex; gap: 14px; flex-wrap: wrap; padding: 12px 2px 2px; font-size: 11.5px; color: var(--fg-dim); }
+    .kal-legenda span { display: flex; align-items: center; gap: 6px; }
+    .kal-legenda i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid; display: inline-block; }
+
     /* Papan angka ringkas di kepala panel audit */
     .poin-stat {
       display: grid; gap: 10px; padding: 2px 2px 16px;
@@ -811,13 +841,42 @@
         <table class="tx-table" id="absenTable">
           <thead>
             <tr>
-              <th>Karyawan</th><th>Hadir</th><th>Terlambat</th><th>Jam Kerja</th>
-              <th>Disetujui</th><th>Menunggu</th>
+              <th>Karyawan</th><th>Hadir</th><th>Terlambat</th><th>Tidak Masuk</th>
+              <th>Jam Kerja</th><th>Disetujui</th><th>Menunggu</th>
             </tr>
           </thead>
           <tbody id="absenTableBody"></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- Kalender Tim -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Kalender Tim</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);" id="kalSub">
+            Siapa hadir, izin, dan tidak masuk pada tiap tanggal
+          </p>
+        </div>
+        <div class="bulan-pilih">
+          <input type="month" class="inp-bulan" aria-label="Pilih bulan kalender tim" />
+        </div>
+      </div>
+      <div class="kal-scroll">
+        <div class="kal-grid" id="kalGrid"></div>
+      </div>
+      <div class="kal-legenda">
+        <span><i style="background:var(--sage-wash); border-color:var(--sage);"></i> Hadir</span>
+        <span><i style="background:var(--brass-wash); border-color:var(--brass);"></i> Terlambat</span>
+        <span><i style="background:var(--surface); border-style:dashed; border-color:var(--fg-dim);"></i> Izin / Libur disetujui</span>
+        <span><i style="background:var(--brand-wash); border-color:var(--brand);"></i> Tidak masuk</span>
+        <span><i style="background:var(--surface-sunk); border-color:var(--border); opacity:.38;"></i> Belum lewat</span>
+      </div>
+      <p style="font-size:11.5px; color:var(--fg-dim); padding:10px 2px 2px; line-height:1.55;">
+        Hari ini belum dihitung &mdash; selama harinya masih berjalan, orang yang belum absen
+        belum tentu tidak masuk. Hari sebelum seorang karyawan terdaftar juga dilewati.
+      </p>
     </div>
 
     <!-- Daftar member -->
@@ -1306,7 +1365,7 @@
       pasangPemilihBulan();
       pasangPemilihPoin();
       await loadAuditPoin();
-      await loadAbsensi();
+      await Promise.all([loadAbsensi(), loadKalender()]);
       await muatArsip();
       await muatKelolaAkun();
       await muatAbsenBaris();
@@ -2233,8 +2292,73 @@
       set('fotoSub', nb + '. Tautan foto berumur pendek dan dibuat ulang tiap halaman dibuka.');
     }
 
+    /* =========================================================================
+       KALENDER TIM
+       ========================================================================= */
+    const KAL_LABEL = {
+      hadir: 'Hadir', terlambat: 'Terlambat', mangkir: 'Tidak masuk',
+      tutup: 'Toko tutup', belum: 'Belum lewat'
+    };
+
+    async function loadKalender() {
+      const grid = document.getElementById('kalGrid');
+      const res = await sb.rpc('attendance_calendar', { p_bulan: bulanKeTanggal(bulanAbsensi) });
+      document.getElementById('kalSub').textContent =
+        namaBulan(bulanAbsensi) + ' — siapa hadir, izin, dan tidak masuk pada tiap tanggal';
+
+      if (res.error) {
+        grid.innerHTML = '<div style="padding:16px; color:var(--clay); font-size:13px;">Gagal memuat: '
+          + escapeHtml(res.error.message) + '</div>';
+        grid.style.gridTemplateColumns = '1fr';
+        return;
+      }
+      const rows = res.data || [];
+      if (!rows.length) {
+        grid.innerHTML = '<div style="padding:16px; color:var(--fg-dim); font-size:13px;">Belum ada karyawan aktif.</div>';
+        grid.style.gridTemplateColumns = '1fr';
+        return;
+      }
+
+      const hari = [];
+      rows.forEach(function (r) { if (hari.indexOf(r.tanggal) === -1) hari.push(r.tanggal); });
+      hari.sort();
+      const orang = [];
+      rows.forEach(function (r) {
+        if (!orang.some(function (o) { return o.id === r.capster_id; })) {
+          orang.push({ id: r.capster_id, nama: r.nama });
+        }
+      });
+
+      grid.style.gridTemplateColumns = 'auto repeat(' + hari.length + ', 26px)';
+      const potong = [];
+
+      // Baris kepala: tanggal
+      potong.push('<div></div>');
+      hari.forEach(function (t) {
+        potong.push('<div class="kal-kepala">' + Number(t.slice(8, 10)) + '</div>');
+      });
+
+      orang.forEach(function (o) {
+        potong.push('<div class="kal-nama">' + escapeHtml(o.nama) + '</div>');
+        hari.forEach(function (t) {
+          const sel = rows.find(function (r) { return r.capster_id === o.id && r.tanggal === t; });
+          const st = sel ? sel.status : 'belum';
+          const judul = o.nama + ' — ' + t + ': ' + (KAL_LABEL[st] || st)
+            + (sel && sel.catatan ? ' (' + sel.catatan + ')' : '')
+            + (sel && sel.menit_telat ? ' · ' + sel.menit_telat + ' menit' : '');
+          const isi = st === 'hadir' ? '·'
+                    : st === 'terlambat' ? '!'
+                    : st === 'mangkir' ? '×'
+                    : (st === 'Izin' || st === 'Libur') ? 'i' : '';
+          potong.push('<div class="kal-hari ' + escapeHtml(st) + '" title="'
+            + escapeHtml(judul) + '">' + isi + '</div>');
+        });
+      });
+      grid.innerHTML = potong.join('');
+    }
+
     async function muatSemuaAbsensi() {
-      await Promise.all([loadAbsensi(), muatAbsenBaris()]);
+      await Promise.all([loadAbsensi(), muatAbsenBaris(), loadKalender()]);
       // Foto tidak ikut dimuat ulang: tiap gambar butuh tautan bertanda
       // tersendiri, dan owner memintanya sendiri lewat tombol.
       const grid = document.getElementById('fotoGrid');
@@ -2287,10 +2411,10 @@
         if (!rows.length) { alert('Tidak ada karyawan aktif untuk diekspor.'); return; }
         unduhCsv(
           'Rekap-Absensi_' + bulanAbsensi + '.csv',
-          ['Karyawan', 'Hari Hadir', 'Hari Terlambat', 'Jam Kerja', 'Total Menit Kerja',
-           'Izin Disetujui', 'Izin Menunggu'],
+          ['Karyawan', 'Hari Hadir', 'Hari Terlambat', 'Hari Tidak Masuk', 'Jam Kerja',
+           'Total Menit Kerja', 'Izin Disetujui', 'Izin Menunggu'],
           rows.map(function (r) {
-            return [r.nama, r.hadir, r.terlambat, jamMenit(r.total_menit_kerja),
+            return [r.nama, r.hadir, r.terlambat, r.tidak_masuk, jamMenit(r.total_menit_kerja),
                     r.total_menit_kerja, r.cuti_disetujui, r.cuti_menunggu];
           })
         );
@@ -2331,13 +2455,13 @@
       const res = await sb.rpc('attendance_report', { p_bulan: bulanKeTanggal(bulanAbsensi) });
       const tb = document.getElementById('absenTableBody');
       if (res.error) {
-        tb.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--clay); font-size:13px;">Gagal memuat: '
+        tb.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--clay); font-size:13px;">Gagal memuat: '
           + escapeHtml(res.error.message) + '</td></tr>';
         return;
       }
       const rows = res.data || [];
       if (!rows.length) {
-        tb.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:22px; color:var(--fg-dim); font-size:13px;">Belum ada karyawan aktif.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:22px; color:var(--fg-dim); font-size:13px;">Belum ada karyawan aktif.</td></tr>';
         return;
       }
       tb.innerHTML = rows.map(function (r) {
@@ -2349,6 +2473,9 @@
           + '<td style="font-family:var(--mono);">' + r.hadir + '</td>'
           + '<td style="font-family:var(--mono); color:' + (r.terlambat > 0 ? 'var(--clay)' : 'var(--fg-dim)') + ';">'
           + r.terlambat + '</td>'
+          + '<td style="font-family:var(--mono); font-weight:' + (r.tidak_masuk > 0 ? '600' : '400')
+          + '; color:' + (r.tidak_masuk > 0 ? 'var(--clay)' : 'var(--fg-dim)') + ';">'
+          + r.tidak_masuk + '</td>'
           + '<td style="font-family:var(--mono);">' + jam + 'j ' + mnt + 'm</td>'
           + '<td style="font-family:var(--mono);">' + r.cuti_disetujui + '</td>'
           + '<td style="font-family:var(--mono); color:' + (r.cuti_menunggu > 0 ? 'var(--brass)' : 'var(--fg-dim)') + ';">'
@@ -2383,7 +2510,10 @@
           + '<td style="font-family:var(--mono);">' + c.jumlah_hari + '</td>'
           + '<td style="max-width:220px; font-size:12px; color:var(--fg-mid);">'
           + (c.alasan ? escapeHtml(c.alasan) : '<span style="color:var(--fg-dim);">&mdash;</span>')
-          + (c.lampiran_url ? '<br /><span style="font-size:11px; color:var(--brass);">ada lampiran</span>' : '')
+          + (c.lampiran_url
+              ? '<br /><a href="#" data-lampiran="' + escapeHtml(c.lampiran_url)
+                + '" style="font-size:11px; color:var(--brass);">Lihat lampiran &rarr;</a>'
+              : '')
           + '</td>'
           + '<td style="color:' + (warna[c.status] || 'var(--fg)') + '; font-weight:600; font-size:12.5px;">'
           + c.status + '</td>'
@@ -2396,6 +2526,26 @@
           + '</tr>';
       }).join('');
     }
+
+    /* Bucket lampiran privat: tautannya harus ditandatangani lebih dulu, dan
+       tanda tangan itu berumur pendek. Dibuat saat diklik, bukan saat tabel
+       dirender — kebanyakan pengajuan tidak pernah dibuka lampirannya. */
+    document.getElementById('cutiTableBody').addEventListener('click', async function (e) {
+      const tautan = e.target.closest('[data-lampiran]');
+      if (tautan) {
+        e.preventDefault();
+        const teksAsli = tautan.textContent;
+        tautan.textContent = 'Membuka…';
+        const t = await sb.storage.from('absensi').createSignedUrl(tautan.dataset.lampiran, 3600);
+        tautan.textContent = teksAsli;
+        if (t.error || !t.data || !t.data.signedUrl) {
+          alert('Gagal membuka lampiran: ' + ((t.error && t.error.message) || 'tautan tidak terbentuk'));
+          return;
+        }
+        window.open(t.data.signedUrl, '_blank', 'noopener');
+        return;
+      }
+    });
 
     document.getElementById('cutiTableBody').addEventListener('click', async function (e) {
       const setuju = e.target.closest('[data-setuju]');
