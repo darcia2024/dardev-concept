@@ -86,17 +86,66 @@
     main > * { min-width:0; }
 
     /* ---------- Kartu ---------- */
+    /* ---------- Wajah kartu per level ----------------------------------
+       Satu himpunan peubah dipakai dua tempat: kartu besar di atas dan
+       contoh kecil di tangga level. Menuliskannya dua kali akan membuat
+       contohnya perlahan berbeda dari kartu aslinya, dan janji "beginilah
+       kartu Anda nanti" berhenti benar.
+
+       Lima tingkat dibuat benar-benar menanjak, bukan sekadar berganti rona.
+       Black membalik kartunya menjadi gelap: kalau tingkat teratas hanya
+       versi sedikit lebih pekat dari Infinite, tidak ada yang terasa dicapai
+       ketika sampai di sana. */
+    [data-tier="Silver"] {
+      --t-bg: linear-gradient(155deg,#FFFFFF 0%,#FAFBFC 55%,#F1F3F6 100%);
+      --t-line: #DCE1E7; --t-aksen: #5B6472; --t-ink: #16181C; --t-ink-dim: #5B6472;
+    }
+    [data-tier="Gold"] {
+      --t-bg: linear-gradient(155deg,#FFFEFA 0%,#FDF8EB 55%,#F6E9CC 100%);
+      --t-line: #E4D2A8; --t-aksen: #7D5E12; --t-ink: #16181C; --t-ink-dim: #6B5A34;
+    }
+    [data-tier="Platinum"] {
+      --t-bg: linear-gradient(155deg,#FFFFFF 0%,#F4F8FA 55%,#E4EDF3 100%);
+      --t-line: #C3D4DF; --t-aksen: #35586D; --t-ink: #16181C; --t-ink-dim: #4A5C68;
+    }
+    [data-tier="Infinite"] {
+      --t-bg: linear-gradient(155deg,#FFFFFF 0%,#FDF4F4 52%,#F5DFDF 100%);
+      --t-line: #E5BFBF; --t-aksen: #8E1616; --t-ink: #16181C; --t-ink-dim: #6A4444;
+    }
+    [data-tier="Black"] {
+      --t-bg: linear-gradient(155deg,#22252A 0%,#15171B 55%,#0A0B0D 100%);
+      /* #E8574F hanya mencapai 4,32 banding 1 pada ujung paling terang
+         gradasinya, di bawah ambang 4,5 yang dipakai seluruh produk ini.
+         Lencana levelnya berukuran 10,5px, jadi ambang teks kecil yang
+         berlaku, bukan ambang teks besar. */
+      --t-line: #34383F; --t-aksen: #EC6259; --t-ink: #F4F5F7; --t-ink-dim: #A8AEB8;
+    }
+
     .card-hero {
       position:relative; overflow:hidden;
-      background:linear-gradient(155deg,#FFFFFF 0%,#FCFCFD 52%,#F7F3F3 100%);
-      border:1px solid var(--border); border-radius:var(--r-lg);
+      background:var(--t-bg,linear-gradient(155deg,#FFFFFF 0%,#FCFCFD 52%,#F7F3F3 100%));
+      border:1px solid var(--t-line,var(--border)); border-radius:var(--r-lg);
       box-shadow:var(--shadow-md);
       padding:20px; display:flex; flex-direction:column; gap:18px;
+      color:var(--t-ink,var(--fg));
+      transition:background .35s ease, border-color .35s ease;
     }
+    /* Warna teks di dalam kartu mengikuti levelnya, bukan tema halaman.
+       Tanpa ini, kartu Black menampilkan tulisan gelap di atas latar gelap. */
+    .card-hero .card-name { color:var(--t-ink,var(--fg)); }
+    .card-hero .card-phone,
+    .card-hero .member-no,
+    .card-hero .points-unit,
+    .card-hero .progress-text { color:var(--t-ink-dim,var(--fg-dim)); }
+    .card-hero .points-val { color:var(--t-aksen,var(--brass)); }
+    .card-hero .progress-track { background:color-mix(in srgb,var(--t-ink,#16181C) 10%,transparent); border-color:var(--t-line,var(--border)); }
+    .card-hero .progress-fill { background:var(--t-aksen,var(--brass)); }
+    .card-hero .brandmark { filter:var(--t-logo,none); }
+    [data-tier="Black"] .brandmark { --t-logo: invert(1) brightness(1.6); }
     .card-hero::after {
       content:""; position:absolute; inset:auto -30% -55% auto;
       width:230px; height:230px; border-radius:50%;
-      background:radial-gradient(circle,rgba(190,0,0,.10),transparent 70%);
+      background:radial-gradient(circle,color-mix(in srgb,var(--t-aksen,#BE0000) 14%,transparent),transparent 70%);
       pointer-events:none;
     }
     .card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
@@ -112,8 +161,8 @@
     .tier-badge {
       flex:none; font-family:var(--mono); font-size:10.5px; font-weight: 600;
       letter-spacing:.12em; text-transform:uppercase;
-      border:1px solid var(--border); color:var(--text-mid);
-      background:var(--surface-sunk);
+      border:1px solid var(--t-aksen,var(--border)); color:var(--t-aksen,var(--text-mid));
+      background:color-mix(in srgb,var(--t-aksen,#16181C) 8%,transparent);
       padding:5px 11px; border-radius:99px; white-space:nowrap;
     }
     .points-row { display:flex; align-items:flex-end; gap:6px; }
@@ -124,6 +173,60 @@
     .progress-track { height:7px; background:var(--ink-inset); border-radius:99px; overflow:hidden; border:1px solid var(--line-soft); }
     .progress-fill { height:100%; background:linear-gradient(90deg,var(--brass-deep),var(--brass)); border-radius:99px; }
     .progress-text { font-size:11.5px; color:var(--fg-dim); }
+
+    /* ---------- Tangga level ----------------------------------------------
+       Tiap baris memakai peubah level yang sama dengan kartu di atas, jadi
+       contoh kecil di sini benar-benar memperlihatkan kartu yang akan didapat.
+
+       Tingkat yang belum tercapai tidak disamarkan sampai kabur. Yang belum
+       dicapai justru yang paling perlu terbaca — itu tujuannya. */
+    .tangga-baris {
+      display:flex; gap:12px; align-items:flex-start;
+      padding:13px 0; border-top:1px solid var(--line-soft);
+    }
+    .tangga-baris:first-child { border-top:0; padding-top:4px; }
+    .tangga-swatch {
+      flex:none; width:46px; height:58px; border-radius:8px;
+      background:var(--t-bg); border:1px solid var(--t-line);
+      position:relative; overflow:hidden;
+    }
+    .tangga-swatch::after {
+      content:""; position:absolute; left:7px; right:7px; bottom:8px; height:3px;
+      border-radius:2px; background:var(--t-aksen); opacity:.85;
+    }
+    .tangga-swatch::before {
+      content:""; position:absolute; left:7px; top:8px;
+      width:16px; height:3px; border-radius:2px;
+      background:var(--t-ink); opacity:.5;
+    }
+    .tangga-isi { min-width:0; flex:1; }
+    .tangga-atas { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+    .tangga-nama {
+      font-family:var(--mono); font-size:12.5px; font-weight:600;
+      letter-spacing:.1em; text-transform:uppercase; color:var(--t-aksen);
+    }
+    .tangga-tanda {
+      font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+      padding:2px 7px; border-radius:99px; border:1px solid var(--line);
+      color:var(--fg-dim);
+    }
+    .tangga-tanda.kini { border-color:var(--t-aksen); color:var(--t-aksen); }
+    .tangga-tanda.tercapai { border-color:var(--sage); color:var(--sage); }
+    .tangga-syarat {
+      font-family:var(--mono); font-size:11.5px; color:var(--fg-dim); margin-top:3px;
+    }
+    .tangga-manfaat { list-style:none; margin:7px 0 0; padding:0; display:grid; gap:4px; }
+    .tangga-manfaat li {
+      font-size:12.5px; color:var(--fg-mid); line-height:1.45;
+      padding-left:14px; position:relative;
+    }
+    .tangga-manfaat li::before {
+      content:""; position:absolute; left:0; top:7px;
+      width:5px; height:5px; border-radius:50%; background:var(--t-aksen); opacity:.7;
+    }
+    .tangga-catatan {
+      margin-top:12px; font-size:11.5px; color:var(--fg-dim); line-height:1.55;
+    }
 
     /* ---------- QR ---------- */
     .qr-card {
@@ -310,6 +413,20 @@
       </div>
     </section>
 
+    <!-- Tangga level -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Level &amp; Manfaat</h2>
+        <span id="tanggaKini"></span>
+      </div>
+      <div id="tanggaList"></div>
+      <p class="tangga-catatan">
+        Pengali berlaku pada poin yang Anda dapat di tiap kunjungan. Level naik
+        sendiri begitu poin seumur hidup mencapai ambangnya, dan tidak pernah
+        turun.
+      </p>
+    </section>
+
     <!-- Statistik -->
     <section class="panel">
       <div class="stat-row">
@@ -485,6 +602,9 @@
       $('mPhone').textContent = m.phone_masked;
       $('mTier').textContent = m.tier;
       $('mNo').textContent = m.member_no ? 'No. ' + m.member_no : '';
+      /* Wajah kartu mengikuti levelnya. Peubah warnanya ikut turun ke seluruh
+         isi kartu, termasuk lencana level dan angka poinnya. */
+      document.querySelector('.card-hero').dataset.tier = m.tier || 'Silver';
       $('mPoints').textContent = Number(m.points_balance).toLocaleString('id-ID');
       $('mCode').textContent = m.member_code;
       $('mVisits').textContent = m.visit_count;
@@ -728,12 +848,68 @@
       if (btn) bukaTab(btn.dataset.tab);
     });
 
+    /* Manfaat tiap tingkat diturunkan dari data yang benar-benar ada:
+       pengali dari tier_rules, dan reward yang ambang levelnya tepat di
+       tingkat itu. Tidak ada manfaat yang ditulis tetap di sini.
+
+       Spesifikasi klien menyebut dua manfaat lain — catatan model potongan
+       untuk Gold ke atas, dan gratis cuci rambut untuk Platinum ke atas —
+       tetapi keduanya belum dibangun. Menuliskannya di sini berarti
+       menjanjikan sesuatu yang tidak dapat ditepati sistem, dan pelanggan
+       yang menagihnya di kasir akan bertemu orang yang tidak tahu apa-apa. */
+    function renderTangga(tingkat, reward, m) {
+      const wadah = $('tanggaList');
+      if (!tingkat.length) { wadah.innerHTML = ''; return; }
+
+      const total = Number(m.lifetime_points) || 0;
+      const urutKini = tingkat.findIndex(t => t.tier === m.tier);
+      $('tanggaKini').textContent = m.tier;
+
+      wadah.innerHTML = tingkat.map((t, i) => {
+        const ambang = Number(t.min_points) || 0;
+        const sudah = total >= ambang;
+        const kini = t.tier === m.tier;
+
+        let tanda = '', kelas = '';
+        if (kini) { tanda = 'Level Anda'; kelas = 'kini'; }
+        else if (sudah) { tanda = 'Terlewati'; kelas = 'tercapai'; }
+        else { tanda = 'Terkunci'; }
+
+        const kurang = Math.max(0, ambang - total);
+        const syarat = i === 0
+          ? 'Titik masuk semua member baru'
+          : ambang.toLocaleString('id-ID') + ' poin seumur hidup'
+            + (kurang > 0 ? ' &middot; kurang ' + kurang.toLocaleString('id-ID') : '');
+
+        const manfaat = [];
+        const kali = Number(t.multiplier) || 1;
+        manfaat.push(i === 0
+          ? 'Poin dasar tiap kunjungan'
+          : 'Poin ' + kali.toLocaleString('id-ID', { minimumFractionDigits: 2 })
+            + '&times; lebih cepat');
+        reward.filter(r => r.min_tier === t.tier).forEach(r => {
+          manfaat.push('Reward terbuka: ' + esc(r.name)
+            + ' (' + Number(r.point_cost).toLocaleString('id-ID') + ' poin)');
+        });
+
+        return '<article class="tangga-baris" data-tier="' + esc(t.tier) + '">'
+          + '<div class="tangga-swatch"></div>'
+          + '<div class="tangga-isi">'
+          + '<div class="tangga-atas"><span class="tangga-nama">' + esc(t.tier) + '</span>'
+          + '<span class="tangga-tanda ' + kelas + '">' + tanda + '</span></div>'
+          + '<div class="tangga-syarat">' + syarat + '</div>'
+          + '<ul class="tangga-manfaat"><li>' + manfaat.join('</li><li>') + '</li></ul>'
+          + '</div></article>';
+      }).join('');
+    }
+
     async function muat() {
-      const [kartu, reward, klaim, riwayat] = await Promise.all([
+      const [kartu, reward, klaim, riwayat, tangga] = await Promise.all([
         sb.rpc('member_card',         { p_code: KODE }),
         sb.rpc('member_rewards',      { p_code: KODE }),
         sb.rpc('member_claims',       { p_code: KODE }),
-        sb.rpc('member_card_history', { p_code: KODE })
+        sb.rpc('member_card_history', { p_code: KODE }),
+        sb.rpc('tier_ladder')
       ]);
 
       if (kartu.error) { gagal('Terjadi gangguan: ' + kartu.error.message); return false; }
@@ -744,6 +920,7 @@
       }
 
       renderKartu(m);
+      renderTangga(tangga.data || [], reward.data || [], m);
       renderReward(reward.data || []);
       renderKlaim(klaim.data || []);
       renderRiwayat(riwayat.data || []);
