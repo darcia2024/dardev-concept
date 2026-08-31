@@ -487,6 +487,11 @@
       overflow: hidden;
       flex-shrink: 0;
     }
+    /* Kotak avatar adalah grid dan gambarnya diukur 100 persen terhadapnya.
+       Tanpa aturan ini, <picture> yang disisipkan menjadi butir grid, dan
+       karena ia inline serta diukur oleh isinya, persentase gambarnya jadi
+       melingkar lalu jatuh ke ukuran asli lalu meluber. */
+    .capster-avatar-sm picture { display: contents; }
     .capster-avatar-sm img {
       width: 100%;
       height: 100%;
@@ -2739,8 +2744,10 @@
           <div class="capster-perf-row">
             <div class="capster-info">
               <div class="capster-avatar-sm">${(() => {
-                const foto = { "cena": "assets/cena.png?v=3", "lukman": "assets/lukman.png?v=3", "wanda": "assets/wanda.png?v=3" }[(name || "").toLowerCase().trim()];
-                return foto ? `<img src="${foto}" alt="${name}" loading="lazy" />` : name.charAt(0).toUpperCase();
+                const foto = { "cena": "assets/cena", "lukman": "assets/lukman", "wanda": "assets/wanda" }[(name || "").toLowerCase().trim()];
+                return foto
+                  ? `<picture><source srcset="${foto}.webp" type="image/webp" /><img src="${foto}.png?v=3" alt="${name}" loading="lazy" /></picture>`
+                  : name.charAt(0).toUpperCase();
               })()}</div>
               <div>
                 <div class="capster-perf-name">${name}</div>

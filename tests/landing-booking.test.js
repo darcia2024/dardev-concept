@@ -41,7 +41,14 @@ function extractFunctionSource(source, functionName) {
   throw new Error(`Penutup ${functionName} tidak ditemukan`);
 }
 
-for (const [name, html] of [['landing.html', landing], ['pos.html', pos]]) {
+// rekap.html dan capster.html ikut diperiksa sejak keduanya menyusun markup
+// foto kapster sendiri. Sebelumnya keduanya tidak pernah diurai sama sekali,
+// jadi satu kutip yang hilang di sana lolos sampai ke layar orang.
+const rekap = fs.readFileSync(path.join(root, 'rekap.html'), 'utf8');
+const capster = fs.readFileSync(path.join(root, 'capster.html'), 'utf8');
+
+for (const [name, html] of [['landing.html', landing], ['pos.html', pos],
+                            ['rekap.html', rekap], ['capster.html', capster]]) {
   for (const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
     if (match[1].trim()) new Function(match[1]);
   }
@@ -127,6 +134,67 @@ assert.match(landing, /<noscript><style>\.muncul/);
 assert.match(landing, /f\.loading = 'lazy';/);
 assert.match(landing, /peta-tirai/);
 assert.match(landing, /www\.google\.com\/maps\?q=/);
+
+// Foto kapster: WebP dulu, PNG sebagai cadangan. Tanpa <source> WebP, tiap
+// pengunjung mengunduh 3 MB PNG untuk avatar yang tampil 148x185 piksel;
+// tanpa <img> PNG, Safari di bawah iOS 14 tidak melihat wajah sama sekali.
+const berkasFoto = ['landing.html', 'pos.html', 'rekap.html', 'capster.html'];
+for (const nama of berkasFoto) {
+  const isi = fs.readFileSync(path.join(root, nama), 'utf8');
+  for (const orang of ['cena', 'lukman', 'wanda']) {
+    assert.match(isi, new RegExp('assets/' + orang), nama + ' harus merujuk foto ' + orang);
+  }
+  assert.match(isi, /\.webp/, nama + ' harus menawarkan WebP');
+  assert.match(isi, /\.png\?v=/, nama + ' harus menyimpan cadangan PNG');
+  assert.match(isi, /type="image\/webp"/, nama + ' harus memakai <source type="image/webp">');
+
+  // Aturannya satu kalimat: foto kapster selalu lewat <picture>. Memeriksa
+  // keberadaan ".webp" di berkas saja tidak cukup, sebab satu <source> yang
+  // hilang tetap lolos selama saudaranya masih ada, dan justru yang satu itu
+  // yang diam-diam mengirim 1 MB ke tiap pengunjung.
+  //
+  // Diperiksa dengan mengeluarkan seluruh blok <picture> lebih dulu, lalu
+  // menuntut tidak ada lagi <img> foto kapster yang tersisa di luar. Cara ini
+  // tidak peduli bagaimana URL-nya disusun, dan tiga layar staf memang
+  // menyusunnya dari batang nama lewat penggabungan teks.
+  const rapat = isi.replace(/\s+/g, ' ');
+  const blokPicture = rapat.match(/<picture>.*?<\/picture>/g) || [];
+  assert.ok(blokPicture.length > 0, nama + ' harus menyajikan foto lewat <picture>');
+  for (const blok of blokPicture) {
+    assert.match(blok, /<source [^>]*type="image\/webp"/,
+      nama + ' punya <picture> tanpa <source> WebP');
+    assert.match(blok, /<img [^>]*\.png/,
+      nama + ' punya <picture> tanpa cadangan PNG');
+  }
+
+  const diLuar = rapat.replace(/<picture>.*?<\/picture>/g, '');
+  const tercecer = diLuar.match(/<img [^>]*(?:assets\/(?:cena|lukman|wanda)|\$\{foto\}|FOTO_KAPSTER)/g) || [];
+  assert.deepEqual(tercecer, [],
+    nama + ' punya <img> foto kapster di luar <picture>, jadi PNG penuh terkirim tanpa cadangan WebP');
+  // Kotak avatar adalah grid; tanpa display contents, <picture> jadi butir
+  // grid dan gambarnya meluber ke ukuran asli 761x950.
+  assert.match(isi, /picture { display: contents; }/, nama + ' harus menetralkan kotak <picture>');
+}
+
+// Markup kapster yang statis hanya bertahan sampai data tiba: isiKapster()
+// menimpa seluruh isi #kapsterDaftar. Jadi pembangun JS inilah yang benar-benar
+// dilihat pengunjung, dan ia harus diperiksa terpisah dari markupnya.
+const sumberGambarKapster = extractFunctionSource(landing, 'gambarKapster');
+assert.match(sumberGambarKapster, /<picture>/, 'gambarKapster harus membungkus dengan <picture>');
+assert.match(sumberGambarKapster, /<source /, 'gambarKapster harus memakai <source>');
+assert.match(sumberGambarKapster, /type="image\/webp"/, 'gambarKapster harus menawarkan WebP');
+assert.match(sumberGambarKapster, /\.png\?v=/, 'gambarKapster harus menyimpan cadangan PNG');
+assert.match(
+  extractFunctionSource(landing, 'isiKapster'),
+  /gambarKapster\(/,
+  'isiKapster harus menggambar avatar lewat gambarKapster'
+);
+
+// kartu.html tidak pernah menampilkan foto kapster, jadi service worker tidak
+// boleh menyimpannya di cangkang luring kartu member.
+const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+const KERANGKA = sw.slice(sw.indexOf('const KERANGKA'), sw.indexOf(']', sw.indexOf('const KERANGKA')));
+assert.doesNotMatch(KERANGKA, /cena|lukman|wanda/);
 
 assert.match(landing, /id="bkKirim" disabled>Menyiapkan/);
 assert.match(landing, /function tampilkanGagalMuat/);
