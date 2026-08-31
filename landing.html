@@ -145,10 +145,11 @@
        merek di atas judul, bukan sebagai judul itu sendiri. */
     .hero-logo { width: min(52vw, 236px); height: auto; margin: 0 auto 30px; display: block; }
     .hero h1 {
-      margin: 0 auto 16px; max-width: 20ch;
+      margin: 0 auto 16px; max-width: 24ch;
       font-size: clamp(30px, 5.2vw, 54px); font-weight: var(--w-semi);
       line-height: 1.08; letter-spacing: -0.015em; text-wrap: balance;
     }
+    .hero h1 span { display: block; }
     /* Bukan var(--text-mid). Di atas kabut merah termuda pun #565C66 hanya
        mencapai 4,1 banding 1, di bawah ambang 4,5 yang dipakai seluruh produk
        ini, dan di titik kabut terpekat ia turun ke 3,4. Nilai ini menahan 4,9
@@ -453,7 +454,7 @@
       <div class="bungkus hero-isi">
         <img class="hero-logo muncul" src="assets/logo.png" width="880" height="184"
              alt="Underrated Barbershop" fetchpriority="high" />
-        <h1 class="muncul">Welcome to Underrated Barbershop</h1>
+        <h1 class="muncul"><span>Welcome to</span> <span>Underrated Barbershop</span></h1>
         <p class="muncul">Pilih layanan, tanggal, dan jam. Kami pastikan lewat WhatsApp.</p>
         <a class="pil pil-isi muncul" href="#booking">Booking</a>
       </div>
