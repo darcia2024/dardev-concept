@@ -663,6 +663,145 @@
       gap: 8px;
     }
 
+    /* Hanya tampak di atas kertas */
+    .cetak-saja { display: none; }
+
+    /* ══ CETAK KE MESIN THERMAL ═══════════════════════════════════════════
+       Sebelumnya tombol "Cetak Nota" memanggil window.print() tanpa satu pun
+       aturan cetak. Yang keluar dari mesin adalah SELURUH halaman POS —
+       kepala halaman, katalog layanan, keranjang — dengan strukanya terjepit
+       di suatu tempat di dalamnya.
+
+       LEBARNYA SENGAJA TIDAK DIPATOK
+       Struk memakai lebar 100%, bukan 58mm atau 80mm. Penggerak mesin thermal
+       melaporkan lebar kertasnya sendiri ke peramban, sehingga satu berkas ini
+       pas di kedua ukuran tanpa perlu ada yang menyetel apa pun. Memaksa 58mm
+       akan mencetak pita sempit di tengah kertas 80mm.
+
+       WARNA DIPADAMKAN
+       Mesin thermal hanya mengenal hitam dan putih: ia menghanguskan kertas,
+       bukan menyemprotkan tinta. Latar abu-abu tidak menjadi abu-abu, tetapi
+       menjadi blok hitam pekat yang menghabiskan kertas dan memperpendek umur
+       kepala cetaknya. Karena itu semua latar dipaksa putih dan semua teks
+       hitam — bukan sekadar pilihan gaya. */
+    @media print {
+      @page { size: auto; margin: 0; }
+
+      /* Disembunyikan dengan display, bukan visibility: visibility:hidden
+         tetap menyisakan ruang, dan ruang setinggi halaman POS akan keluar
+         sebagai gulungan kertas kosong sebelum struknya. */
+      body > *:not(#receiptModal) { display: none !important; }
+
+      html, body {
+        background: #fff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+      }
+
+      #receiptModal:not(.is-open) { display: none !important; }
+
+      #receiptModal.is-open {
+        display: block !important;
+        position: static !important;
+        inset: auto !important;
+        background: none !important;
+        backdrop-filter: none !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        place-items: stretch !important;
+        justify-items: stretch !important;
+      }
+
+      /* Kartu modal punya max-height setinggi layar dan overflow-y:auto —
+         dipasang supaya modal panjang bisa digulir. Bila dibiarkan saat
+         mencetak, struk yang lebih panjang dari satu layar akan terpotong
+         di tengah. */
+      #receiptModal .receipt-modal-card {
+        max-height: none !important;
+        overflow: visible !important;
+        max-width: none !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        justify-self: stretch !important;
+        display: block !important;
+        background: #fff !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        animation: none !important;
+      }
+
+      /* Lencana "Transaksi Sukses", tombol, dan kotak poin tidak dicetak */
+      #receiptModal .receipt-modal-card > *:not(#receiptPaper) { display: none !important; }
+
+      #receiptPaper {
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        /* Sisa 8mm di bawah memberi jarak umpan sebelum kertas disobek */
+        padding: 2mm 2mm 8mm !important;
+        background: #fff !important;
+        color: #000 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        font-size: 9pt !important;
+        line-height: 1.35 !important;
+        font-variant-numeric: tabular-nums;
+      }
+
+      #receiptPaper * { color: #000 !important; background: transparent !important; }
+
+      #receiptPaper .receipt-header { border-bottom-style: dashed !important; border-bottom-color: #000 !important; }
+      #receiptPaper .receipt-header h3 { font-size: 11.5pt !important; }
+      #receiptPaper .receipt-header p  { font-size: 8pt !important; }
+      #receiptPaper [style*="dashed"]  { border-color: #000 !important; }
+      #receiptPaper .receipt-line.is-bold { font-size: 10pt !important; border-top-color: #000 !important; }
+
+      /* Tanpa flex-wrap dengan sengaja. Membiarkan baris melipat memang
+         menurunkan nilai yang kepanjangan ke barisnya sendiri, tetapi harga
+         layanan ikut turun dan kehilangan rata kanannya — dan kolom harga
+         yang tidak lurus membuat struk sulit diperiksa sekilas. Nilainya
+         cukup melipat di dalam kotaknya sendiri, tetap rata kanan. */
+      #receiptPaper .receipt-line { gap: 3mm !important; align-items: baseline !important; }
+
+      /* Baris keterangan — labelnya utuh, nilainya yang melipat.
+         Pada kertas 58mm ruangnya tinggal sekitar 24 huruf. Bila labelnya
+         yang dibiarkan menyusut, "Pelanggan:" keluar sebagai satu kolom
+         huruf menurun: P, e, l, a, n, g, g, a, n. */
+      #receiptPaper .receipt-line > span:first-child {
+        flex: 0 0 auto; white-space: nowrap;
+      }
+      #receiptPaper .receipt-line > span:last-child,
+      #receiptPaper .receipt-line > strong:last-child {
+        flex: 1 1 auto; min-width: 0; text-align: right; overflow-wrap: break-word;
+      }
+
+      /* Baris layanan justru kebalikannya: namanya yang boleh melipat,
+         harganya tidak boleh terpenggal di tengah angka. */
+      #receiptPaper #rcptItems .receipt-line > span:first-child {
+        flex: 1 1 auto; min-width: 0; white-space: normal; overflow-wrap: break-word;
+      }
+      #receiptPaper #rcptItems .receipt-line > span:last-child {
+        flex: 0 0 auto; white-space: nowrap; text-align: right;
+      }
+
+      .cetak-saja { display: block !important; }
+      #rcptPoinCetak {
+        margin-top: 6px !important;
+        padding-top: 6px !important;
+        border-top: 1px dashed #000 !important;
+        font-size: 8.5pt !important;
+      }
+
+      /* Struk tidak boleh dipenggal menjadi dua lembar oleh pemenggal
+         halaman peramban — pada gulungan thermal tidak ada "lembar kedua" */
+      #receiptPaper, #receiptPaper * { page-break-inside: avoid; break-inside: avoid; }
+    }
+
     .btn-wa {
       background: #25d366;
       color: #000;
@@ -1514,13 +1653,23 @@
           <div class="receipt-line"><span>Capster:</span><span id="rcptCapster">Alex</span></div>
           <div class="receipt-line" id="rcptRowTier"><span>Tier Member:</span><span id="rcptMemberTier">Silver</span></div>
         </div>
-        <div style="border-top: 1px dashed #777; margin: 8px 0; padding-top: 8px;">
-          <div class="receipt-line">
-            <span id="rcptServiceName">Gentleman Haircut</span>
-            <span id="rcptServicePrice">Rp 50.000</span>
-          </div>
-        </div>
+        <!-- Tiap layanan mendapat barisnya sendiri. Sebelumnya semuanya
+             diringkas menjadi satu baris berisi nama-nama yang dipisah koma
+             dengan satu harga gabungan — di layar masih terbaca, tetapi pada
+             struk yang dibawa pulang pelanggan tidak ada cara memeriksa
+             apakah harganya benar. -->
+        <div id="rcptItems" style="border-top: 1px dashed #777; margin: 8px 0; padding-top: 8px;"></div>
         <div>
+          <div class="receipt-line" id="rcptSubtotalRow" style="display: none;">
+            <span>Subtotal:</span>
+            <span id="rcptSubtotal">Rp 50.000</span>
+          </div>
+          <!-- Tanpa baris ini, struk dengan penukaran poin memperlihatkan
+               subtotal dan total yang berbeda tanpa keterangan apa pun. -->
+          <div class="receipt-line" id="rcptDiscountRow" style="display: none;">
+            <span>Diskon poin:</span>
+            <span id="rcptDiscount">-</span>
+          </div>
           <div class="receipt-line is-bold">
             <span>TOTAL:</span>
             <span id="rcptTotal">Rp 50.000</span>
@@ -1533,7 +1682,20 @@
             <span>Ref/Appr:</span>
             <span id="rcptPayRef">-</span>
           </div>
+          <div class="receipt-line" id="rcptCashRow" style="display: none;">
+            <span>Tunai:</span>
+            <span id="rcptCashPaid">-</span>
+          </div>
+          <div class="receipt-line" id="rcptChangeRow" style="display: none;">
+            <span>Kembali:</span>
+            <span id="rcptCashChange">-</span>
+          </div>
         </div>
+
+        <!-- Ringkasan poin hanya ikut saat dicetak. Di layar keterangan yang
+             sama sudah tampil di kotak emas di bawah tombol, dan kotak itu
+             berada di luar wilayah yang tercetak. -->
+        <div class="cetak-saja" id="rcptPoinCetak"></div>
         <div style="text-align: center; margin-top: 12px; font-size: 11px; color: #555;">
           <p>Terima kasih atas kunjungan Anda!</p>
           <p style="margin-top: 2px;">Simpan struk ini sebagai bukti poin loyalitas.</p>
@@ -1816,6 +1978,18 @@
     const persistCapsters = persistCache;
 
     // Helper: Currency Formatter
+    // 6281234567890 disimpan dalam bentuk itu karena tautan wa.me
+    // memerlukannya, tetapi tidak ada pelanggan yang mengenali nomornya
+    // sendiri dalam bentuk itu. Di kertas 58mm deretan angka tanpa jeda juga
+    // tidak punya tempat untuk melipat, sehingga angka terakhirnya terlempar
+    // sendirian ke baris berikutnya.
+    function formatWa(nomor) {
+      const angka = String(nomor || '').replace(/[^0-9]/g, '');
+      if (!angka) return nomor;
+      const lokal = angka.startsWith('62') ? '0' + angka.slice(2) : angka;
+      return lokal.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+    }
+
     function formatRupiah(num) {
       return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
     }
@@ -2446,7 +2620,7 @@
       document.getElementById('rcptInvNumber').textContent = tx.invoice_no;
       document.getElementById('rcptDateTime').textContent = new Date(tx.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' WIB';
       document.getElementById('rcptCustName').textContent = tx.member_name;
-      document.getElementById('rcptCustPhone').textContent = tx.member_phone;
+      document.getElementById('rcptCustPhone').textContent = formatWa(tx.member_phone);
       document.getElementById('rcptCapster').textContent = tx.capster_name;
       document.getElementById('rcptMemberTier').textContent = tx.member_tier;
 
@@ -2458,10 +2632,44 @@
       const iaMember = !!tx.member_phone && tx.member_phone !== '-';
       document.getElementById('rcptRowPhone').style.display = iaMember ? 'flex' : 'none';
       document.getElementById('rcptRowTier').style.display  = iaMember ? 'flex' : 'none';
-      document.getElementById('rcptServiceName').textContent = tx.services.map(s => s.name).join(', ');
-      document.getElementById('rcptServicePrice').textContent = formatRupiah(tx.subtotal);
+      // Baris dibangun lewat textContent, bukan innerHTML: nama layanan
+      // datang dari katalog yang bisa disunting owner lewat modal Pengaturan.
+      const wadahItem = document.getElementById('rcptItems');
+      wadahItem.textContent = '';
+      tx.services.forEach(function (layanan) {
+        const baris = document.createElement('div');
+        baris.className = 'receipt-line';
+        const nama = document.createElement('span');
+        nama.textContent = layanan.name;
+        const harga = document.createElement('span');
+        harga.textContent = formatRupiah(layanan.price);
+        baris.appendChild(nama); baris.appendChild(harga);
+        wadahItem.appendChild(baris);
+      });
+
+      const adaDiskon = tx.discount_points > 0;
+      // Subtotal hanya berarti bila ia dapat berbeda dari total. Pada satu
+      // layanan tanpa diskon ia mengulang angka yang sama tiga kali.
+      const perluSubtotal = adaDiskon || tx.services.length > 1;
+      document.getElementById('rcptSubtotalRow').style.display = perluSubtotal ? 'flex' : 'none';
+      document.getElementById('rcptSubtotal').textContent = formatRupiah(tx.subtotal);
+      document.getElementById('rcptDiscountRow').style.display = adaDiskon ? 'flex' : 'none';
+      if (adaDiskon) {
+        document.getElementById('rcptDiscount').textContent = '- ' + formatRupiah(tx.discount_points);
+      }
+
       document.getElementById('rcptTotal').textContent = formatRupiah(tx.final_amount);
       document.getElementById('rcptPayMethod').textContent = tx.payment_method;
+
+      // Uang diterima dan kembaliannya adalah hal pertama yang dicari
+      // pelanggan pada struk tunai, dan datanya sudah ada sejak awal.
+      const tunai = tx.payment_method === 'Tunai' && tx.cash_paid > 0;
+      document.getElementById('rcptCashRow').style.display = tunai ? 'flex' : 'none';
+      document.getElementById('rcptChangeRow').style.display = tunai ? 'flex' : 'none';
+      if (tunai) {
+        document.getElementById('rcptCashPaid').textContent = formatRupiah(tx.cash_paid);
+        document.getElementById('rcptCashChange').textContent = formatRupiah(tx.cash_change || 0);
+      }
 
       const refRow = document.getElementById('rcptRefRow');
       if (tx.payment_ref) {
@@ -2518,8 +2726,16 @@ ${location.origin}/kartu?c=${tx.member_code}
         barisTier.hidden = !tx.tier_naik;
         if (tx.tier_naik) barisTier.textContent = `⭐ Naik level ke ${tx.member_tier}!`;
         kotakPoin.hidden = false;
+        // Kotak emas di atas berada di luar wilayah yang tercetak, jadi
+        // keterangan yang sama disiapkan lagi di dalam struk. Tanpa ini
+        // pelanggan membawa pulang kertas yang tidak menyebut poinnya sama
+        // sekali — padahal itu alasan sistem ini ada.
+        const poinCetak = document.getElementById('rcptPoinCetak');
+        poinCetak.textContent = bagian.join(' · ')
+          + (tx.tier_naik ? ' · Naik level ke ' + tx.member_tier + '!' : '');
       } else {
         kotakPoin.hidden = true;
+        document.getElementById('rcptPoinCetak').textContent = '';
       }
 
       document.getElementById('receiptModal').classList.add('is-open');
