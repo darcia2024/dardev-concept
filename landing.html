@@ -798,10 +798,20 @@
       return null;
     }
 
+    /* Server kini mengirim {id, nama}; bentuk lama yang hanya berupa untai
+       nama tetap diterima supaya halaman yang masih tersimpan di peramban
+       lama tidak jatuh saat memuat data baru. Nomor telepon capster tidak
+       pernah ikut dalam muatan ini. */
     function isiKapster() {
-      const daftar = (ISI && ISI.kapster && ISI.kapster.length) ? ISI.kapster : ['Cena', 'Lukman', 'Wanda'];
+      const bawaan = [{ nama: 'Cena' }, { nama: 'Lukman' }, { nama: 'Wanda' }];
+      const daftar = (ISI && ISI.kapster && ISI.kapster.length)
+        ? ISI.kapster.map(function (k) {
+            return typeof k === 'string' ? { nama: k } : k;
+          })
+        : bawaan;
       $('tim').hidden = false;
-      $('kapsterDaftar').innerHTML = daftar.map(function (nama) {
+      $('kapsterDaftar').innerHTML = daftar.map(function (k) {
+        const nama = k.nama;
         const foto = cariFotoKapster(nama);
         const avatarKonten = foto
           ? gambarKapster(foto, nama)
@@ -810,23 +820,62 @@
              + '<div class="avatar" aria-hidden="true">' + avatarKonten + '</div>'
              + '<div class="kapster-nama">' + esc(nama) + '</div>'
              + '<div class="kapster-peran">Capster</div>'
-             + '<button type="button" class="pil pil-garis" data-kapster="' + esc(nama) + '">'
+             + '<button type="button" class="pil pil-garis" data-kapster="' + esc(nama) + '"'
+             + (k.id ? ' data-kapster-id="' + esc(k.id) + '"' : '') + '>'
              + 'Pilih ' + esc(nama) + '</button></div>';
       }).join('');
+      tandaiKapsterPilih();
     }
 
-    /* Kapster tidak ditugaskan oleh sistem, jadi tombolnya menuliskan
-       permintaan itu sebagai catatan lalu membawa pengunjung ke formulir.
-       Menjanjikan penugasan otomatis berarti membuat janji yang harus
-       ditepati kasir tanpa ia pernah menyetujuinya. */
+    /* Pilihan disimpan sebagai id, bukan disimpulkan ulang dari kalimat di
+       kolom catatan. Menyimpulkan dari teks berarti pelanggan yang menyunting
+       catatannya sendiri diam-diam mengubah tujuan notifikasi. */
+    let kapsterPilih = null;
+
+    /* Markah bawaan di HTML tidak membawa id (server belum sempat menjawab),
+       jadi penandaan visual berpegang pada kunci yang selalu ada. Id tetap
+       satu-satunya yang dikirim ke server. */
+    function kunciKapster(b) {
+      return b.dataset.kapsterId || b.dataset.kapster;
+    }
+
+    function tandaiKapsterPilih() {
+      const tombol = $('kapsterDaftar').querySelectorAll('[data-kapster]');
+      for (const b of tombol) {
+        const dipilih = !!kapsterPilih && kunciKapster(b) === kapsterPilih.kunci;
+        b.classList.toggle('pil-isi', dipilih);
+        b.classList.toggle('pil-garis', !dipilih);
+        b.textContent = dipilih ? 'Dipilih: ' + b.dataset.kapster
+                                : 'Pilih ' + b.dataset.kapster;
+      }
+    }
+
+    /* Kapster tetap tidak ditugaskan oleh sistem: pilihan ini permintaan,
+       bukan penjadwalan. Yang berubah hanyalah bahwa permintaannya kini
+       tersimpan sebagai rujukan yang benar sehingga capsternya dapat
+       diberi tahu, bukan sekadar kalimat yang harus dibaca kasir.
+
+       Kalimat catatan tetap ditulis: kasir membaca kolom itu, dan
+       menghapusnya berarti mengambil keterangan yang selama ini ia pakai. */
     $('kapsterDaftar').addEventListener('click', function (e) {
       const b = e.target.closest('[data-kapster]');
       if (!b) return;
-      const kalimat = 'Ingin dilayani ' + b.dataset.kapster + ' bila memungkinkan.';
+
+      const sama = !!kapsterPilih && kapsterPilih.kunci === kunciKapster(b);
+      kapsterPilih = sama ? null : {
+        id: b.dataset.kapsterId || null,
+        nama: b.dataset.kapster,
+        kunci: kunciKapster(b)
+      };
+      tandaiKapsterPilih();
+
       const c = $('bkCatatan');
       const bersih = c.value.replace(/Ingin dilayani .*? bila memungkinkan\./g, '').trim();
-      c.value = (bersih ? bersih + ' ' : '') + kalimat;
-      $('booking').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      c.value = kapsterPilih
+        ? (bersih ? bersih + ' ' : '') + 'Ingin dilayani ' + kapsterPilih.nama + ' bila memungkinkan.'
+        : bersih;
+
+      if (kapsterPilih) $('booking').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
     function isiLokasi() {
@@ -1096,6 +1145,7 @@
         const res = await sb.rpc('create_booking', {
           p_nama: nama, p_telepon: telp,
           p_service_ids: layananPilih,
+          p_capster_id: kapsterPilih ? kapsterPilih.id : null,
           p_tanggal: tglPilih, p_jam: jamPilih,
           p_catatan: $('bkCatatan').value.trim() || null
         });
@@ -1110,6 +1160,8 @@
         el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         $('bkNama').value = ''; $('bkTelepon').value = ''; $('bkCatatan').value = '';
         jamPilih = null;
+        kapsterPilih = null;
+        tandaiKapsterPilih();
         gambarSlot();
       } catch (err) {
         pesan('Gagal mengirim. Periksa koneksi lalu coba lagi.', false);

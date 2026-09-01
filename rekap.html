@@ -708,6 +708,10 @@
       color: var(--fg); padding: 9px 11px; font-size: 14px; font-family: inherit; outline: none; width: 100%;
     }
     .kelola-baris input:focus { border-color: var(--brand, #BE0000); }
+    .kelola-label {
+      font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--fg-dim); margin-bottom: -4px;
+    }
     .kelola-pesan { font-size: 12px; line-height: 1.45; }
     .kelola-pesan.ok  { color: var(--sage, #0F7355); }
     .kelola-pesan.bad { color: var(--brand, #BE0000); }
@@ -1190,25 +1194,48 @@
       </div>
     </div>
 
-    <!-- Kelola sandi capster & PIN kasir -->
+    <!-- Kelola capster (nomor & sandi) dan PIN kasir -->
     <div class="table-panel">
       <div class="table-controls">
         <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Sandi Capster &amp; PIN Kasir</h2>
+          <h2 style="font-size: 15px; font-weight: 600;">Data Capster &amp; PIN Kasir</h2>
           <p style="font-size: 12px; color: var(--fg-dim);">
-            Untuk karyawan yang lupa sandinya, atau saat PIN perlu diganti
+            Nomor WhatsApp capster untuk notifikasi booking, sandi yang terlupa, dan PIN kasir
           </p>
         </div>
       </div>
       <div style="padding: 4px 2px 8px; display:flex; flex-direction:column; gap:18px;">
         <div>
-          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Sandi capster</div>
+          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Capster</div>
           <div class="kelola-grid" id="gridCapster"></div>
         </div>
         <div>
           <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">PIN kasir</div>
           <div class="kelola-grid" id="gridKasir"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- Notifikasi WhatsApp ke capster -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Notifikasi WhatsApp ke Capster</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Dikirim otomatis saat pelanggan memilih capster di halaman booking &mdash;
+            nomor pelanggan tidak ikut dikirim
+          </p>
+        </div>
+        <button class="btn-filter-date" id="btnUbahWa">Ubah Pengaturan</button>
+      </div>
+      <div id="waRingkas" style="padding: 0 4px 14px; font-size: 13px; color: var(--fg-mid); line-height: 1.7;"></div>
+      <div class="table-scroll">
+        <table class="tx-table" id="waTable">
+          <thead>
+            <tr><th>Waktu</th><th>Kode Booking</th><th>Capster</th><th>Status</th><th>Keterangan</th></tr>
+          </thead>
+          <tbody id="waTableBody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -1468,6 +1495,7 @@
       await Promise.all([loadAbsensi(), loadKalender()]);
       await muatArsip();
       await muatKelolaAkun();
+      await loadWa();
       await muatAbsenBaris();
       await muatArsipAbsen();
       await muatMember();
@@ -1475,6 +1503,111 @@
       await muatArsipFoto();
       await loadCuti();
     }
+
+    /* -------------------------------------------------------------------------
+       NOTIFIKASI WHATSAPP KE CAPSTER
+       Tokennya tidak pernah melewati layar ini. Yang ditampilkan hanya
+       keterangan bahwa ia sudah terpasang di Vault; mengirimkannya ke peramban
+       berarti menaruh kredensial provider di tempat yang dapat dibaca siapa
+       pun yang membuka konsol.
+       ------------------------------------------------------------------------- */
+
+    let waData = null;
+
+    const WA_STATUS = {
+      terkirim:        { teks: 'Terkirim',        warna: 'var(--sage)' },
+      nonaktif:        { teks: 'Fitur nonaktif',  warna: 'var(--fg-dim)' },
+      tanpa_capster:   { teks: 'Tanpa capster',   warna: 'var(--fg-dim)' },
+      nomor_tidak_sah: { teks: 'Nomor bermasalah', warna: 'var(--warn)' },
+      gagal:           { teks: 'Gagal',           warna: 'var(--brand)' }
+    };
+
+    async function loadWa() {
+      const [cfg, log] = await Promise.all([
+        sb.rpc('owner_wa_config'),
+        sb.rpc('owner_notif_wa', { p_limit: 50 })
+      ]);
+
+      const box = document.getElementById('waRingkas');
+      if (cfg.error) {
+        box.innerHTML = '<span style="color:var(--brand);">Gagal memuat pengaturan: '
+          + escapeHtml(cfg.error.message) + '</span>';
+      } else {
+        waData = Array.isArray(cfg.data) ? cfg.data[0] : cfg.data;
+        box.innerHTML = waData ? ''
+          + 'Notifikasi <strong>' + (waData.aktif ? 'AKTIF' : 'NONAKTIF') + '</strong> '
+          + 'lewat provider <strong>' + escapeHtml(waData.provider) + '</strong>.<br />'
+          + 'Alamat pengiriman: '
+          + (waData.endpoint
+              ? '<span style="font-family:var(--mono); font-size:12px;">' + escapeHtml(waData.endpoint) + '</span>'
+              : '<span style="color:var(--clay);">belum diisi</span>') + '<br />'
+          + 'Token <span style="font-family:var(--mono); font-size:12px;">'
+          + escapeHtml(waData.nama_rahasia) + '</span>: '
+          + (waData.token_terisi
+              ? '<span style="color:var(--sage);">sudah terpasang</span>'
+              : '<span style="color:var(--clay);">belum ada di Vault</span>')
+          + ' &mdash; disimpan di Supabase Vault, tidak dapat dilihat dari sini.'
+          : 'Pengaturan belum tersedia.';
+      }
+
+      const tb = document.getElementById('waTableBody');
+      if (log.error) {
+        tb.innerHTML = '<tr><td colspan="5" class="empty-row">Gagal memuat: '
+          + escapeHtml(log.error.message) + '</td></tr>';
+        return;
+      }
+      const baris = log.data || [];
+      tb.innerHTML = baris.length ? baris.map(function (r) {
+        const st = WA_STATUS[r.status] || { teks: r.status || '-', warna: 'var(--fg-dim)' };
+        return '<tr>'
+          + '<td style="font-family:var(--mono); font-size:12px;">'
+          + new Date(r.waktu).toLocaleString('id-ID', { hour12: false, timeZone: 'Asia/Jakarta' }) + '</td>'
+          + '<td style="font-family:var(--mono);">' + escapeHtml(r.kode || '') + '</td>'
+          + '<td>' + (r.capster ? escapeHtml(r.capster) : '&mdash;') + '</td>'
+          + '<td style="color:' + st.warna + ';">' + escapeHtml(st.teks) + '</td>'
+          + '<td style="font-size:12px; color:var(--fg-dim); max-width:280px;">'
+          + escapeHtml(r.galat || '') + '</td>'
+          + '</tr>';
+      }).join('') : '<tr><td colspan="5" class="empty-row">Belum ada booking yang memicu notifikasi.</td></tr>';
+    }
+
+    document.getElementById('btnUbahWa').addEventListener('click', function () {
+      if (!waData) return;
+      const kolom = [
+        { key: 'aktif', label: 'Kirim notifikasi ke capster', tipe: 'centang',
+          hint: 'Saat dimatikan, booking tetap tersimpan dan tercatat di sini sebagai "Fitur nonaktif".' },
+        { key: 'provider', label: 'Provider', tipe: 'pilih',
+          pilihan: [{ nilai: 'meta', label: 'WhatsApp Cloud API (Meta)' },
+                    { nilai: 'generik', label: 'Gateway lain (Fonnte, Wablas, dsb.)' }],
+          hint: 'Meta mengirim template resmi. Gateway lain menerima pesan teks biasa.' },
+        { key: 'endpoint', label: 'Alamat pengiriman', tipe: 'teks',
+          placeholder: 'https://graph.facebook.com/v21.0/<phone_number_id>/messages',
+          hint: 'Wajib diisi sebelum notifikasi dapat diaktifkan.' },
+        { key: 'template', label: 'Nama template (khusus Meta)', tipe: 'teks',
+          hint: 'Template harus sudah disetujui Meta dan berisi 5 variabel: nama, layanan, tanggal, jam, kode.' },
+        { key: 'bahasa', label: 'Kode bahasa template', tipe: 'teks' }
+      ];
+      bukaEditor({
+        judul: 'Notifikasi WhatsApp',
+        sub: 'Token provider diisi lewat Supabase Vault dengan nama '
+             + waData.nama_rahasia + ', bukan dari layar ini.',
+        kolom: kolom,
+        nilai: {
+          aktif: waData.aktif, provider: waData.provider, endpoint: waData.endpoint,
+          template: waData.template, bahasa: waData.bahasa
+        },
+        onSimpan: async function () {
+          const d = edAmbil(kolom);
+          const res = await sb.rpc('set_wa_config', {
+            p_aktif: d.aktif, p_provider: d.provider, p_endpoint: d.endpoint,
+            p_template: d.template, p_bahasa: d.bahasa
+          });
+          if (!res.error) await loadWa();
+          return res;
+        }
+      });
+    });
+
 
     /* -------------------------------------------------------------------------
        SETORAN TUNAI KASIR
@@ -3436,6 +3569,14 @@
           return '<div class="kelola-kartu">'
             + '<div><div class="kelola-nama">' + escapeHtml(c.name) + (c.is_active ? '' : ' <span style="font-size:11px;color:var(--fg-dim);">(nonaktif)</span>') + '</div>'
             + '<div class="kelola-sub">' + escapeHtml(c.email || 'belum punya akun') + '</div></div>'
+            + '<div class="kelola-label">Nomor WhatsApp</div>'
+            + '<div class="kelola-baris">'
+            + '<input type="text" inputmode="tel" placeholder="081297754581" value="'
+            + escapeHtml(c.telepon || '') + '" data-telp-input="' + c.capster_id + '" autocomplete="off" />'
+            + '<button class="btn-hdr" data-telp-simpan="' + c.capster_id + '">Simpan</button>'
+            + '</div>'
+            + '<div class="kelola-pesan" data-telp-pesan="' + c.capster_id + '"></div>'
+            + '<div class="kelola-label">Sandi</div>'
             + (bisa
               ? '<div class="kelola-baris">'
                 + '<input type="text" placeholder="Sandi baru, min. 8 karakter" data-sandi-input="' + c.capster_id + '" autocomplete="off" />'
@@ -3467,6 +3608,32 @@
     document.addEventListener('click', async (e) => {
       const bSandi = e.target.closest('[data-sandi-simpan]');
       const bPin   = e.target.closest('[data-pin-simpan]');
+      const bTelp  = e.target.closest('[data-telp-simpan]');
+
+      if (bTelp) {
+        const id = bTelp.dataset.telpSimpan;
+        const inp = document.querySelector('[data-telp-input="' + id + '"]');
+        const msg = document.querySelector('[data-telp-pesan="' + id + '"]');
+
+        // Bentuk akhirnya ditentukan server. Di sini hanya disaring yang jelas
+        // bukan nomor, supaya owner tidak menunggu jaringan untuk tahu.
+        const nilai = (inp.value || '').trim();
+        const angka = nilai.replace(/[^0-9]/g, '');
+        if (nilai !== '' && angka.length < 9) {
+          kelolaPesan(msg, 'Nomor terlalu pendek. Contoh: 081297754581.', false); return;
+        }
+
+        bTelp.disabled = true;
+        const { data, error } = await sb.rpc('owner_set_capster_phone',
+          { p_capster_id: id, p_telepon: nilai });
+        bTelp.disabled = false;
+        if (error) { kelolaPesan(msg, 'Gagal: ' + error.message, false); return; }
+        const r = Array.isArray(data) ? data[0] : data;
+        inp.value = (r && r.telepon) || '';
+        kelolaPesan(msg, r && r.telepon
+          ? 'Tersimpan sebagai ' + r.telepon + '.'
+          : 'Nomor dikosongkan. Capster ini tidak akan dapat notifikasi.', true);
+      }
 
       if (bSandi) {
         const id = bSandi.dataset.sandiSimpan;
