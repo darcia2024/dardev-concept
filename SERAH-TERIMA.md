@@ -127,7 +127,8 @@ orangnya sampai owner turun tangan.
 ### Owner
 
 Buka `/rekap`. Berisi omzet, metode bayar, performa capster, log transaksi,
-setoran kas, HPP & laba produk, rekap absensi, dan persetujuan cuti.
+setoran kas, HPP & laba produk, rekap absensi, persetujuan cuti, dan
+pengaturan notifikasi WhatsApp ke capster.
 
 ---
 
@@ -147,10 +148,57 @@ Seluruh data berikut masih **contoh** dan wajib diganti:
 - [x] ~~Jam kerja~~ — 10.00–21.00, Jumat 13.00–21.00
 - [ ] Toleransi terlambat dan kuota cuti tahunan
 - [ ] Ganti kata sandi owner dan perangkat POS
+- [ ] **Notifikasi WhatsApp ke capster** — belum aktif; lihat bagian di bawah
 - [ ] **Rotate Personal Access Token Supabase** yang dipakai saat pengembangan
 
 Aturan poin dan tier disimpan sebagai **data**, bukan kode. Mengubahnya tidak
 memerlukan rilis ulang.
+
+### Menyalakan notifikasi WhatsApp ke capster
+
+Saat pelanggan memilih capster di halaman booking, capster itu dapat langsung
+dikabari lewat WhatsApp. Fiturnya sudah terpasang tetapi **sengaja dimatikan**
+sampai kredensial providernya diisi — tanpa itu booking tetap berjalan normal
+dan setiap percobaan kirim tercatat sebagai "Fitur nonaktif".
+
+Tiga langkah:
+
+1. **Nomor capster.** `/rekap` → panel *Data Capster & PIN Kasir*. Tiap kartu
+   capster punya kolom Nomor WhatsApp. Boleh diketik `0812…`, `+62 812…`, atau
+   `62812…`; yang tersimpan selalu bentuk `62…`. Mengosongkannya berarti
+   capster itu tidak akan dikabari.
+
+2. **Token provider.** Simpan di Supabase → *Project Settings* → *Vault*,
+   dengan nama persis `WA_TOKEN`. Token tidak pernah ditaruh di kode, di berkas
+   `.env`, maupun di layar owner — layar owner hanya diberi tahu bahwa ia sudah
+   terpasang. Untuk WhatsApp Cloud API, isinya adalah *permanent access token*
+   milik System User.
+
+3. **Alamat dan status.** `/rekap` → panel *Notifikasi WhatsApp ke Capster* →
+   **Ubah Pengaturan**. Isi alamat pengiriman, lalu centang aktif.
+
+   | Provider | Alamat pengiriman |
+   |---|---|
+   | WhatsApp Cloud API (Meta) | `https://graph.facebook.com/v21.0/<phone_number_id>/messages` |
+   | Gateway lain (Fonnte, Wablas, dsb.) | alamat kirim-pesan milik gateway tersebut |
+
+   Untuk Meta, template dengan nama yang diisi di sana harus sudah disetujui
+   Meta dan berisi **lima variabel berurutan**: nama pelanggan, layanan,
+   tanggal, jam, kode booking. Contoh isi template:
+
+   > Booking baru untuk kamu. Nama: {{1}}. Layanan: {{2}}. Tanggal: {{3}}.
+   > Jam: {{4}}. Kode: {{5}}.
+
+   Gateway non-Meta menerima pesan teks biasa, jadi tidak perlu template.
+
+Riwayat pengiriman tampil di panel yang sama. Status yang mungkin muncul:
+`Terkirim`, `Fitur nonaktif`, `Tanpa capster` (pelanggan tidak memilih),
+`Nomor bermasalah` (nomor capster kosong atau salah bentuk), dan `Gagal`
+(token belum ada, alamat salah, atau providernya menolak).
+
+**Booking tidak pernah gagal karena notifikasinya.** Apa pun yang terjadi pada
+pengiriman, pelanggan tetap mendapat kode bookingnya dan owner melihat
+sebabnya di riwayat.
 
 ---
 
@@ -280,6 +328,15 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
   data, tutup kas, dan absensi memerlukan koneksi.
 - **Booking publik adalah permintaan kunjungan**, bukan penguncian kursi atau
   pemilihan capster otomatis. Kasir tetap harus mengonfirmasi lewat WhatsApp.
+  Capster yang dipilih memang dikabari otomatis, tetapi itu pemberitahuan —
+  bukan janji bahwa dialah yang akan melayani.
+- **Notifikasi WhatsApp dikirim tanpa menunggu jawaban provider.** Permintaannya
+  dititipkan ke antrean lalu transaksinya selesai, supaya pelanggan tidak
+  menunggu jaringan WhatsApp sebelum melihat kode bookingnya. Akibatnya status
+  `Terkirim` di riwayat berarti "permintaan sudah dikirim", bukan "pesan sudah
+  sampai ke ponsel capster". Kegagalan sesudah titik itu — nomor diblokir,
+  template ditolak, kuota provider habis — hanya terlihat di dashboard
+  providernya, tidak di `/rekap`.
 - **Di luar scope** sesuai proposal: komisi capster otomatis, penguncian slot
   dan capster secara otomatis, manajemen stok gudang, aplikasi Play Store,
   dan integrasi QRIS dinamis
@@ -302,7 +359,8 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | `assets/logo.png` · `logo-putih.png` | Logo Underrated Barbershop (gelap & putih) |
 | `vendor/` | Library Supabase, pembuat QR, dan pembaca QR, di-host sendiri |
 | `supabase_schema.sql` | Skema dasar |
-| `supabase_migration_02..30_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
+| `supabase_migration_02..41_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
+| `tests/*.test.js` | Penjaga regresi. Jalankan `node tests/<nama>.test.js`; tidak perlu dependensi. |
 
 Kunci di `sb-app.js` adalah *publishable key* yang memang dirancang untuk
 publik. Yang menjaga data adalah RLS. **Jangan pernah** menaruh `service_role`
