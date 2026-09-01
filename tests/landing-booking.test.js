@@ -146,6 +146,23 @@ for (const nama of berkasFoto) {
   }
   assert.match(isi, /\.webp/, nama + ' harus menawarkan WebP');
   assert.match(isi, /\.png\?v=/, nama + ' harus menyimpan cadangan PNG');
+
+  // WebP wajib berpenanda versi. Ini pernah terlewat: hanya PNG yang diberi
+  // penanda, padahal WebP yang sebenarnya diunduh hampir semua peramban.
+  // Akibatnya mengganti foto tidak akan pernah sampai ke orang yang sudah
+  // memuatnya, dan penanda pada PNG hanya menghias jalur cadangan yang nyaris
+  // tidak pernah dipakai.
+  const rujukanWebp = isi.match(/[\w${}[\]'. +]*\.webp[^"']*/g) || [];
+  for (const r of rujukanWebp) {
+    assert.match(r, /\.webp\?v=\d+/, nama + ' punya rujukan WebP tanpa penanda versi: ' + r);
+  }
+
+  // Keduanya harus menunjuk versi yang sama; kalau berbeda, satu jalur
+  // menyajikan foto lama sementara jalur lain menyajikan yang baru.
+  const versiWebp = [...isi.matchAll(/\.webp\?v=(\d+)/g)].map(x => x[1]);
+  const versiPng = [...isi.matchAll(/\.png\?v=(\d+)/g)].map(x => x[1]);
+  assert.equal(new Set([...versiWebp, ...versiPng]).size, 1,
+    nama + ' memakai penanda versi foto yang tidak seragam');
   assert.match(isi, /type="image\/webp"/, nama + ' harus memakai <source type="image/webp">');
 
   // Aturannya satu kalimat: foto kapster selalu lewat <picture>. Memeriksa
