@@ -894,6 +894,62 @@
       </p>
     </div>
 
+    <!-- L-04 / L-06 / L-07 -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Sebaran &amp; Tindak Lanjut Member</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Bentuk piramida memberi tahu apakah ambang levelnya masuk akal.
+            Dua daftar di bawahnya berisi orang yang paling mungkin datang bila dihubungi.
+          </p>
+        </div>
+        <div>
+          <label for="hilangBulan" style="font-size:12px; color:var(--fg-dim);">Tidak datang lebih dari</label>
+          <select id="hilangBulan" class="input-field">
+            <option value="3">3 bulan</option>
+            <option value="6">6 bulan</option>
+            <option value="12">12 bulan</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table">
+          <thead>
+            <tr><th>Level</th><th>Ambang</th><th>Member</th><th>Porsi</th>
+                <th style="text-align:right;">Saldo Poin</th></tr>
+          </thead>
+          <tbody id="tierSebaranBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-controls" style="margin-top:14px;">
+        <h3 style="font-size:13.5px; font-weight:600;">Hampir Naik Level</h3>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table">
+          <thead>
+            <tr><th>No.</th><th>Nama</th><th>WhatsApp</th><th>Sekarang</th>
+                <th>Menuju</th><th>Kurang</th><th style="text-align:right;">Setara Belanja</th></tr>
+          </thead>
+          <tbody id="hampirNaikBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-controls" style="margin-top:14px;">
+        <h3 style="font-size:13.5px; font-weight:600;">Lama Tidak Datang</h3>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table">
+          <thead>
+            <tr><th>No.</th><th>Nama</th><th>WhatsApp</th><th>Level</th>
+                <th>Terakhir</th><th>Sejak</th><th style="text-align:right;">Total Belanja</th></tr>
+          </thead>
+          <tbody id="lamaHilangBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Daftar member -->
     <div class="table-panel">
       <div class="table-controls">
@@ -2955,8 +3011,68 @@
        laporan omzet bulan yang sudah lewat tidak berubah hanya karena seorang
        member dihapus hari ini.
        ═══════════════════════════════════════════════════════════════════════ */
+    /* Ketiga laporan ini menjawab pertanyaan yang berbeda sifatnya dari
+       ringkasan poin: bukan "berapa biaya programnya" melainkan "siapa yang
+       harus dihubungi". Karena itu keduanya berdiri terpisah. */
+    async function muatLaporanMember() {
+      const bulan = Number(document.getElementById('hilangBulan').value) || 3;
+      const [sebaran, hampir, hilang] = await Promise.all([
+        sb.rpc('owner_members_per_tier'),
+        sb.rpc('owner_members_hampir_naik', { p_limit: 25 }),
+        sb.rpc('owner_members_lama_hilang', { p_bulan: bulan })
+      ]);
+
+      const kosong = (n, teks) =>
+        '<tr><td colspan="' + n + '" class="empty-row">' + teks + '</td></tr>';
+      const nomor = v => Number(v || 0).toLocaleString('id-ID');
+
+      const tbSebaran = document.getElementById('tierSebaranBody');
+      tbSebaran.innerHTML = (sebaran.data || []).length
+        ? sebaran.data.map(x => '<tr>'
+            + '<td><strong>' + escapeHtml(x.tier) + '</strong></td>'
+            + '<td style="font-family:var(--mono);">' + nomor(x.min_points) + '</td>'
+            + '<td style="font-family:var(--mono);">' + nomor(x.jumlah) + '</td>'
+            + '<td style="font-family:var(--mono);">' + Number(x.persen) + '%</td>'
+            + '<td style="font-family:var(--mono); text-align:right;">' + nomor(x.saldo_poin) + '</td>'
+            + '</tr>').join('')
+        : kosong(5, 'Belum ada member.');
+
+      const tbHampir = document.getElementById('hampirNaikBody');
+      tbHampir.innerHTML = (hampir.data || []).length
+        ? hampir.data.map(x => '<tr>'
+            + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(x.member_no || '-') + '</td>'
+            + '<td><strong>' + escapeHtml(x.nama || '-') + '</strong></td>'
+            + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(x.telepon || '-') + '</td>'
+            + '<td>' + escapeHtml(x.tier) + '</td>'
+            + '<td><strong>' + escapeHtml(x.tier_berikut) + '</strong></td>'
+            + '<td style="font-family:var(--mono);">' + nomor(x.kurang) + ' poin</td>'
+            /* Sisa poin diterjemahkan ke rupiah belanja, sebab itu yang dapat
+               disebut ke pelanggan. "Kurang 45.000 poin" tidak berarti apa pun
+               bagi orang yang tidak menghitung poin di kepalanya. */
+            + '<td style="font-family:var(--mono); text-align:right;">' + formatRupiah(x.belanja_setara) + '</td>'
+            + '</tr>').join('')
+        : kosong(7, 'Semua member sudah di level tertinggi.');
+
+      const tbHilang = document.getElementById('lamaHilangBody');
+      tbHilang.innerHTML = (hilang.data || []).length
+        ? hilang.data.map(x => '<tr>'
+            + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(x.member_no || '-') + '</td>'
+            + '<td><strong>' + escapeHtml(x.nama || '-') + '</strong></td>'
+            + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(x.telepon || '-') + '</td>'
+            + '<td>' + escapeHtml(x.tier) + '</td>'
+            + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(x.terakhir || 'Belum pernah') + '</td>'
+            + '<td style="font-family:var(--mono);">' + nomor(x.hari_sejak) + ' hari</td>'
+            + '<td style="font-family:var(--mono); text-align:right;">' + formatRupiah(x.total_spend) + '</td>'
+            + '</tr>').join('')
+        : kosong(7, 'Tidak ada member yang menghilang selama itu.');
+    }
+
+    document.getElementById('hilangBulan')
+      .addEventListener('change', () => muatLaporanMember().catch(() => {}));
+
     async function muatMember() {
       const tb = document.getElementById('memberTableBody');
+      muatLaporanMember().catch(() => {});
       const { data, error } = await sb.rpc('owner_members_list', { p_limit: 200 });
       if (error) {
         tb.innerHTML = '<tr><td colspan="10" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
