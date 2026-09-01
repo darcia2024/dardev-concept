@@ -174,6 +174,25 @@
     .progress-fill { height:100%; background:linear-gradient(90deg,var(--brass-deep),var(--brass)); border-radius:99px; }
     .progress-text { font-size:11.5px; color:var(--fg-dim); }
 
+    /* Kartu di Home mengaku dapat diketuk. Tanpa penanda apa pun, tidak ada
+       yang tahu ada halaman di baliknya. */
+    #kartuUtama { cursor:pointer; }
+    #kartuUtama:focus-visible { outline:2px solid var(--brass); outline-offset:3px; }
+    .kartu-petunjuk {
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      font-size:11.5px; color:var(--t-ink-dim,var(--fg-dim));
+      border-top:1px solid color-mix(in srgb,var(--t-ink,#16181C) 12%,transparent);
+      padding-top:11px; margin-top:-4px;
+    }
+
+    .kembali {
+      display:inline-flex; align-items:center; gap:7px;
+      background:none; border:0; padding:6px 2px; margin-bottom:6px;
+      font-family:inherit; font-size:14px; color:var(--fg-mid); cursor:pointer;
+      min-height:44px;
+    }
+    .kembali:hover { color:var(--fg); }
+
     /* ---------- Tangga level ----------------------------------------------
        Tiap baris memakai peubah level yang sama dengan kartu di atas, jadi
        contoh kecil di sini benar-benar memperlihatkan kartu yang akan didapat.
@@ -389,7 +408,8 @@
     <!-- ===================== HOME ===================== -->
     <div class="tabpanel" id="tabHome">
     <!-- Kartu -->
-    <section class="card-hero">
+    <section class="card-hero" id="kartuUtama" role="button" tabindex="0"
+             aria-label="Lihat level dan manfaat">
       <div class="card-top">
         <div>
           <img src="assets/logo.png" alt="Underrated Barbershop" class="brandmark" style="height:20px;margin-bottom:8px;" />
@@ -411,6 +431,11 @@
         <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
         <div class="progress-text" id="progressText"></div>
       </div>
+
+      <div class="kartu-petunjuk" id="kartuPetunjuk" hidden>
+        <span id="kartuPetunjukTeks">Lihat semua level &amp; manfaat</span>
+        <span aria-hidden="true">&rsaquo;</span>
+      </div>
     </section>
 
     <!-- Statistik -->
@@ -426,21 +451,31 @@
       <div class="panel-head"><h2>Riwayat Kunjungan</h2><span id="histCount"></span></div>
       <div id="histList"></div>
     </section>
-
-    <!-- Tangga level -->
-    <section class="panel">
-      <div class="panel-head">
-        <h2>Level &amp; Manfaat</h2>
-        <span id="tanggaKini"></span>
-      </div>
-      <div id="tanggaList"></div>
-      <p class="tangga-catatan">
-        Pengali berlaku pada poin yang Anda dapat di tiap kunjungan. Level naik
-        sendiri begitu poin seumur hidup mencapai ambangnya, dan tidak pernah
-        turun.
-      </p>
-    </section>
     </div><!-- /tabHome -->
+
+    <!-- ===================== LEVEL ===================== -->
+    <!-- Bukan bagian tabbar: halaman ini dicapai dengan mengetuk kartu, dan
+         ditutup lewat tombol kembali maupun tombol back peramban. -->
+    <div class="tabpanel" id="tabLevel" hidden>
+      <button class="kembali" id="btnKembaliLevel" type="button">
+        <span aria-hidden="true">&larr;</span> Kembali
+      </button>
+
+      <div id="levelKartu"></div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Semua Level</h2>
+          <span id="tanggaKini"></span>
+        </div>
+        <div id="tanggaList"></div>
+        <p class="tangga-catatan">
+          Pengali berlaku pada poin yang Anda dapat di tiap kunjungan. Level naik
+          sendiri begitu poin seumur hidup mencapai ambangnya, dan tidak pernah
+          turun.
+        </p>
+      </section>
+    </div><!-- /tabLevel -->
 
     <!-- ===================== SCAN QR ===================== -->
     <div class="tabpanel" id="tabQR" hidden>
@@ -835,6 +870,28 @@
       sudahDimuat.tabStore = true;
     }
 
+    /* Halaman level berdiri di luar tabbar. Tombol back peramban ikut
+       ditangani: di ponsel Android, back adalah gerakan utama, dan tanpa ini
+       menekannya akan keluar dari aplikasi alih-alih menutup halaman ini. */
+    function bukaLevel() {
+      document.querySelectorAll('.tabpanel').forEach(el => { el.hidden = el.id !== 'tabLevel'; });
+      document.getElementById('tabbar').hidden = true;
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      if (location.hash !== '#level') history.pushState({ level: true }, '', '#level');
+    }
+
+    function tutupLevel(lewatSejarah) {
+      document.getElementById('tabbar').hidden = false;
+      bukaTab('tabHome');
+      if (!lewatSejarah && location.hash === '#level') history.back();
+    }
+
+    window.addEventListener('popstate', () => {
+      if (location.hash !== '#level' && !document.getElementById('tabLevel').hidden) {
+        tutupLevel(true);
+      }
+    });
+
     function bukaTab(id) {
       document.querySelectorAll('.tabpanel').forEach(el => { el.hidden = el.id !== id; });
       document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('is-on', b.dataset.tab === id));
@@ -848,6 +905,12 @@
       if (btn) bukaTab(btn.dataset.tab);
     });
 
+    document.getElementById('kartuUtama').addEventListener('click', bukaLevel);
+    document.getElementById('kartuUtama').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bukaLevel(); }
+    });
+    document.getElementById('btnKembaliLevel').addEventListener('click', () => tutupLevel(false));
+
     /* Manfaat tiap tingkat diturunkan dari data yang benar-benar ada:
        pengali dari tier_rules, dan reward yang ambang levelnya tepat di
        tingkat itu. Tidak ada manfaat yang ditulis tetap di sini.
@@ -857,6 +920,39 @@
        tetapi keduanya belum dibangun. Menuliskannya di sini berarti
        menjanjikan sesuatu yang tidak dapat ditepati sistem, dan pelanggan
        yang menagihnya di kasir akan bertemu orang yang tidak tahu apa-apa. */
+    /* Kartu di halaman level dibangun dari string, bukan disalin dari DOM.
+       Menyalin simpulnya akan ikut menggandakan seluruh id di dalamnya, dan
+       dua elemen berid sama membuat setiap $('...') berikutnya menunjuk yang
+       salah tanpa satu pun galat muncul. */
+    function renderKartuLevel(m) {
+      const tier = m.tier || 'Silver';
+      const berikut = m.tier_berikut
+        ? Number(m.poin_ke_tier_berikut).toLocaleString('id-ID')
+            + ' poin lagi menuju ' + esc(m.tier_berikut)
+        : 'Level tertinggi sudah tercapai';
+      const persen = m.tier_berikut
+        ? Math.max(4, Math.min(100, Math.round(
+            (Number(m.lifetime_points) /
+             (Number(m.lifetime_points) + Number(m.poin_ke_tier_berikut))) * 100)))
+        : 100;
+
+      $('levelKartu').innerHTML =
+        '<section class="card-hero" data-tier="' + esc(tier) + '">'
+      + '<div class="card-top"><div>'
+      + '<img src="assets/logo.png" alt="Underrated Barbershop" class="brandmark" '
+      + 'style="height:20px;margin-bottom:8px;" />'
+      + '<div class="card-name">' + esc(m.name || '') + '</div>'
+      + '<div class="member-no">' + (m.member_no ? 'No. ' + esc(m.member_no) : '') + '</div>'
+      + '</div><div class="tier-badge">' + esc(tier) + '</div></div>'
+      + '<div><div class="points-row">'
+      + '<span class="points-val">' + Number(m.points_balance).toLocaleString('id-ID') + '</span>'
+      + '<span class="points-unit">poin tersedia</span></div></div>'
+      + '<div class="progress-wrap">'
+      + '<div class="progress-track"><div class="progress-fill" style="width:' + persen + '%"></div></div>'
+      + '<div class="progress-text">' + berikut + '</div></div>'
+      + '</section>';
+    }
+
     function renderTangga(tingkat, reward, m) {
       const wadah = $('tanggaList');
       if (!tingkat.length) { wadah.innerHTML = ''; return; }
@@ -920,7 +1016,9 @@
       }
 
       renderKartu(m);
+      renderKartuLevel(m);
       renderTangga(tangga.data || [], reward.data || [], m);
+      $('kartuPetunjuk').hidden = false;
       renderReward(reward.data || []);
       renderKlaim(klaim.data || []);
       renderRiwayat(riwayat.data || []);

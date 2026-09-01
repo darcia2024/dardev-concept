@@ -92,4 +92,32 @@ for (const t of TIER) {
   }
 }
 
+// ── Halaman level berdiri sendiri ──────────────────────────────────────────
+// Tangga tidak lagi berada di Home: ia halaman tersendiri yang dicapai dengan
+// mengetuk kartu.
+assert.match(kartu, /id="tabLevel"/);
+assert.match(kartu, /id="kartuUtama"/);
+assert.match(kartu, /getElementById\('kartuUtama'\)\.addEventListener\('click', bukaLevel\)/);
+
+const isiHome = kartu.slice(kartu.indexOf('id="tabHome"'), kartu.indexOf('id="tabLevel"'));
+assert.doesNotMatch(isiHome, /id="tanggaList"/, 'tangga tidak boleh kembali ke Home');
+
+// Tombol back peramban wajib menutup halaman ini. Di ponsel Android, back
+// adalah gerakan utama, dan tanpa penanganan ini menekannya akan keluar dari
+// aplikasi alih-alih kembali ke kartu.
+assert.match(kartu, /history\.pushState\(\{ level: true \}/);
+assert.match(kartu, /addEventListener\('popstate'/);
+assert.match(kartu, /getElementById\('tabbar'\)\.hidden = true/);
+
+// Kartu di halaman level dibangun dari string, bukan disalin dari DOM:
+// menyalin simpulnya akan menggandakan seluruh id di dalamnya.
+assert.match(kartu, /function renderKartuLevel/);
+const ids = [...kartu.matchAll(/\sid="([^"]+)"/g)].map(m => m[1]);
+assert.equal(new Set(ids).size, ids.length, 'kartu.html tidak boleh punya id kembar');
+
+// Kartu harus mengaku dapat diketuk. Tanpa penanda, tidak ada yang tahu ada
+// halaman di baliknya.
+assert.match(kartu, /class="kartu-petunjuk"/);
+assert.match(kartu, /role="button" tabindex="0"/);
+
 console.log('Tier ladder tests: OK');
