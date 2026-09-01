@@ -1997,6 +1997,11 @@
         <button id="btnPrintReceipt" class="btn-close-modal" style="background: var(--fg); color: var(--ink); border: none;">
           🖨️ Cetak Nota
         </button>
+        <!-- Dibuang sendiri oleh skrip bila peramban tidak mendukung Web
+             Bluetooth. Tombol yang pasti gagal lebih buruk daripada tidak ada. -->
+        <button id="btnPrintBluetooth" class="btn-close-modal">
+          Cetak via Bluetooth
+        </button>
       </div>
       <div id="rcptLoyaltyBox" hidden style="background:var(--brass-wash); border:1px solid var(--brass-deep); border-radius:var(--r-sm); padding:11px 13px; margin-bottom:12px; font-size:13px; line-height:1.6;">
         <div id="rcptPointsLine"></div>
@@ -3704,6 +3709,203 @@
     document.getElementById('btnPrintReceipt').addEventListener('click', () => {
       window.print();
     });
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       CETAK LANGSUNG KE PRINTER THERMAL
+
+       window.print() membuka dialog cetak sistem operasi, dan dialog itu hanya
+       menampilkan printer yang terdaftar sebagai LAYANAN CETAK: AirPrint di
+       iOS, Mopria atau plugin vendor di Android. Printer thermal Bluetooth
+       bukan itu. Memasangkannya lewat pengaturan Bluetooth hanya membuka
+       saluran serial; sistemnya tidak pernah tahu benda itu printer, sehingga
+       dialog cetak tidak punya alasan menampilkannya.
+
+       Jalur ini melewati dialog itu sama sekali: struk disusun sebagai
+       perintah ESC/POS dan dikirim langsung ke printernya.
+
+       BATASNYA HARUS DIKETAHUI SEBELUM DIPAKAI
+
+       Web Bluetooth hanya menjangkau printer BLE. Printer Bluetooth Classic
+       (SPP) — dan sebagian printer 58mm masih Classic — TIDAK akan muncul di
+       daftar pemindaian, berapa kali pun dicoba. Kalau printernya tidak
+       muncul, itu bukan kegagalan yang perlu diulang: itu jawabannya, dan
+       jalan keluarnya adalah aplikasi jembatan layanan cetak.
+
+       Tombolnya hanya muncul bila peramban memang mendukung. Menampilkan
+       tombol yang pasti gagal lebih buruk daripada tidak menampilkannya. */
+
+    const LEBAR_STRUK = 32;   // karakter per baris pada kertas 58mm, font A
+
+    /* Layanan yang lazim dipakai printer thermal BLE. Web Bluetooth tidak akan
+       membuka layanan yang tidak disebutkan di sini, jadi daftarnya memuat
+       semua yang mungkin, bukan hanya satu merek. */
+    const LAYANAN_PRINTER = [
+      '000018f0-0000-1000-8000-00805f9b34fb',
+      '0000ff00-0000-1000-8000-00805f9b34fb',
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+      'e7810a71-73ae-499d-8c15-faa9aef0c3f2'
+    ];
+
+    let printerBt = null;      // karakteristik yang siap ditulisi
+
+    /* Hasilnya dijamin tidak pernah melebihi lebar kertas. Baris yang lebih
+       panjang dibungkus mesinnya sendiri dan keluar sebagai potongan yatim di
+       bawahnya — terlihat seperti struk rusak padahal isinya benar.
+
+       Yang dipotong lebih dulu adalah labelnya, bukan nilainya: "Pelanggan"
+       masih terbaca sebagai "Pelangg", sedangkan harga yang terpotong menjadi
+       angka yang salah. Nilai baru ikut dipotong bila ia sendiri sudah lebih
+       panjang dari kertasnya, dan pada titik itu memang tidak ada pilihan
+       lain. */
+    function strukRata(kiri, kanan) {
+      let n = String(kanan);
+      if (n.length > LEBAR_STRUK) n = n.slice(0, LEBAR_STRUK);
+      let k = String(kiri);
+      const ruang = LEBAR_STRUK - n.length;
+      if (k.length >= ruang) k = k.slice(0, Math.max(0, ruang - 1));
+      return k + ' '.repeat(LEBAR_STRUK - k.length - n.length) + n;
+    }
+
+    /* Mesin thermal memakai tabel karakter 8-bit, bukan UTF-8. Huruf beraksen
+       dan tanda seperti titik tengah atau bintang keluar sebagai sampah, jadi
+       dibersihkan lebih dulu daripada dicetak berantakan. */
+    function strukAman(teks) {
+      return String(teks == null ? '' : teks)
+        .replace(/[‘’]/g, "'")
+        .replace(/[“”]/g, '"')
+        .replace(/[–—]/g, '-')
+        .replace(/·/g, '.')
+        .replace(/[^\x20-\x7E\n]/g, '');
+    }
+
+    function escposStruk(tx) {
+      const b = [];
+      const tulis = t => { for (const c of strukAman(t)) b.push(c.charCodeAt(0)); };
+      const baris = t => { tulis(t); b.push(10); };
+
+      b.push(0x1B, 0x40);            // ESC @  — kembalikan ke keadaan awal
+      b.push(0x1B, 0x61, 0x01);      // rata tengah
+      baris('UNDERRATED BARBERSHOP');
+      b.push(0x1B, 0x61, 0x00);      // rata kiri
+      baris(tx.invoice_no || '');
+      baris(new Date(tx.created_at).toLocaleString('id-ID',
+            { dateStyle: 'medium', timeStyle: 'short' }) + ' WIB');
+      baris('-'.repeat(LEBAR_STRUK));
+
+      baris(strukRata('Pelanggan', tx.member_name || 'Umum'));
+      if (tx.member_phone && tx.member_phone !== '-') {
+        baris(strukRata('WhatsApp', formatWa(tx.member_phone)));
+        baris(strukRata('Tier', tx.member_tier || ''));
+      }
+      baris(strukRata('Capster', tx.capster_name || ''));
+      baris('-'.repeat(LEBAR_STRUK));
+
+      (tx.services || []).forEach(function (l) {
+        baris(strukRata(l.name, formatRupiah(l.price)));
+      });
+      baris('-'.repeat(LEBAR_STRUK));
+
+      if (tx.discount_points > 0) {
+        baris(strukRata('Diskon poin', '-' + formatRupiah(tx.discount_points)));
+      }
+      if (tx.discount_manual > 0) {
+        baris(strukRata(tx.discount_name || 'Diskon', '-' + formatRupiah(tx.discount_manual)));
+      }
+      baris(strukRata('TOTAL', formatRupiah(tx.final_amount)));
+      baris(strukRata('Metode', tx.payment_method || 'Tunai'));
+      if (tx.cash_paid) {
+        baris(strukRata('Tunai', formatRupiah(tx.cash_paid)));
+        baris(strukRata('Kembali', formatRupiah(tx.cash_change || 0)));
+      }
+
+      if (tx.points_earned > 0 || tx.points_balance != null) {
+        baris('-'.repeat(LEBAR_STRUK));
+        if (tx.points_earned > 0) baris('Dapat +' + tx.points_earned + ' poin');
+        if (tx.points_balance != null) baris('Saldo kini ' + tx.points_balance + ' poin');
+      }
+
+      b.push(10);
+      b.push(0x1B, 0x61, 0x01);
+      baris('Terima kasih atas kunjungan Anda');
+      baris('Simpan struk sebagai bukti poin');
+      b.push(10, 10, 10);            // kertas maju supaya mudah disobek
+      b.push(0x1D, 0x56, 0x00);      // potong, diabaikan mesin tanpa pemotong
+      return new Uint8Array(b);
+    }
+
+    async function sambungPrinter() {
+      const perangkat = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true, optionalServices: LAYANAN_PRINTER
+      });
+      const gatt = await perangkat.gatt.connect();
+
+      /* Karakteristiknya dicari, bukan ditebak: tiap merek memakai UUID
+         sendiri, dan menuliskan satu tebakan berarti fitur ini hanya jalan di
+         satu merek. Yang dicari adalah karakteristik pertama yang dapat
+         ditulisi. */
+      const daftar = await gatt.getPrimaryServices();
+      for (const layanan of daftar) {
+        for (const c of await layanan.getCharacteristics()) {
+          if (c.properties.write || c.properties.writeWithoutResponse) {
+            printerBt = c;
+            perangkat.addEventListener('gattserverdisconnected', function () {
+              printerBt = null;
+            });
+            return perangkat.name || 'Printer';
+          }
+        }
+      }
+      throw new Error('Tersambung, tetapi perangkat ini tidak punya jalur tulis. '
+                    + 'Kemungkinan bukan printer.');
+    }
+
+    async function kirimKePrinter(data) {
+      /* BLE mengirim dalam potongan kecil. Mengirim sekaligus akan terpotong
+         diam-diam di tengah, dan struknya keluar separuh. */
+      const POTONG = 180;
+      for (let i = 0; i < data.length; i += POTONG) {
+        const bagian = data.slice(i, i + POTONG);
+        if (printerBt.properties.writeWithoutResponse) {
+          await printerBt.writeValueWithoutResponse(bagian);
+        } else {
+          await printerBt.writeValue(bagian);
+        }
+        await new Promise(function (r) { setTimeout(r, 20); });
+      }
+    }
+
+    const btnBt = document.getElementById('btnPrintBluetooth');
+    if (btnBt) {
+      if (!navigator.bluetooth) {
+        btnBt.remove();
+      } else {
+        btnBt.addEventListener('click', async function () {
+          if (!lastTransaction) return;
+          btnBt.disabled = true;
+          const labelAsli = btnBt.textContent;
+          try {
+            if (!printerBt) {
+              btnBt.textContent = 'Mencari printer...';
+              const nama = await sambungPrinter();
+              showToast('Tersambung ke ' + nama + '.');
+            }
+            btnBt.textContent = 'Mencetak...';
+            await kirimKePrinter(escposStruk(lastTransaction));
+            showToast('Struk terkirim ke printer.');
+          } catch (e) {
+            printerBt = null;
+            const pesan = /cancel/i.test(e.message || '')
+              ? 'Pemilihan printer dibatalkan.'
+              : 'Printer gagal: ' + (e.message || e);
+            showToast(pesan);
+          } finally {
+            btnBt.disabled = false;
+            btnBt.textContent = labelAsli;
+          }
+        });
+      }
+    }
 
     /* =========================================================================
        BOOKING MASUK
