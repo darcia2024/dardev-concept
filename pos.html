@@ -1598,6 +1598,18 @@
     .booking-status.is-new { background: var(--brand-wash); color: var(--brand); }
     .booking-status.is-confirmed { background: var(--ok-wash); color: var(--ok); }
     .booking-status.is-closed { background: var(--surface-sunk); color: var(--text-mid); }
+
+    /* Penanda waktu kedatangan. Inilah yang membuat panel ini berguna sebagai
+       pengingat, bukan sekadar daftar: kasir perlu tahu SIAPA yang datang
+       sebentar lagi, bukan sekadar bahwa ada booking hari ini. */
+    .booking-kapan {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: 999px; font-size: 11.5px;
+      border: 1px solid var(--border); color: var(--text-mid);
+    }
+    .booking-kapan.segera { border-color: var(--brand); color: var(--brand); background: var(--brand-wash); }
+    .booking-kapan.lewat  { border-color: var(--brand); color: #FFFFFF; background: var(--brand); }
+    .booking-item.is-lewat { border-color: var(--brand-line); }
     .booking-detail {
       display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px;
       margin-top: 11px; color: var(--text-mid); font-size: 12.5px;
@@ -2044,6 +2056,7 @@
         <div>
           <label for="bookingStatusFilter">Status</label>
           <select id="bookingStatusFilter" class="input-field">
+            <option value="agenda">Perlu diurus hari ini</option>
             <option value="baru">Baru</option>
             <option value="dikonfirmasi">Dikonfirmasi</option>
             <option value="selesai">Selesai</option>
@@ -3670,10 +3683,30 @@
             + '<button type="button" class="btn-hdr is-danger" data-booking-status="batal" data-id="' + row.id + '">Batalkan</button>';
         }
 
-        return '<article class="booking-item">'
+        /* menit_lagi dihitung server dari waktu Jakarta, bukan dari jam
+           perangkat kasir. Jam perangkat dapat meleset, dan pengingat
+           "sebentar lagi" yang meleset satu jam lebih buruk daripada tidak
+           ada pengingat sama sekali. */
+        let kapan = '';
+        if (row.menit_lagi != null) {
+          const m = Number(row.menit_lagi);
+          const lewat = m < 0;
+          const abs = Math.abs(m);
+          const teks = abs < 60
+            ? abs + ' menit'
+            : Math.floor(abs / 60) + ' jam' + (abs % 60 ? ' ' + (abs % 60) + ' menit' : '');
+          const kelas = lewat ? 'lewat' : (m <= 60 ? 'segera' : '');
+          kapan = '<span class="booking-kapan ' + kelas + '">'
+                + (lewat ? 'Lewat ' + teks : teks + ' lagi') + '</span>';
+        }
+
+        return '<article class="booking-item' + (row.kelompok === 'terlewat' ? ' is-lewat' : '') + '">'
           + '<div class="booking-item-top"><div><div class="booking-code">' + escapeHtml(row.kode) + '</div>'
           + '<div class="booking-name">' + escapeHtml(row.nama) + '</div></div>'
-          + '<span class="booking-status ' + bookingStatusClass(row.status) + '">' + escapeHtml(bookingStatusText(row.status)) + '</span></div>'
+          + '<div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">'
+          + kapan
+          + '<span class="booking-status ' + bookingStatusClass(row.status) + '">' + escapeHtml(bookingStatusText(row.status)) + '</span>'
+          + '</div></div>'
           + '<div class="booking-detail">'
           + '<span><strong>' + escapeHtml(formatBookingDate(row.tanggal)) + '</strong> · ' + escapeHtml(String(row.jam || '').slice(0, 5)) + '</span>'
           + '<span><strong>' + escapeHtml(row.service_name || 'Layanan') + '</strong> · ' + escapeHtml(String(row.durasi_menit || 0)) + ' menit</span>'
@@ -3698,7 +3731,10 @@
     async function refreshBookingBadge() {
       if (!SBConn.online) return;
       try {
-        const { data, error } = await sb.rpc('bookings_list', { p_status: 'baru', p_tanggal: null });
+        /* Sebelumnya hanya menghitung status 'baru'. Akibatnya lencana jatuh
+           ke nol tepat setelah kasir menekan Konfirmasi, dan booking yang sudah
+           dipastikan ke pelanggan justru yang paling tidak terlihat. */
+        const { data, error } = await sb.rpc('bookings_agenda');
         if (!error) setBookingCount((data || []).length);
       } catch (_) {}
     }
@@ -3714,12 +3750,19 @@
       try {
         const status = bookingStatusFilter.value || null;
         const tanggal = bookingDateFilter.value || null;
-        const { data, error } = await sb.rpc('bookings_list', { p_status: status, p_tanggal: tanggal });
+        /* Agenda punya fungsinya sendiri, bukan saringan status biasa: ia
+           menggabungkan permintaan yang belum diputuskan dengan booking
+           terkonfirmasi yang hari ini atau sudah lewat. Tanggal diabaikan di
+           mode ini, sebab agenda memang selalu berarti "sekarang". */
+        const agenda = status === 'agenda';
+        const { data, error } = agenda
+          ? await sb.rpc('bookings_agenda')
+          : await sb.rpc('bookings_list', { p_status: status, p_tanggal: tanggal });
         if (seq !== bookingRequestSeq) return;
         if (error) throw error;
         bookingRows = data || [];
         renderBookings();
-        if (status === 'baru' && !tanggal) setBookingCount(bookingRows.length);
+        if (agenda) setBookingCount(bookingRows.length);
         else await refreshBookingBadge();
       } catch (error) {
         if (seq !== bookingRequestSeq) return;
