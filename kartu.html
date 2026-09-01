@@ -929,18 +929,25 @@
       sudahDimuat.tabStore = true;
     }
 
-    /* Halaman level berdiri di luar tabbar. Tombol back peramban ikut
-       ditangani: di ponsel Android, back adalah gerakan utama, dan tanpa ini
-       menekannya akan keluar dari aplikasi alih-alih menutup halaman ini. */
+    /* Halaman level tidak punya tombolnya sendiri di tabbar, tetapi tabbarnya
+       TETAP terlihat: ia satu-satunya jalan keluar yang selalu ada di layar,
+       dan menyembunyikannya membuat orang merasa terkurung di halaman yang
+       tidak ia niatkan buka. Home tetap ditandai aktif, sebab halaman ini
+       dicapai dari sana dan memang bagian dari kartunya.
+
+       Tombol back peramban ikut ditangani: di ponsel Android, back adalah
+       gerakan utama, dan tanpa ini menekannya akan keluar dari aplikasi
+       alih-alih menutup halaman ini. */
     function bukaLevel() {
       document.querySelectorAll('.tabpanel').forEach(el => { el.hidden = el.id !== 'tabLevel'; });
-      document.getElementById('tabbar').hidden = true;
+      document.querySelectorAll('.tabbtn').forEach(b => {
+        b.classList.toggle('is-on', b.dataset.tab === 'tabHome');
+      });
       window.scrollTo({ top: 0, behavior: 'instant' });
       if (location.hash !== '#level') history.pushState({ level: true }, '', '#level');
     }
 
     function tutupLevel(lewatSejarah) {
-      document.getElementById('tabbar').hidden = false;
       bukaTab('tabHome');
       if (!lewatSejarah && location.hash === '#level') history.back();
     }
@@ -952,6 +959,14 @@
     });
 
     function bukaTab(id) {
+      /* Berpindah tab dari halaman level ikut membersihkan tanda pagarnya.
+         Kalau dibiarkan, tombol back sesudahnya hanya menghapus #level tanpa
+         mengubah apa pun di layar, dan terasa seperti tombol yang macet.
+         replaceState dipakai, bukan pushState, supaya tidak menambah langkah
+         baru yang harus ditekan dua kali untuk keluar. */
+      if (location.hash === '#level') {
+        history.replaceState({}, '', location.pathname + location.search);
+      }
       document.querySelectorAll('.tabpanel').forEach(el => { el.hidden = el.id !== id; });
       document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('is-on', b.dataset.tab === id));
       window.scrollTo({ top: 0, behavior: 'instant' });
