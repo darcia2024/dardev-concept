@@ -271,7 +271,7 @@
        sehingga gambarnya kembali menjadi butir grid seperti sebelumnya. */
     .avatar picture { display: contents; }
     .avatar img {
-      width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; border-radius: 14px;
+      width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; border-radius: inherit;
     }
     .kapster-nama { font-size: 16px; font-weight: var(--w-med); }
     .kapster-peran { font-size: 12.5px; color: var(--text-mid); margin-top: -6px; }
@@ -487,12 +487,16 @@
       .layanan-harga { font-size: 17px; }
       .layanan-kartu .nama { font-size: 14.5px; }
       .layanan-meta { font-size: 11.5px; gap: 5px 10px; }
-      .layanan-gambar img { width: 62%; }
+      .layanan-gambar { aspect-ratio: 4 / 3; }
+      .layanan-gambar img { width: 60%; }
       .picker { grid-template-columns: 1fr; }
       .slot-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
       .slot { font-size: 13px; padding: 10px 2px; }
-      .kapster { grid-template-columns: repeat(3, 1fr); gap: 10px; }
-      .avatar { max-width: 100%; border-radius: 10px; font-size: 26px; }
+      /* Tiga kapster, tiga kolom: satu baris utuh tanpa sel yatim. Kotak
+         sedikit lebih pendek dari rasio fotonya, jadi object-fit memangkas
+         tepi bawah — bagian kaus hitam — sementara wajah tetap di atas. */
+      .kapster { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .avatar { max-width: 100%; aspect-ratio: 1 / 1.16; border-radius: 10px; font-size: 26px; }
       .kapster-nama { font-size: 14px; }
       .kapster-peran { font-size: 11.5px; }
       .kapster .pil { padding: 9px 8px; font-size: 12.5px; width: 100%; }
