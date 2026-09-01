@@ -185,6 +185,37 @@
       padding-top:11px; margin-top:-4px;
     }
 
+    /* Peta disematkan, bukan hanya ditautkan. Alamat ruko di BSD sulit
+       dibayangkan dari teks, dan pelanggan yang belum pernah ke sana ingin
+       melihat bentuk jalannya sebelum berangkat. Tombol Petunjuk Arah tetap
+       ada di bawahnya untuk yang sudah siap jalan. */
+    .peta {
+      position:relative; margin-top:11px; border:1px solid var(--line);
+      border-radius:var(--r-sm); overflow:hidden;
+      /* 16/11 membuat bingkainya hanya setinggi 190px pada lebar kartu ini,
+         dan penanda lokasinya terpotong di tepi. Halaman depan memakai 16/11
+         karena bingkainya jauh lebih lebar; di sini rasionya perlu lebih
+         tinggi supaya penandanya punya ruang. */
+      background:var(--ink-inset); aspect-ratio:4 / 3;
+    }
+    .peta iframe { display:block; width:100%; height:100%; border:0; }
+    .peta-memuat {
+      position:absolute; inset:0; display:grid; place-items:center;
+      font-size:12px; color:var(--fg-dim);
+    }
+    /* Tanpa tirai ini, jari yang menyapu ke bawah di atas peta akan menggeser
+       petanya dan daftar outlet berhenti bergulir di situ. */
+    .peta-tirai {
+      position:absolute; inset:0; width:100%; padding:0 0 14px;
+      display:flex; align-items:flex-end; justify-content:center;
+      border:0; background:transparent; font:inherit; cursor:pointer;
+    }
+    .peta-tirai span {
+      padding:7px 13px; border-radius:99px; font-size:12px;
+      background:rgba(255,255,255,.94); color:var(--fg);
+      border:1px solid var(--line); box-shadow:var(--shadow-sm);
+    }
+
     .kembali {
       display:inline-flex; align-items:center; gap:7px;
       background:none; border:0; padding:6px 2px; margin-bottom:6px;
@@ -780,6 +811,17 @@
       sudahDimuat.tabProduct = true;
     }
 
+    /* Satu penyimak untuk seluruh tirai: kartu outlet digambar ulang tiap
+       kali tabnya dimuat, dan penyimak yang dipasang per elemen akan hilang
+       bersama elemennya. */
+    document.getElementById('outletList').addEventListener('click', (e) => {
+      const tirai = e.target.closest('.peta-tirai');
+      if (!tirai) return;
+      const f = tirai.parentElement.querySelector('iframe');
+      tirai.remove();
+      if (f) f.focus();
+    });
+
     async function muatOutlet() {
       const wrap = $('outletList');
       const [outletRes, capRes] = await Promise.all([
@@ -840,6 +882,14 @@
             <div style="font-family:var(--mono); font-size:11.5px; color:var(--fg-dim);">
               ${String(o.open_time).slice(0,5)}–${String(o.close_time).slice(0,5)} &middot; ${esc(o.catatan)}
             </div>
+            ${petaSiap ? `
+            <div class="peta">
+              <span class="peta-memuat">Memuat peta.</span>
+              <iframe title="Peta lokasi ${esc(o.name)}" loading="lazy"
+                      referrerpolicy="no-referrer-when-downgrade" allowfullscreen
+                      src="https://www.google.com/maps?q=${o.latitude},${o.longitude}&z=17&hl=id&output=embed"></iframe>
+              <button type="button" class="peta-tirai"><span>Ketuk untuk menggeser peta</span></button>
+            </div>` : ''}
             ${(petaSiap || telpSiap) ? `
             <div class="outlet-acts">
               ${petaSiap ? `<a class="primary" href="${maps}" target="_blank" rel="noopener">Petunjuk Arah</a>` : ''}
@@ -861,6 +911,15 @@
             </div>`;
         }
       }
+
+      /* Kalimat "Memuat peta." dicabut pada peristiwa load, bukan ditimpa
+         urutan gambar: elemen berposisi absolut selalu digambar lebih akhir
+         daripada iframe yang mengalir biasa, jadi ia akan tetap terbaca di
+         atas peta yang sudah jadi. */
+      wrap.querySelectorAll('.peta iframe').forEach(f => {
+        const kabar = f.parentElement.querySelector('.peta-memuat');
+        if (kabar) f.addEventListener('load', () => kabar.remove());
+      });
 
       const caps = capRes.data || [];
       $('capCount').textContent = caps.length ? caps.length + ' orang' : '';

@@ -196,6 +196,23 @@ const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const KERANGKA = sw.slice(sw.indexOf('const KERANGKA'), sw.indexOf(']', sw.indexOf('const KERANGKA')));
 assert.doesNotMatch(KERANGKA, /cena|lukman|wanda/);
 
+// Peta outlet di kartu member memakai mekanisme yang sama dengan halaman
+// depan. Dijaga di sini supaya keduanya tidak menyimpang sendiri-sendiri.
+const kartuMember = fs.readFileSync(path.join(root, 'kartu.html'), 'utf8');
+assert.match(kartuMember, /www\.google\.com\/maps\?q=/);
+assert.match(kartuMember, /loading="lazy"/);
+// Tanpa tirai, jari yang menyapu di atas peta menggeser petanya dan daftar
+// outlet berhenti bergulir di situ.
+assert.match(kartuMember, /class="peta-tirai"/);
+// Kalimat "Memuat peta." harus dicabut pada peristiwa load, bukan ditimpa
+// urutan gambar: elemen berposisi absolut selalu digambar lebih akhir
+// daripada iframe yang mengalir biasa.
+assert.match(kartuMember, /addEventListener\('load', \(\) => kabar\.remove\(\)\)/);
+// Petanya baru muncul sesudah koordinat outlet benar-benar terisi. Titik
+// bawaan -6,2/106,8167 adalah pusat Jakarta, dan peta yang menurutinya
+// mengantar orang ke Monas.
+assert.match(kartuMember, /petaSiap \? `\s*<div class="peta">/);
+
 assert.match(landing, /id="bkKirim" disabled>Menyiapkan/);
 assert.match(landing, /function tampilkanGagalMuat/);
 assert.doesNotMatch(landing, /pesan\(res\.error\.message/);
