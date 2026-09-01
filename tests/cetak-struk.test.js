@@ -20,9 +20,22 @@ const escposStruk = new Function('formatWa', 'formatRupiah', sumber + '; return 
 );
 
 function barisStruk(tx) {
-  const b = escposStruk(tx);
-  return Buffer.from(b).toString('latin1')
-    .replace(/\x1B@/g, '').replace(/\x1Ba[\x00-\x02]/g, '').replace(/\x1DV\x00/g, '')
+  let b = Buffer.from(escposStruk(tx));
+
+  // Blok raster logo dibuang lebih dulu, berikut muatannya. Byte gambar tidak
+  // mengandung baris baru, jadi tanpa ini seluruh 3,8 KB terbaca sebagai satu
+  // "baris" raksasa dan pemeriksaan lebar kolom kehilangan artinya.
+  const i = b.indexOf(Buffer.from([0x1D, 0x76, 0x30, 0x00]));
+  if (i >= 0) {
+    const lebarBita = b[i + 4] | (b[i + 5] << 8);
+    const tinggi = b[i + 6] | (b[i + 7] << 8);
+    b = Buffer.concat([b.slice(0, i), b.slice(i + 8 + lebarBita * tinggi)]);
+  }
+
+  return b.toString('latin1')
+    .replace(/\x1B@/g, '')
+    .replace(/\x1Ba[\x00-\x02]/g, '')
+    .replace(/\x1DV\x00/g, '')
     .split('\n');
 }
 
@@ -76,5 +89,30 @@ assert.match(pos, /if \(!navigator\.bluetooth\) \{\s*\n\s*btnBt\.remove\(\);/);
 
 // Karakteristiknya dicari, bukan ditebak: tiap merek memakai UUID sendiri.
 assert.match(pos, /c\.properties\.write \|\| c\.properties\.writeWithoutResponse/);
+
+// ── Logo di kepala struk ───────────────────────────────────────────────────
+// Perintah raster GS v 0 membawa lebar dan tingginya sendiri di kepala. Kalau
+// angka itu tidak cocok dengan data yang menyusul, printer membaca sisa
+// strukmnya sebagai piksel dan memuntahkan gulungan sampah sampai kertasnya
+// habis. Karena itu bentuknya diperiksa, bukan hanya keberadaannya.
+const bytes = Buffer.from(escposStruk(panjangSekali));
+const i = bytes.indexOf(Buffer.from([0x1D, 0x76, 0x30, 0x00]));
+assert.ok(i >= 0, 'perintah raster logo harus ada');
+
+const lebarBita = bytes[i + 4] | (bytes[i + 5] << 8);
+const tinggi = bytes[i + 6] | (bytes[i + 7] << 8);
+assert.equal(lebarBita, 48, 'kertas 58mm mencetak 384 titik, tepat 48 bita per baris');
+assert.ok(tinggi > 0 && tinggi < 256, 'tinggi logo tidak masuk akal: ' + tinggi);
+assert.ok(bytes.length >= i + 8 + lebarBita * tinggi,
+  'data raster lebih pendek daripada yang dijanjikan kepalanya');
+
+// Logo berdiri paling depan, sebelum nomor nota.
+assert.ok(i < bytes.indexOf(Buffer.from('INV-', 'latin1')),
+  'logo harus tercetak sebelum nomor nota');
+
+// Nama toko tidak ditulis ulang sebagai teks: gambarnya sudah memuatnya, dan
+// mencetak keduanya berarti nama toko muncul dua kali berturut-turut.
+assert.ok(!bytes.includes(Buffer.from('UNDERRATED BARBERSHOP', 'latin1')),
+  'nama toko tidak boleh dicetak dua kali');
 
 console.log('Cetak struk tests: OK');
