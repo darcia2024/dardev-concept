@@ -949,8 +949,8 @@
       const capKey = (me.name || '').toLowerCase().trim();
       if (FOTO_KAPSTER[capKey]) {
         $('avatar').innerHTML = '<picture>'
-          + '<source srcset="' + FOTO_KAPSTER[capKey] + '.webp?v=5" type="image/webp" />'
-          + '<img src="' + FOTO_KAPSTER[capKey] + '.png?v=5" alt="' + (me.name || '') + '" />'
+          + '<source srcset="' + FOTO_KAPSTER[capKey] + '.webp?v=6" type="image/webp" />'
+          + '<img src="' + FOTO_KAPSTER[capKey] + '.png?v=6" alt="' + (me.name || '') + '" />'
           + '</picture>';
       } else {
         $('avatar').textContent = me.name.charAt(0).toUpperCase();
