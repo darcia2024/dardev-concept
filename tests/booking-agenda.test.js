@@ -64,4 +64,41 @@ assert.match(penanda({ menit_lagi: -45 }), /Lewat 45 menit/);
 assert.match(penanda({ menit_lagi: -45 }), /lewat/, 'yang sudah lewat harus ditandai lain');
 assert.equal(penanda({ menit_lagi: null }), '', 'permintaan yang belum diputuskan tidak punya hitungan mundur');
 
+// ── Booking terhubung ke penjualannya ──────────────────────────────────────
+const mLink = fs.readFileSync(
+  path.join(root, 'supabase_migration_38_booking_transaksi.sql'),
+  'utf8'
+);
+
+// Penghubungnya di bookings, bukan di transactions: satu transaksi tidak
+// pernah berasal dari dua booking, sedangkan kolom di transactions akan kosong
+// pada hampir semua baris sebab kebanyakan pelanggan datang tanpa booking.
+assert.match(mLink, /ALTER TABLE bookings\s+ADD COLUMN IF NOT EXISTS transaction_id/);
+
+const sumberTutup = mLink.slice(
+  mLink.indexOf('CREATE OR REPLACE FUNCTION selesaikan_booking'),
+  mLink.indexOf('-- ── Ringkasan untuk owner')
+);
+
+// Kasir tidak dituntut memilih transaksi: langkah yang dapat dilewati adalah
+// langkah yang akan dilewati, dan pengaitannya lalu kosong selamanya.
+assert.match(sumberTutup, /IF p_tx_id IS NULL THEN/, 'harus mencocokkan sendiri');
+assert.match(sumberTutup, /t\.business_date = jakarta_today\(\)/);
+assert.match(sumberTutup, /NOT EXISTS \(SELECT 1 FROM bookings b3/,
+  'transaksi yang sudah terpakai tidak boleh dicocokkan lagi');
+
+// Satu transaksi tidak boleh menutup dua booking; kalau bisa, satu penjualan
+// terhitung dua kali sebagai bukti bahwa dua orang datang.
+assert.match(sumberTutup, /sudah dikaitkan ke booking lain/);
+// Booking yang sudah selesai atau batal tidak boleh ditutup ulang.
+assert.match(sumberTutup, /status NOT IN \('baru', 'dikonfirmasi'\)/);
+
+// POS memakai jalur ini untuk "selesai", bukan decide_booking biasa.
+assert.match(pos, /sb\.rpc\('selesaikan_booking'/);
+
+// Owner punya jalannya sendiri melihat booking, tanpa PIN kasir.
+const rekapIsi = fs.readFileSync(path.join(root, 'rekap.html'), 'utf8');
+assert.match(rekapIsi, /sb\.rpc\('owner_booking_ringkas'/);
+assert.match(mLink, /REVOKE EXECUTE ON FUNCTION selesaikan_booking\(UUID, UUID\)  FROM PUBLIC, anon/);
+
 console.log('Booking agenda tests: OK');

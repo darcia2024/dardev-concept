@@ -3806,10 +3806,27 @@
       if (!row || !SBConn.online) return showToast('Perubahan booking membutuhkan koneksi internet.');
       if (!confirm(bookingStatusText(status) + ' booking ' + row.kode + ' atas nama ' + row.nama + '?')) return;
 
-      const { error } = await sb.rpc('decide_booking', {
-        p_id: id, p_status: status, p_catatan: null
-      });
-      if (error) return showToast('Status booking gagal diubah. Coba lagi.');
+      /* "Selesai" lewat jalur sendiri, sebab ia bukan sekadar mengubah
+         status: ia juga mengaitkan booking ke transaksi yang benar-benar
+         terjadi. Tanpa kaitan itu, pertanyaan paling dasar tentang program
+         booking tidak dapat dijawab — berapa yang dikonfirmasi benar-benar
+         menjadi penjualan. */
+      const res = status === 'selesai'
+        ? await sb.rpc('selesaikan_booking', { p_id: id })
+        : await sb.rpc('decide_booking', { p_id: id, p_status: status, p_catatan: null });
+      const error = res.error;
+      if (error) return showToast(error.message || 'Status booking gagal diubah. Coba lagi.');
+
+      if (status === 'selesai') {
+        const h = Array.isArray(res.data) ? res.data[0] : res.data;
+        if (h && h.invoice_no) {
+          showToast('Booking ' + row.kode + ' ditutup, terkait nota ' + h.invoice_no + '.');
+        } else {
+          showToast('Booking ' + row.kode + ' ditutup tanpa nota terkait.');
+        }
+        await loadBookings();
+        return;
+      }
       showToast('Booking ' + row.kode + ': ' + bookingStatusText(status) + '.');
       await loadBookings();
     }
