@@ -894,6 +894,29 @@
       </p>
     </div>
 
+    <!-- Ringkasan booking -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Booking Bulan Ini</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Dari yang sudah dipastikan ke pelanggan, berapa persen yang benar-benar
+            datang dan menjadi penjualan.
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table">
+          <thead>
+            <tr><th>Diminta</th><th>Dikonfirmasi</th><th>Selesai</th>
+                <th>Ditolak</th><th>Batal</th><th>Benar-benar Datang</th>
+                <th style="text-align:right;">Nilai Penjualan</th></tr>
+          </thead>
+          <tbody id="bookingRingkasBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- L-04 / L-06 / L-07 -->
     <div class="table-panel">
       <div class="table-controls">
@@ -3014,6 +3037,26 @@
     /* Ketiga laporan ini menjawab pertanyaan yang berbeda sifatnya dari
        ringkasan poin: bukan "berapa biaya programnya" melainkan "siapa yang
        harus dihubungi". Karena itu keduanya berdiri terpisah. */
+    async function muatRingkasBooking() {
+      const tb = document.getElementById('bookingRingkasBody');
+      const { data, error } = await sb.rpc('owner_booking_ringkas', {});
+      const b = Array.isArray(data) ? data[0] : data;
+      if (error || !b) {
+        tb.innerHTML = '<tr><td colspan="7" class="empty-row">Belum ada booking bulan ini.</td></tr>';
+        return;
+      }
+      const n = v => Number(v || 0).toLocaleString('id-ID');
+      tb.innerHTML = '<tr>'
+        + '<td style="font-family:var(--mono);">' + n(b.diminta) + '</td>'
+        + '<td style="font-family:var(--mono);">' + n(b.dikonfirmasi) + '</td>'
+        + '<td style="font-family:var(--mono);">' + n(b.selesai) + '</td>'
+        + '<td style="font-family:var(--mono);">' + n(b.ditolak) + '</td>'
+        + '<td style="font-family:var(--mono);">' + n(b.batal) + '</td>'
+        + '<td style="font-family:var(--mono);"><strong>' + Number(b.persen_datang) + '%</strong></td>'
+        + '<td style="font-family:var(--mono); text-align:right;">' + formatRupiah(b.nilai_terkait) + '</td>'
+        + '</tr>';
+    }
+
     async function muatLaporanMember() {
       const bulan = Number(document.getElementById('hilangBulan').value) || 3;
       const [sebaran, hampir, hilang] = await Promise.all([
@@ -3073,6 +3116,7 @@
     async function muatMember() {
       const tb = document.getElementById('memberTableBody');
       muatLaporanMember().catch(() => {});
+      muatRingkasBooking().catch(() => {});
       const { data, error } = await sb.rpc('owner_members_list', { p_limit: 200 });
       if (error) {
         tb.innerHTML = '<tr><td colspan="10" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
