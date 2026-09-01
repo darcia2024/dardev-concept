@@ -1873,6 +1873,7 @@
           <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
             <span style="font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--brass);">Tukar Poin</span>
             <span style="font-size:12px; color:var(--fg-dim);" id="lblPointBalance"></span>
+            <span style="font-size:12px; color:var(--fg-mid); display:block; margin-top:2px;" id="lblPointMax"></span>
           </div>
           <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
             <input type="number" id="inpRedeemPoints" class="input-field" inputmode="numeric"
@@ -2649,6 +2650,10 @@
 
     // Update Cart View and Bill
     function updateCartView() {
+      /* Batas poin bergantung pada subtotal, jadi ia harus ikut disegarkan
+         tiap keranjang berubah. Tanpa ini, angka yang benar sebelum layanan
+         ditambah menjadi salah sesudahnya, dan kasir membaca batas lama. */
+      if (typeof perbaruiBatasPoin === 'function') perbaruiBatasPoin();
       const container = document.getElementById('cartItemsContainer');
       const totalAmountEl = document.getElementById('lblTotalAmount');
       const submitBtn = document.getElementById('btnSubmitTransaction');
@@ -3145,6 +3150,20 @@
       return poinDitukar() * loyalty.rupiah_per_point_redeem;
     }
 
+    /* A-05: berapa poin yang boleh dipakai pada transaksi ini, dibatasi dua
+       hal sekaligus — saldo member dan persentase maksimal dari subtotal.
+       Dihitung di satu tempat supaya angka yang ditampilkan ke kasir dan
+       angka yang diisi tombol "maksimal" tidak mungkin berbeda. */
+    function poinMaksimal() {
+      if (!memberAktif || !loyalty) return 0;
+      const subtotal = selectedServices.reduce((a, s) => a + s.price, 0);
+      const batasRupiah = subtotal * loyalty.max_redeem_percent / 100;
+      return Math.max(0, Math.min(
+        memberAktif.points_balance,
+        Math.floor(batasRupiah / loyalty.rupiah_per_point_redeem)
+      ));
+    }
+
     function renderRedeemBox() {
       const box = document.getElementById('redeemBox');
       const punyaPoin = memberAktif && loyalty && loyalty.is_active &&
@@ -3161,11 +3180,27 @@
            digit. Tanpa pemisah ribuan, 73099 dan 7309 nyaris tidak terbedakan
            oleh kasir yang sedang buru-buru. */
         `Saldo ${Number(memberAktif.points_balance).toLocaleString('id-ID')} poin · 1 poin = ${formatRupiah(loyalty.rupiah_per_point_redeem)}`;
+      perbaruiBatasPoin();
       hitungDiskon();
+    }
+
+    /* Dipanggil juga tiap keranjang berubah: batasnya bergantung pada
+       subtotal, jadi angka yang benar sebelum layanan ditambah menjadi salah
+       sesudahnya. */
+    function perbaruiBatasPoin() {
+      const el = document.getElementById('lblPointMax');
+      if (!el || !memberAktif || !loyalty) return;
+      const maks = poinMaksimal();
+      el.textContent = maks >= loyalty.min_redeem_points
+        ? `Maksimal ${maks.toLocaleString('id-ID')} poin di transaksi ini `
+          + `(${Number(loyalty.max_redeem_percent)}% dari subtotal)`
+        : `Belum bisa dipakai: batas ${Number(loyalty.max_redeem_percent)}% dari subtotal `
+          + `hanya ${maks.toLocaleString('id-ID')} poin, minimal ${Number(loyalty.min_redeem_points).toLocaleString('id-ID')}`;
     }
 
     function hitungDiskon() {
       const errEl = document.getElementById('redeemErr');
+      perbaruiBatasPoin();
       const poin = poinDitukar();
       const subtotal = selectedServices.reduce((a, s) => a + s.price, 0);
       let pesan = '';
@@ -3250,12 +3285,7 @@
 
     document.getElementById('btnRedeemMax').addEventListener('click', () => {
       if (!memberAktif || !loyalty) return;
-      const subtotal = selectedServices.reduce((a, s) => a + s.price, 0);
-      const batasRupiah = subtotal * loyalty.max_redeem_percent / 100;
-      const maks = Math.min(
-        memberAktif.points_balance,
-        Math.floor(batasRupiah / loyalty.rupiah_per_point_redeem)
-      );
+      const maks = poinMaksimal();
       document.getElementById('inpRedeemPoints').value = maks >= loyalty.min_redeem_points ? maks : '';
       hitungDiskon();
     });
