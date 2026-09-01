@@ -564,7 +564,18 @@
     async function unggahSelfie(file, aksi) {
       const ext = (file.type === 'image/png') ? 'png'
                 : (file.type === 'image/webp') ? 'webp' : 'jpg';
-      const path = meCapster.id + '/' + sbJakartaToday() + '-' + aksi + '.' + ext;
+      /* Nama berkas harus berbeda tiap percobaan. Sebelumnya ia sepenuhnya
+         ditentukan oleh tanggal dan aksi, sehingga satu percobaan yang gagal
+         SESUDAH fotonya terunggah — GPS meleset sesaat, sinyal putus di tengah
+         jalan — meninggalkan berkas yang menghalangi seluruh percobaan
+         berikutnya hari itu dengan galat "The resource already exists".
+         Capsternya terkunci seharian tanpa cara memperbaikinya sendiri.
+
+         upsert tetap false: foto absensi yang sudah tercatat tidak boleh
+         ditimpa. Yang diperbaiki adalah tabrakan namanya, bukan penjagaannya.
+         Pola acak ini sama dengan yang sudah dipakai lampiran izin di bawah. */
+      const acak = Math.random().toString(36).slice(2, 8);
+      const path = meCapster.id + '/' + sbJakartaToday() + '-' + aksi + '-' + acak + '.' + ext;
       const res = await sb.storage.from('absensi').upload(path, file, {
         contentType: file.type || 'image/jpeg',
         upsert: false          // foto absensi tidak boleh ditimpa
