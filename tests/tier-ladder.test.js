@@ -107,7 +107,13 @@ assert.doesNotMatch(isiHome, /id="tanggaList"/, 'tangga tidak boleh kembali ke H
 // aplikasi alih-alih kembali ke kartu.
 assert.match(kartu, /history\.pushState\(\{ level: true \}/);
 assert.match(kartu, /addEventListener\('popstate'/);
-assert.match(kartu, /getElementById\('tabbar'\)\.hidden = true/);
+// Tabbar TETAP terlihat di halaman level: ia satu-satunya jalan keluar yang
+// selalu ada di layar. Home ditandai aktif sebab halaman ini dicapai dari sana.
+assert.doesNotMatch(kartu, /getElementById\('tabbar'\)\.hidden = true/);
+assert.match(kartu, /b\.classList\.toggle\('is-on', b\.dataset\.tab === 'tabHome'\)/);
+// Berpindah tab dari halaman level membersihkan tanda pagarnya, kalau tidak
+// tombol back sesudahnya terasa macet.
+assert.match(kartu, /history\.replaceState\(\{\}, '', location\.pathname/);
 
 // Kartu di halaman level dibangun dari string, bukan disalin dari DOM:
 // menyalin simpulnya akan menggandakan seluruh id di dalamnya.
