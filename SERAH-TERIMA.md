@@ -154,6 +154,55 @@ Seluruh data berikut masih **contoh** dan wajib diganti:
 Aturan poin dan tier disimpan sebagai **data**, bukan kode. Mengubahnya tidak
 memerlukan rilis ulang.
 
+### Enam keputusan poin (K-01 s.d. K-06)
+
+Spesifikasi MBR-UB-01-DEV menahan enam keputusan yang menyentuh struktur data.
+Semuanya sudah dijawab pemilik dan sudah terpasang:
+
+| Kode | Keputusan pemilik | Wujudnya di sistem |
+|---|---|---|
+| K-01 | Poin tidak boleh memotong tagihan sampai nol | Batas **25%** dari subtotal, dapat diubah owner di `/rekap` |
+| K-02 | Cukup penghapusan, tanpa transaksi pembalik | Sudah begitu sejak awal: menghapus nota menarik kembali poinnya |
+| K-03 | Poin ulang tahun ditiadakan | Tidak dibangun. Kolom tanggal lahir tetap ada untuk sapaan, bukan poin |
+| K-04 | Pembelian produk tidak mendapat poin | Poin dihitung hanya dari porsi layanan |
+| K-05 | Belum diputuskan | Gratis cuci rambut tidak dibangun dan tidak dijanjikan di layar mana pun |
+| K-06 | Level berlaku 1 tahun, lalu dipotong sebesar ambang tiernya | Berjalan otomatis tiap malam |
+
+### Bagaimana masa berlaku level bekerja (K-06)
+
+Tiap member punya periode satu tahun. Pada akhir periode, **poin seumur
+hidupnya** dipotong sebesar ambang level yang sedang ia pegang, lalu levelnya
+dihitung ulang dari sisanya. Naik level memulai periode satu tahun yang baru,
+jadi member yang terus naik tidak pernah membayar potongan itu.
+
+Artinya, untuk bertahan di sebuah level, member perlu mengumpulkan **dua kali
+ambang** level itu:
+
+| Level | Ambang | Perlu dikumpulkan agar bertahan |
+|---|---|---|
+| Silver | 0 | tidak pernah turun |
+| Gold | 50.000 | 100.000 |
+| Platinum | 100.000 | 200.000 |
+| Infinite | 200.000 | 400.000 |
+| Black | 350.000 | 700.000 |
+
+**Saldo poin yang dapat dibelanjakan tidak ikut dipotong.** Yang berkurang
+hanya angka penentu level. Poin yang sudah didapat tetap dapat ditukar.
+
+Owner melihat tanggalnya di kolom *Masa Level* pada tabel member, dan tiap
+pemotongan tercatat di panel **Perpanjangan Masa Level** lengkap dengan poin
+sebelum, potongan, dan poin sesudahnya. Tombol *Jalankan Sekarang* ada untuk
+saat owner tidak ingin menunggu jadwal malam; menekannya dua kali tidak
+memotong dua kali karena perhitungannya berdasar tanggal, bukan jumlah
+pemanggilan.
+
+Member melihatnya di kartunya sendiri, tetapi hanya bila levelnya di atas
+Silver — Silver tidak pernah turun, jadi tanggal di sana hanya menakut-nakuti.
+
+Ketujuh member yang ada saat aturan ini dipasang seluruhnya Silver, dan
+periodenya dimulai dari tanggal pemasangan, bukan dari tanggal mereka
+bergabung. Tidak ada yang turun secara surut.
+
 ### Menyalakan notifikasi WhatsApp ke capster
 
 Saat pelanggan memilih capster di halaman booking, capster itu dapat langsung
@@ -326,6 +375,14 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 - **Sistem memerlukan internet.** Kasir tetap dapat melayani saat sinyal putus
   (transaksi masuk antrean dan terkirim otomatis), tetapi perubahan master
   data, tutup kas, dan absensi memerlukan koneksi.
+- **Reward "Cukur Gratis" menembus batas 25% (K-01).** Batas itu berlaku pada
+  penukaran poin di kasir, bukan pada katalog reward. "Cukur Gratis" berharga
+  35.000 poin untuk layanan Rp 85.000 — nilainya Rp 2,43 per poin, sekitar 2,4
+  kali lebih besar daripada menukar poin biasa (Rp 1 per poin), dan hasilnya
+  persis yang dikhawatirkan pemilik saat menjawab K-01: potong rambut gratis
+  penuh sementara capster tetap dibayar. Katalog reward adalah data milik
+  pemilik, jadi tidak diubah sepihak; menutup celah ini berarti menaikkan
+  biaya poinnya atau mengubah reward itu menjadi potongan, bukan gratis penuh.
 - **Booking publik adalah permintaan kunjungan**, bukan penguncian kursi atau
   pemilihan capster otomatis. Kasir tetap harus mengonfirmasi lewat WhatsApp.
   Capster yang dipilih memang dikabari otomatis, tetapi itu pemberitahuan —
@@ -359,7 +416,7 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | `assets/logo.png` · `logo-putih.png` | Logo Underrated Barbershop (gelap & putih) |
 | `vendor/` | Library Supabase, pembuat QR, dan pembaca QR, di-host sendiri |
 | `supabase_schema.sql` | Skema dasar |
-| `supabase_migration_02..41_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
+| `supabase_migration_02..44_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
 | `tests/*.test.js` | Penjaga regresi. Jalankan `node tests/<nama>.test.js`; tidak perlu dependensi. |
 
 Kunci di `sb-app.js` adalah *publishable key* yang memang dirancang untuk

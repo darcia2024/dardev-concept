@@ -461,6 +461,7 @@
       <div class="progress-wrap" id="progressWrap">
         <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
         <div class="progress-text" id="progressText"></div>
+        <div class="progress-text" id="masaLevel" hidden></div>
       </div>
 
       <div class="kartu-petunjuk" id="kartuPetunjuk" hidden>
@@ -686,7 +687,29 @@
         $('progressFill').style.width = '100%';
         $('progressText').textContent = 'Anda sudah di level tertinggi';
       }
+      renderMasaLevel(m);
       gambarQR(m.member_code);
+    }
+
+    /* Level berlaku satu tahun (K-06). Silver tidak pernah turun karena
+       ambangnya nol, jadi menampilkan tanggal di sana hanya menakut-nakuti
+       tanpa ada yang bisa dilakukan orangnya. */
+    function renderMasaLevel(m) {
+      const el = $('masaLevel');
+      const tier = m.tier || 'Silver';
+      if (!m.masa_berlaku || tier === 'Silver') { el.hidden = true; return; }
+
+      const kurang = Number(m.poin_agar_bertahan) || 0;
+      const tanggal = new Date(m.masa_berlaku + 'T00:00:00')
+        .toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      el.hidden = false;
+      el.textContent = kurang > 0
+        ? 'Level ' + tier + ' berlaku sampai ' + tanggal + '. Kumpulkan '
+          + kurang.toLocaleString('id-ID') + ' poin lagi sebelum tanggal itu agar tetap '
+          + tier + '.'
+        : 'Level ' + tier + ' berlaku sampai ' + tanggal
+          + ', dan poin Anda sudah cukup untuk memperpanjangnya.';
     }
 
     function renderReward(rows) {
@@ -1057,6 +1080,10 @@
           ? 'Poin dasar tiap kunjungan'
           : 'Poin ' + kali.toLocaleString('id-ID', { minimumFractionDigits: 2 })
             + '&times; lebih cepat');
+        if (ambang > 0) {
+          manfaat.push('Bertahan setahun dengan ' + ambang.toLocaleString('id-ID')
+            + ' poin baru');
+        }
         reward.filter(r => r.min_tier === t.tier).forEach(r => {
           manfaat.push('Reward terbuka: ' + esc(r.name)
             + ' (' + Number(r.point_cost).toLocaleString('id-ID') + ' poin)');

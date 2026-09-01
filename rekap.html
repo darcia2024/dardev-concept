@@ -993,7 +993,7 @@
             <tr>
               <th>No.</th><th>Nama</th><th>WhatsApp</th><th>Tier</th><th>Poin</th>
               <th>Kunjungan</th><th style="text-align:right;">Total Belanja</th>
-              <th>Transaksi</th><th>Terakhir</th><th style="width:44px;"></th>
+              <th>Transaksi</th><th>Terakhir</th><th>Masa Level</th><th style="width:44px;"></th>
             </tr>
           </thead>
           <tbody id="memberTableBody"></tbody>
@@ -1213,6 +1213,33 @@
           <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">PIN kasir</div>
           <div class="kelola-grid" id="gridKasir"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- Perpanjangan masa berlaku level -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Perpanjangan Masa Level</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Tiap tahun poin seumur hidup dipotong sebesar ambang levelnya &mdash;
+            yang tersisa menentukan level berikutnya. Berjalan otomatis tiap malam.
+          </p>
+        </div>
+        <button class="btn-filter-date" id="btnJalankanPerpanjangan">Jalankan Sekarang</button>
+      </div>
+      <div id="perpanjanganPesan" style="padding: 0 4px 12px; font-size: 13px; color: var(--fg-mid);"></div>
+      <div class="table-scroll">
+        <table class="tx-table" id="perpanjanganTable">
+          <thead>
+            <tr><th>Tanggal</th><th>No.</th><th>Nama</th><th>Level</th>
+                <th style="text-align:right;">Poin Sebelum</th>
+                <th style="text-align:right;">Potongan</th>
+                <th style="text-align:right;">Poin Sesudah</th>
+                <th>Periode Berikut</th></tr>
+          </thead>
+          <tbody id="perpanjanganBody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -1496,6 +1523,7 @@
       await muatArsip();
       await muatKelolaAkun();
       await loadWa();
+      await loadPerpanjangan();
       await muatAbsenBaris();
       await muatArsipAbsen();
       await muatMember();
@@ -1503,6 +1531,61 @@
       await muatArsipFoto();
       await loadCuti();
     }
+
+    /* -------------------------------------------------------------------------
+       PERPANJANGAN MASA BERLAKU LEVEL (K-06)
+       Tugas terjadwal menjalankannya tiap malam. Tombol di layar ini ada untuk
+       satu keadaan saja: owner perlu melihat hasilnya sekarang, bukan besok.
+       Fungsinya menghitung ulang dari tanggal, bukan dari berapa kali ia
+       dipanggil, jadi menekannya dua kali tidak memotong dua kali.
+       ------------------------------------------------------------------------- */
+
+    async function loadPerpanjangan() {
+      const tb = document.getElementById('perpanjanganBody');
+      const { data, error } = await sb.rpc('owner_perpanjangan_level', { p_limit: 100 });
+      if (error) {
+        tb.innerHTML = '<tr><td colspan="8" class="empty-row">Gagal memuat: '
+          + escapeHtml(error.message) + '</td></tr>';
+        return;
+      }
+      const rows = data || [];
+      tb.innerHTML = rows.length ? rows.map(function (r) {
+        const turun = r.tier_sebelum !== r.tier_sesudah;
+        return '<tr>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(r.tanggal) + '</td>'
+          + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(r.member_no || '-') + '</td>'
+          + '<td><strong>' + escapeHtml(r.nama || '-') + '</strong></td>'
+          + '<td>' + escapeHtml(r.tier_sebelum)
+          + (turun ? ' <span style="color:var(--clay);">&rarr; ' + escapeHtml(r.tier_sesudah) + '</span>'
+                   : ' <span style="color:var(--sage); font-size:11px;">bertahan</span>') + '</td>'
+          + '<td style="font-family:var(--mono); text-align:right;">' + Number(r.poin_sebelum).toLocaleString('id-ID') + '</td>'
+          + '<td style="font-family:var(--mono); text-align:right; color:var(--clay);">&minus;' + Number(r.potongan).toLocaleString('id-ID') + '</td>'
+          + '<td style="font-family:var(--mono); text-align:right;">' + Number(r.poin_sesudah).toLocaleString('id-ID') + '</td>'
+          + '<td style="font-family:var(--mono); font-size:12px; color:var(--fg-dim);">' + escapeHtml(r.periode_berikut) + '</td>'
+          + '</tr>';
+      }).join('') : '<tr><td colspan="8" class="empty-row">Belum ada periode yang berakhir.</td></tr>';
+    }
+
+    document.getElementById('btnJalankanPerpanjangan').addEventListener('click', async function () {
+      const btn = this;
+      const msg = document.getElementById('perpanjanganPesan');
+      const label = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Menjalankan…';
+      const { data, error } = await sb.rpc('owner_jalankan_perpanjangan');
+      btn.disabled = false;
+      btn.textContent = label;
+      if (error) {
+        msg.innerHTML = '<span style="color:var(--brand);">Gagal: ' + escapeHtml(error.message) + '</span>';
+        return;
+      }
+      const r = Array.isArray(data) ? data[0] : data;
+      msg.textContent = (r && r.diproses)
+        ? r.diproses + ' periode diproses, ' + r.turun + ' member turun level.'
+        : 'Tidak ada periode yang berakhir hari ini.';
+      await Promise.all([loadPerpanjangan(), muatMember()]);
+    });
+
 
     /* -------------------------------------------------------------------------
        NOTIFIKASI WHATSAPP KE CAPSTER
@@ -3252,12 +3335,12 @@
       muatRingkasBooking().catch(() => {});
       const { data, error } = await sb.rpc('owner_members_list', { p_limit: 200 });
       if (error) {
-        tb.innerHTML = '<tr><td colspan="10" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
+        tb.innerHTML = '<tr><td colspan="11" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
         return;
       }
       const rows = data || [];
       if (!rows.length) {
-        tb.innerHTML = '<tr><td colspan="10" class="empty-row">Belum ada member.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="11" class="empty-row">Belum ada member.</td></tr>';
         return;
       }
       tb.innerHTML = rows.map(function (m) {
@@ -3271,6 +3354,7 @@
           + '<td style="font-family:var(--mono); text-align:right;">' + formatRupiah(m.total_spend || 0) + '</td>'
           + '<td style="font-family:var(--mono);">' + (m.jumlah_transaksi || 0) + '</td>'
           + '<td style="font-family:var(--mono); font-size:12px; color:var(--fg-dim);">' + (m.terakhir || '—') + '</td>'
+          + '<td style="font-size:12px;">' + selMasaLevel(m) + '</td>'
           + '<td style="white-space:nowrap;">'
           + '<button class="btn-filter-date" data-mutasi="' + escapeHtml(m.phone_wa || '') + '" '
           + 'data-nama="' + escapeHtml(m.name || '') + '" style="margin-right:6px;">Mutasi</button>'
@@ -3279,6 +3363,23 @@
           + 'title="Hapus member ini">&#215;</button></td>'
           + '</tr>';
       }).join('');
+    }
+
+    /* Silver berambang nol, jadi periodenya tidak pernah menurunkan siapa
+       pun. Menampilkan tanggal di sana membuat owner mengira ada yang perlu
+       diawasi padahal tidak ada. */
+    function selMasaLevel(m) {
+      if (!m.masa_berlaku || m.tier === 'Silver') {
+        return '<span style="color:var(--fg-dim);">&mdash;</span>';
+      }
+      const tgl = new Date(m.masa_berlaku + 'T00:00:00')
+        .toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+      const kurang = Number(m.poin_agar_bertahan) || 0;
+      return '<span style="font-family:var(--mono);">' + escapeHtml(tgl) + '</span>'
+        + (kurang > 0
+            ? '<br /><span style="color:var(--warn); font-size:11px;">kurang '
+              + kurang.toLocaleString('id-ID') + ' poin</span>'
+            : '<br /><span style="color:var(--sage); font-size:11px;">aman</span>');
     }
 
     document.getElementById('memberTableBody').addEventListener('click', async (e) => {
