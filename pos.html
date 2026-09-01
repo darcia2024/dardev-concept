@@ -1782,6 +1782,8 @@
             <input type="tel" id="inpCustPhone" class="input-field" placeholder="0812xxxx atau 62812xxxx" autocomplete="off" />
             <button type="button" id="btnOpenQrScanner" class="btn-hdr">Scan QR</button>
           </div>
+          <div id="memberCatatan" hidden
+               style="font-size:12px; color:var(--fg); margin-bottom:6px; line-height:1.5;"></div>
           <div id="memberStatusBadge" class="member-status-badge">
             <!-- Populated on typing -->
           </div>
@@ -2824,13 +2826,62 @@
       badgeEl.innerHTML = `⭐ Member Terdaftar (${escapeHtml(m.tier || 'Silver')})`
         + (m.member_no ? ` &middot; ${escapeHtml(m.member_no)}` : '')
         + ` &middot; Kunjungan ke-${(m.visit_count || 0) + 1}`;
+
+      /* Catatan model potongan ditampilkan lebih dulu, sebelum kasir sempat
+         bertanya. Itu satu-satunya alasan catatan ini ada: supaya pelanggan
+         tidak perlu menjelaskan ulang potongannya tiap datang. */
+      const cat = document.getElementById('memberCatatan');
+      if (cat) {
+        cat.innerHTML = m.cut_notes
+          ? '<span style="color:var(--fg-mid);">Catatan potongan:</span> '
+            + escapeHtml(m.cut_notes)
+            + ' <button type="button" class="btn-hdr btn-ubah-catatan" '
+            + 'style="font-size:11px; padding:2px 8px; margin-left:6px;">Ubah</button>'
+          : '<button type="button" class="btn-hdr btn-ubah-catatan" '
+            + 'style="font-size:11px; padding:2px 8px;">Tambah catatan potongan</button>';
+        cat.hidden = false;
+      }
       memberAktif = m;
       renderRedeemBox();
     }
 
+    /* Ditulis oleh orang yang sedang berhadapan dengan pelanggannya, tepat
+       sesudah rambutnya selesai. Menahannya di layar owner berarti catatan ini
+       tidak akan pernah terisi oleh siapa pun. */
+    document.addEventListener('click', async (e) => {
+      if (!e.target.closest('.btn-ubah-catatan')) return;
+      if (!memberAktif || !memberAktif.member_id) return;
+
+      const catatan = prompt(
+        'Catatan model potongan untuk ' + memberAktif.name + ':\n'
+        + '(misalnya: fade 2 samping, atas disisakan, belah pinggir)',
+        memberAktif.cut_notes || '');
+      if (catatan === null) return;
+
+      const lahir = prompt(
+        'Tanggal lahir ' + memberAktif.name + ' (YYYY-MM-DD), kosongkan bila tidak tahu:',
+        memberAktif.birth_date || '');
+      if (lahir === null) return;
+
+      const { data, error } = await sb.rpc('update_member_catatan', {
+        p_member_id: memberAktif.member_id,
+        p_birth_date: lahir.trim() || null,
+        p_cut_notes: catatan.trim() || null
+      });
+      if (error) return showToast(error.message || 'Catatan gagal disimpan.');
+
+      const h = Array.isArray(data) ? data[0] : data;
+      memberAktif.cut_notes = h ? h.cut_notes : null;
+      memberAktif.birth_date = h ? h.birth_date : null;
+      applyMemberBadge(memberAktif);
+      showToast('Catatan ' + memberAktif.name + ' tersimpan.');
+    });
+
     function markNewCustomer() {
       badgeEl.className = 'member-status-badge is-new';
       badgeEl.innerHTML = `✨ Pelanggan Baru (Auto Registrasi Tier Silver)`;
+      const catBaru = document.getElementById('memberCatatan');
+      if (catBaru) { catBaru.hidden = true; catBaru.innerHTML = ''; }
       memberAktif = null;
       renderRedeemBox();
     }
