@@ -2459,8 +2459,8 @@
         /* WebP dulu, PNG sebagai cadangan: Safari baru mengenal WebP sejak
            iOS 14, dan iPad kasir yang lebih tua harus tetap melihat wajahnya. */
         const avatarHtml = foto
-          ? `<picture><source srcset="${foto}.webp?v=7" type="image/webp" />`
-            + `<img src="${foto}.png?v=7" alt="${escapeHtml(c.name)}" loading="lazy" /></picture>`
+          ? `<picture><source srcset="${foto}.webp?v=8" type="image/webp" />`
+            + `<img src="${foto}.png?v=8" alt="${escapeHtml(c.name)}" loading="lazy" /></picture>`
           : escapeHtml(initial);
         const card = document.createElement('div');
         card.className = `capster-card ${isSel ? 'is-selected' : ''}`;
