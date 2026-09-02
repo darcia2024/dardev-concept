@@ -1673,6 +1673,28 @@
       border-bottom: 1px solid var(--border-soft);
     }
 
+    /* Gerbang konfirmasi QRIS. Nada netral saat menunggu, hijau saat sudah
+       diperiksa — kasir harus dapat membedakan keduanya dengan sekali lihat,
+       tanpa membaca. */
+    #qrisKonfirmBox {
+      margin-top: 8px; padding: 10px 12px;
+      border: 1px solid var(--line); border-radius: var(--r-sm);
+      background: var(--ink-inset);
+    }
+    #btnQrisKonfirm {
+      width: 100%; min-height: 44px; padding: 10px 12px;
+      border: 1px solid var(--brass); border-radius: var(--r-sm);
+      background: var(--brass); color: var(--ink);
+      font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    }
+    #btnQrisKonfirm:hover { filter: brightness(1.06); }
+    #qrisKonfirmBox.is-verified { border-color: var(--sage); background: var(--sage-wash); }
+    #qrisKonfirmBox.is-verified #btnQrisKonfirm {
+      background: transparent; color: var(--sage); border-color: var(--sage);
+    }
+    #qrisKonfirmKet { font-size: 11.5px; color: var(--fg-dim); margin-top: 7px; line-height: 1.5; }
+    #qrisKonfirmBox.is-verified #qrisKonfirmKet { color: var(--sage); }
+
     /* ── Capster per layanan ────────────────────────────────────────────────
        Biasanya seluruh layanan dikerjakan orang yang sama, jadi pemilih ini
        tampil setenang mungkin: tanpa kotak, seukuran teks keterangan di
@@ -1842,6 +1864,15 @@
             </div>
             <div id="qrisGagal" hidden class="svc-err" style="margin-bottom:6px;"></div>
             <p id="qrisPesanStatis" style="font-size: 12px; color: var(--fg-dim);">Silakan arahkan pelanggan scan QRIS Statis di meja kasir.</p>
+
+            <!-- Gerbang manual. Sistem tidak punya jalur untuk mendengar dana
+                 QRIS masuk, jadi yang menutup celah itu mata kasir — dan nota
+                 tidak boleh tersimpan sebelum ia menyatakannya. -->
+            <div id="qrisKonfirmBox">
+              <button type="button" id="btnQrisKonfirm">Konfirmasi Dana Masuk</button>
+              <div id="qrisKonfirmKet">Cek notifikasi di aplikasi merchant lebih dulu.</div>
+            </div>
+
             <input type="text" id="inpQrisRef" class="input-field" style="margin-top: 4px;" placeholder="No. Referensi / RRN (Opsional)" />
           </div>
 
@@ -2740,7 +2771,10 @@
       // Validate submit button readiness
       const hasCapster = !!selectedCapster;
       const hasServices = selectedServices.length > 0;
-      submitBtn.disabled = !(hasCapster && hasServices);
+      // Pembayaran QRIS ikut menahan tombol sampai kasir menyatakan dananya
+      // sudah terlihat masuk. Tombol yang mati di depan mata lebih jelas
+      // daripada nota yang ditolak sesudah ditekan.
+      submitBtn.disabled = !(hasCapster && hasServices && qrisSudahKonfirm());
 
       tandaiCapsterBeda();
       renderQuickCashChips(finalAmount);
@@ -3496,6 +3530,46 @@
       try { return localStorage.getItem(QRIS_KUNCI) || ''; } catch { return ''; }
     }
 
+    /* ── Gerbang konfirmasi QRIS ──────────────────────────────────────────
+       Yang disimpan bukan "sudah dikonfirmasi" melainkan NOMINAL YANG
+       dikonfirmasi. Sebuah boolean akan tetap menyala ketika kasir menambah
+       satu layanan lagi sesudah memeriksa notifikasi, dan nota tersimpan atas
+       pemeriksaan yang sebenarnya menyangkut jumlah lain. Mengikatnya pada
+       nominal membuat konfirmasi gugur sendiri begitu tagihannya bergeser. */
+    let qrisKonfirmNominal = null;
+
+    function qrisPerluKonfirmasi() {
+      return selectedPaymentMethod === 'QRIS' && totalTagihan() > 0;
+    }
+
+    function qrisSudahKonfirm() {
+      if (!qrisPerluKonfirmasi()) return true;
+      return qrisKonfirmNominal !== null && qrisKonfirmNominal === totalTagihan();
+    }
+
+    function renderQrisKonfirm() {
+      const box = document.getElementById('qrisKonfirmBox');
+      if (!box) return;
+      const btn = document.getElementById('btnQrisKonfirm');
+      const ket = document.getElementById('qrisKonfirmKet');
+      const perlu = qrisPerluKonfirmasi();
+
+      box.hidden = !perlu;
+      if (!perlu) return;
+
+      if (qrisSudahKonfirm()) {
+        box.classList.add('is-verified');
+        btn.textContent = '✓ Dana ' + formatRupiah(totalTagihan()) + ' terverifikasi';
+        ket.textContent = 'Tekan lagi untuk membatalkan bila keliru.';
+      } else {
+        box.classList.remove('is-verified');
+        btn.textContent = 'Konfirmasi Dana Masuk';
+        ket.textContent = qrisKonfirmNominal === null
+          ? 'Cek notifikasi di aplikasi merchant lebih dulu. Nota belum dapat disimpan.'
+          : 'Tagihan berubah sejak dikonfirmasi — periksa ulang notifikasinya.';
+      }
+    }
+
     /* Digambar ulang tiap kali nominalnya berubah — pindah metode bayar,
        keranjang berubah, diskon dipilih. QR bernominal basi lebih berbahaya
        daripada tidak ada QR sama sekali. */
@@ -3504,6 +3578,8 @@
       const gagal = document.getElementById('qrisGagal');
       const pesan = document.getElementById('qrisPesanStatis');
       if (!box) return;
+
+      renderQrisKonfirm();
 
       const statis = qrisStatisTersimpan();
       const nominal = totalTagihan();
@@ -3552,8 +3628,18 @@
         document.getElementById('qrisPayBox').style.display = selectedPaymentMethod === 'QRIS' ? 'block' : 'none';
         document.getElementById('edcPayBox').style.display = selectedPaymentMethod === 'EDC' ? 'block' : 'none';
         document.getElementById('transferPayBox').style.display = selectedPaymentMethod === 'Transfer' ? 'block' : 'none';
+        // Berpindah metode membatalkan konfirmasi. Memaksa periksa ulang lebih
+        // murah daripada nota tersimpan atas pemeriksaan yang sudah basi.
+        qrisKonfirmNominal = null;
         renderQrisDinamis();
+        updateCartView();
       });
+    });
+
+    document.getElementById('btnQrisKonfirm').addEventListener('click', () => {
+      qrisKonfirmNominal = qrisSudahKonfirm() ? null : totalTagihan();
+      renderQrisKonfirm();
+      updateCartView();
     });
 
     // Process Transaction & Submit
@@ -3564,6 +3650,13 @@
       }
       if (selectedServices.length === 0) {
         showToast('Pilih layanan cukur!');
+        return;
+      }
+      // Penjaga kedua. Tombolnya sudah dimatikan, tetapi keadaan bisa berubah
+      // antara penggambaran terakhir dan penekanan — dan yang dijaga di sini
+      // adalah uang yang mungkin tidak pernah masuk.
+      if (!qrisSudahKonfirm()) {
+        showToast('Konfirmasi dulu dana QRIS sudah masuk.');
         return;
       }
       // Tanpa kasir teridentifikasi, transaksi tidak punya penanggung jawab
@@ -3890,6 +3983,8 @@
       document.getElementById('inpEdcApproval').value = '';
       document.getElementById('inpQrisRef').value = '';
       document.getElementById('inpTransferBank').value = '';
+      // Konfirmasi tidak boleh menetes ke nota berikutnya.
+      qrisKonfirmNominal = null;
       document.getElementById('memberStatusBadge').className = 'member-status-badge';
       
       renderServices(currentFilterCat);
