@@ -174,6 +174,19 @@
       border-color: var(--fg);
     }
 
+    /* Pemilih bacaan performa kapster. Dibiarkan membungkus pada layar sempit
+       supaya tidak menekan judul panelnya. */
+    .perf-alat { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .perf-alat .btn-filter-date { padding: 5px 10px; font-size: 11.5px; }
+    /* Peringkat menggantikan angka omzet sebagai jangkar baca pada mode yang
+       dibagikan ke kapster. Tanpa jangkar, daftarnya terbaca seperti catatan
+       acak alih-alih urutan. */
+    .capster-rank {
+      flex: none; width: 22px; text-align: center;
+      font-family: var(--mono); font-size: 12.5px; color: var(--fg-dim);
+    }
+    .capster-layanan { font-family: var(--mono); font-size: 13.5px; color: var(--fg-mid); }
+
     /* ══ EDITOR MASTER DATA ═══════════════════════════════════════════════
        Sebelum ini halaman rekap tidak punya modal sama sekali, sehingga setiap
        penyuntingan memakai prompt() beruntun — enam dialog berurutan untuk satu
@@ -833,7 +846,15 @@
       <div class="panel-box">
         <div class="panel-head">
           <h2>Performa Kapster</h2>
-          <span style="font-size: 11px; color: var(--fg-dim); font-family: var(--mono);">Kontribusi Omzet</span>
+          <!-- Dua bacaan atas data yang sama. Yang tanpa omzet dibuat supaya
+               daftar ini dapat dibagikan ke kapster tanpa ikut membocorkan
+               pendapatan satu sama lain. -->
+          <div class="perf-alat">
+            <button type="button" class="btn-filter-date active" data-perf="omzet">Dengan Omzet</button>
+            <button type="button" class="btn-filter-date" data-perf="tanpa">Tanpa Omzet</button>
+            <button type="button" class="btn-filter-date" id="btnSalinPerforma"
+                    title="Salin sebagai teks siap tempel ke WhatsApp">Salin</button>
+          </div>
         </div>
         <div class="capster-perf-list" id="capsterPerfContainer">
           <!-- Populated by JS -->
@@ -2980,6 +3001,83 @@
       });
     }
 
+    /* ── Performa kapster: dua bacaan, satu data ──────────────────────────
+       Mode "tanpa omzet" ada supaya daftar ini dapat dikirim ke grup kapster.
+       Yang ditahan bukan sekadar angka rupiahnya: pendapatan seorang kapster
+       adalah urusannya sendiri, dan menempelkannya di grup mengubah laporan
+       kerja menjadi perbandingan penghasilan. Mode dengan omzet tetap ada dan
+       tidak berubah — itu milik pemilik. */
+    let performaKapster = [];
+    let modePerforma = 'omzet';
+
+    function performaTerurut() {
+      const salinan = performaKapster.slice();
+      // Peringkat harus cocok dengan angka yang terlihat. Mengurutkan menurut
+      // omzet sementara yang tampil jumlah layanan membuat daftarnya terbaca
+      // seperti salah urut oleh orang yang tidak melihat omzetnya.
+      return modePerforma === 'tanpa'
+        ? salinan.sort((a, b) => b[1].heads - a[1].heads || a[0].localeCompare(b[0], 'id'))
+        : salinan.sort((a, b) => b[1].omzet - a[1].omzet);
+    }
+
+    function avatarKapster(name) {
+      const foto = { cena: 'assets/cena', lukman: 'assets/lukman', wanda: 'assets/wanda' }[(name || '').toLowerCase().trim()];
+      return foto
+        ? `<picture><source srcset="${foto}.webp?v=8" type="image/webp" /><img src="${foto}.png?v=8" alt="${escapeHtml(name)}" loading="lazy" /></picture>`
+        : escapeHtml(name.charAt(0).toUpperCase());
+    }
+
+    function renderPerformaKapster() {
+      const wadah = document.getElementById('capsterPerfContainer');
+      if (!wadah) return;
+      const daftar = performaTerurut();
+
+      document.querySelectorAll('[data-perf]').forEach(b => {
+        b.classList.toggle('active', b.dataset.perf === modePerforma);
+      });
+
+      if (!daftar.length) {
+        wadah.innerHTML = `<div style="text-align:center; padding:16px; color:var(--fg-dim); font-size:13px;">Belum ada data kapster pada periode ini</div>`;
+        return;
+      }
+
+      wadah.innerHTML = daftar.map(([name, stat], i) => `
+        <div class="capster-perf-row">
+          <div class="capster-info">
+            ${modePerforma === 'tanpa' ? `<div class="capster-rank">${i + 1}</div>` : ''}
+            <div class="capster-avatar-sm">${avatarKapster(name)}</div>
+            <div>
+              <div class="capster-perf-name">${escapeHtml(name)}</div>
+              <div class="capster-heads">${stat.heads} pangkas &amp; layanan</div>
+            </div>
+          </div>
+          <div class="capster-stat">
+            ${modePerforma === 'tanpa'
+              ? `<div class="capster-layanan">${stat.heads}&times;</div>`
+              : `<div class="capster-omzet">${formatRupiah(stat.omzet)}</div>`}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /* Teks polos untuk ditempel ke WhatsApp. Mengikuti mode yang sedang
+       tampil, jadi yang tersalin selalu sama dengan yang dilihat — tidak ada
+       cara tak sengaja mengirim angka omzet dari layar yang menyembunyikannya. */
+    function performaSebagaiTeks() {
+      const daftar = performaTerurut();
+      if (!daftar.length) return '';
+      const tombolPeriode = document.querySelector('.btn-filter-date.active[data-range]');
+      const judulPeriode = tombolPeriode ? tombolPeriode.textContent : '';
+      const baris = ['*Performa Kapster*' + (judulPeriode ? ' — ' + judulPeriode.trim() : ''), ''];
+      daftar.forEach(([name, stat], i) => {
+        baris.push((i + 1) + '. ' + name + ' — ' + stat.heads + ' pangkas & layanan'
+          + (modePerforma === 'tanpa' ? '' : ' · ' + formatRupiah(stat.omzet)));
+      });
+      const totalLayanan = daftar.reduce((a, x) => a + x[1].heads, 0);
+      baris.push('', 'Total ' + totalLayanan + ' pangkas & layanan.');
+      return baris.join('\n');
+    }
+
     function renderDashboard() {
       const txList = getFilteredTransactions();
 
@@ -3051,32 +3149,8 @@
         });
 
       // Update Capster Performance DOM
-      const capContainer = document.getElementById('capsterPerfContainer');
-      const sortedCapsters = Object.entries(capsterBreakdown).sort((a, b) => b[1].omzet - a[1].omzet);
-
-      if (sortedCapsters.length === 0) {
-        capContainer.innerHTML = `<div style="text-align:center; padding:16px; color:var(--fg-dim); font-size:13px;">Belum ada data kapster pada periode ini</div>`;
-      } else {
-        capContainer.innerHTML = sortedCapsters.map(([name, stat]) => `
-          <div class="capster-perf-row">
-            <div class="capster-info">
-              <div class="capster-avatar-sm">${(() => {
-                const foto = { "cena": "assets/cena", "lukman": "assets/lukman", "wanda": "assets/wanda" }[(name || "").toLowerCase().trim()];
-                return foto
-                  ? `<picture><source srcset="${foto}.webp?v=8" type="image/webp" /><img src="${foto}.png?v=8" alt="${name}" loading="lazy" /></picture>`
-                  : name.charAt(0).toUpperCase();
-              })()}</div>
-              <div>
-                <div class="capster-perf-name">${name}</div>
-                <div class="capster-heads">${stat.heads} pangkas & layanan</div>
-              </div>
-            </div>
-            <div class="capster-stat">
-              <div class="capster-omzet">${formatRupiah(stat.omzet)}</div>
-            </div>
-          </div>
-        `).join('');
-      }
+      performaKapster = Object.entries(capsterBreakdown).sort((a, b) => b[1].omzet - a[1].omzet);
+      renderPerformaKapster();
 
       // Update Transactions Table DOM
       const tbody = document.getElementById('txTableBody');
@@ -3804,13 +3878,45 @@
     });
 
     // Date Filters
-    document.querySelectorAll('.btn-filter-date').forEach(btn => {
+    /* Dipersempit ke [data-range]. Kelas .btn-filter-date kini dipakai juga
+       oleh pemilih mode performa kapster, dan tanpa penyaring ini menekan
+       "Tanpa Omzet" akan mengosongkan selectedDateFilter lalu menggambar
+       ulang dasbor dengan periode yang tidak ada. */
+    document.querySelectorAll('.btn-filter-date[data-range]').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.btn-filter-date').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.btn-filter-date[data-range]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         selectedDateFilter = btn.dataset.range;
         renderDashboard();
       });
+    });
+
+    // Pemilih mode performa kapster. Hanya menggambar ulang panelnya —
+    // datanya sudah ada, tidak perlu memanggil ulang server.
+    document.querySelectorAll('[data-perf]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modePerforma = btn.dataset.perf;
+        renderPerformaKapster();
+      });
+    });
+
+    document.getElementById('btnSalinPerforma').addEventListener('click', async () => {
+      const teks = performaSebagaiTeks();
+      if (!teks) { alert('Belum ada data kapster untuk disalin.'); return; }
+      const btn = document.getElementById('btnSalinPerforma');
+      const label = btn.textContent;
+      try {
+        await navigator.clipboard.writeText(teks);
+        btn.textContent = '✓ Tersalin';
+      } catch {
+        // Clipboard API menolak di konteks tak aman atau tanpa izin. Teksnya
+        // tetap harus sampai ke tangan pemilik, jadi ditawarkan untuk disalin
+        // sendiri alih-alih gagal diam-diam.
+        window.prompt('Salin teks berikut:', teks);
+        btn.textContent = label;
+        return;
+      }
+      setTimeout(() => { btn.textContent = label; }, 1600);
     });
 
     // Search Input
