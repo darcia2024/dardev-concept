@@ -832,7 +832,7 @@
       <!-- Capster Performance Summary -->
       <div class="panel-box">
         <div class="panel-head">
-          <h2>Performa Capster</h2>
+          <h2>Performa Kapster</h2>
           <span style="font-size: 11px; color: var(--fg-dim); font-family: var(--mono);">Kontribusi Omzet</span>
         </div>
         <div class="capster-perf-list" id="capsterPerfContainer">
@@ -1198,15 +1198,15 @@
     <div class="table-panel">
       <div class="table-controls">
         <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Data Capster &amp; PIN Kasir</h2>
+          <h2 style="font-size: 15px; font-weight: 600;">Data Kapster &amp; PIN Kasir</h2>
           <p style="font-size: 12px; color: var(--fg-dim);">
-            Nomor WhatsApp capster untuk notifikasi booking, sandi yang terlupa, dan PIN kasir
+            Nomor WhatsApp kapster untuk notifikasi booking, sandi yang terlupa, dan PIN kasir
           </p>
         </div>
       </div>
       <div style="padding: 4px 2px 8px; display:flex; flex-direction:column; gap:18px;">
         <div>
-          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Capster</div>
+          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Kapster</div>
           <div class="kelola-grid" id="gridCapster"></div>
         </div>
         <div>
@@ -1247,9 +1247,9 @@
     <div class="table-panel">
       <div class="table-controls">
         <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Notifikasi WhatsApp ke Capster</h2>
+          <h2 style="font-size: 15px; font-weight: 600;">Notifikasi WhatsApp ke Kapster</h2>
           <p style="font-size: 12px; color: var(--fg-dim);">
-            Dikirim otomatis saat pelanggan memilih capster di halaman booking &mdash;
+            Dikirim otomatis saat pelanggan memilih kapster di halaman booking &mdash;
             nomor pelanggan tidak ikut dikirim
           </p>
         </div>
@@ -1259,7 +1259,7 @@
       <div class="table-scroll">
         <table class="tx-table" id="waTable">
           <thead>
-            <tr><th>Waktu</th><th>Kode Booking</th><th>Capster</th><th>Status</th><th>Keterangan</th></tr>
+            <tr><th>Waktu</th><th>Kode Booking</th><th>Kapster</th><th>Status</th><th>Keterangan</th></tr>
           </thead>
           <tbody id="waTableBody"></tbody>
         </table>
@@ -1279,7 +1279,7 @@
       <div class="table-scroll">
         <table class="tx-table" id="arsipTable">
           <thead>
-            <tr><th>Dihapus</th><th>No. Invoice</th><th>Tanggal</th><th>Capster</th><th>Kasir</th>
+            <tr><th>Dihapus</th><th>No. Invoice</th><th>Tanggal</th><th>Kapster</th><th>Kasir</th>
                 <th>Alasan</th><th style="text-align:right;">Total</th></tr>
           </thead>
           <tbody id="arsipTableBody"></tbody>
@@ -1293,7 +1293,7 @@
           <h2 style="font-size: 15px; font-weight: 600;">Log Transaksi Detail</h2>
           <p style="font-size: 12px; color: var(--fg-dim);">Data tersimpan otomatis & real-time</p>
         </div>
-        <input type="text" id="inpSearchTx" class="search-input" placeholder="🔍 Cari nama, invoice, capster..." />
+        <input type="text" id="inpSearchTx" class="search-input" placeholder="🔍 Cari nama, invoice, kapster..." />
       </div>
 
       <div class="table-scroll">
@@ -1304,7 +1304,7 @@
               <th>No. Invoice</th>
               <th>Pelanggan</th>
               <th>WhatsApp</th>
-              <th>Capster</th>
+              <th>Kapster</th>
               <th>Layanan</th>
               <th>Metode</th>
               <th>Ref / Approval</th>
@@ -1600,7 +1600,7 @@
     const WA_STATUS = {
       terkirim:        { teks: 'Terkirim',        warna: 'var(--sage)' },
       nonaktif:        { teks: 'Fitur nonaktif',  warna: 'var(--fg-dim)' },
-      tanpa_capster:   { teks: 'Tanpa capster',   warna: 'var(--fg-dim)' },
+      tanpa_capster:   { teks: 'Tanpa kapster',   warna: 'var(--fg-dim)' },
       nomor_tidak_sah: { teks: 'Nomor bermasalah', warna: 'var(--warn)' },
       gagal:           { teks: 'Gagal',           warna: 'var(--brand)' }
     };
@@ -1657,7 +1657,7 @@
     document.getElementById('btnUbahWa').addEventListener('click', function () {
       if (!waData) return;
       const kolom = [
-        { key: 'aktif', label: 'Kirim notifikasi ke capster', tipe: 'centang',
+        { key: 'aktif', label: 'Kirim notifikasi ke kapster', tipe: 'centang',
           hint: 'Saat dimatikan, booking tetap tersimpan dan tercatat di sini sebagai "Fitur nonaktif".' },
         { key: 'provider', label: 'Provider', tipe: 'pilih',
           pilihan: [{ nilai: 'meta', label: 'WhatsApp Cloud API (Meta)' },
@@ -2052,7 +2052,7 @@
       unduhCsv(
         'Audit-Poin_' + bulanPoin + '.csv',
         ['Waktu', 'Member', 'Kode Member', 'WhatsApp', 'Jenis', 'Poin', 'Saldo Sesudah',
-         'No Invoice', 'Kasir', 'Capster', 'Keterangan'],
+         'No Invoice', 'Kasir', 'Kapster', 'Keterangan'],
         poinData.map(function (r) {
           return [
             new Date(r.waktu).toLocaleString('id-ID',
@@ -3055,7 +3055,7 @@
       const sortedCapsters = Object.entries(capsterBreakdown).sort((a, b) => b[1].omzet - a[1].omzet);
 
       if (sortedCapsters.length === 0) {
-        capContainer.innerHTML = `<div style="text-align:center; padding:16px; color:var(--fg-dim); font-size:13px;">Belum ada data capster pada periode ini</div>`;
+        capContainer.innerHTML = `<div style="text-align:center; padding:16px; color:var(--fg-dim); font-size:13px;">Belum ada data kapster pada periode ini</div>`;
       } else {
         capContainer.innerHTML = sortedCapsters.map(([name, stat]) => `
           <div class="capster-perf-row">
@@ -3101,7 +3101,7 @@
               <td>
                 <button class="capster-ubah" data-ubah-capster="${tx.id}"
                         data-nota="${escapeHtml(tx.invoice_no || '')}"
-                        title="Pindahkan pekerjaan ini ke capster lain">${escapeHtml(ringkasCapster(tx))}</button>
+                        title="Pindahkan pekerjaan ini ke kapster lain">${escapeHtml(ringkasCapster(tx))}</button>
               </td>
               <td>${srvNames}</td>
               <td><span class="pill-pay ${methodClass}">${tx.payment_method || 'Tunai'}</span></td>
@@ -3152,18 +3152,18 @@
       if (!tx) return;
 
       const aktif = (capstersData || []).filter(c => c.is_active);
-      if (!aktif.length) return alert('Belum ada capster aktif.');
+      if (!aktif.length) return alert('Belum ada kapster aktif.');
 
       const daftar = aktif.map((c, i) => (i + 1) + '. ' + c.name).join('\n');
       const pilih = prompt('Pindahkan SELURUH nota ' + btn.dataset.nota
-        + ' ke capster mana?\n\n' + daftar + '\n\nKetik nomornya:');
+        + ' ke kapster mana?\n\n' + daftar + '\n\nKetik nomornya:');
       if (pilih === null) return;
 
       const idx = parseInt(pilih, 10) - 1;
       if (!(idx >= 0 && idx < aktif.length)) return alert('Nomor tidak dikenali.');
 
       const alasan = prompt('Alasan pemindahan (tersimpan di arsip):',
-                            'Kasir salah pilih capster');
+                            'Kasir salah pilih kapster');
       if (alasan === null) return;
       if (!alasan.trim()) return alert('Alasan wajib diisi.');
 
@@ -3663,7 +3663,7 @@
       ]);
 
       if (staf.error) {
-        gc.innerHTML = '<div class="kelola-pesan bad">Gagal memuat capster: ' + escapeHtml(staf.error.message) + '</div>';
+        gc.innerHTML = '<div class="kelola-pesan bad">Gagal memuat kapster: ' + escapeHtml(staf.error.message) + '</div>';
       } else {
         gc.innerHTML = (staf.data || []).map(function (c) {
           const bisa = c.punya_akun;
@@ -3686,7 +3686,7 @@
               : '<div class="kelola-pesan bad">Belum punya akun — buatkan dulu lewat Dardev.</div>')
             + '<div class="kelola-pesan" data-sandi-pesan="' + c.capster_id + '"></div>'
             + '</div>';
-        }).join('') || '<div class="kelola-pesan">Belum ada capster.</div>';
+        }).join('') || '<div class="kelola-pesan">Belum ada kapster.</div>';
       }
 
       if (kasir.error) {
@@ -3733,7 +3733,7 @@
         inp.value = (r && r.telepon) || '';
         kelolaPesan(msg, r && r.telepon
           ? 'Tersimpan sebagai ' + r.telepon + '.'
-          : 'Nomor dikosongkan. Capster ini tidak akan dapat notifikasi.', true);
+          : 'Nomor dikosongkan. Kapster ini tidak akan dapat notifikasi.', true);
       }
 
       if (bSandi) {
@@ -3785,7 +3785,7 @@
       // merusak seluruh struktur kolomnya.
       unduhCsv(
         'Transaksi_' + selectedDateFilter + '_' + sbJakartaToday() + '.csv',
-        ['Waktu', 'No Invoice', 'Nama Pelanggan', 'No WhatsApp', 'Capster',
+        ['Waktu', 'No Invoice', 'Nama Pelanggan', 'No WhatsApp', 'Kapster',
          'Layanan', 'Metode Bayar', 'Kode Ref/Approval', 'Subtotal (Rp)',
          'Diskon Poin (Rp)', 'Diskon Kasir (Rp)', 'Nama Diskon', 'Total (Rp)'],
         txList.map(function (tx) {
