@@ -1673,6 +1673,24 @@
       border-bottom: 1px solid var(--border-soft);
     }
 
+    /* Kartu QRIS di layar bayar. Logo berdiri DI ATAS kode, bukan ditumpuk di
+       tengahnya: menempelkan gambar ke tengah QR memakan cadangan koreksi
+       kesalahan, dan yang gagal memindai bukan kasir melainkan pelanggan yang
+       sudah berdiri di depan meja. Latarnya dipaksa putih pekat — kontras QR
+       tidak boleh bergantung pada tema. */
+    #qrisDinBox { text-align: center; padding: 6px 0 4px; }
+    .qris-kartu {
+      display: inline-block; background: #FFFFFF;
+      padding: 12px 12px 10px; border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .qris-logo { display: block; width: 132px; height: auto; margin: 0 auto 10px; }
+    #qrisKode { line-height: 0; }
+    #qrisNominal {
+      font-family: var(--mono); font-size: 15px; font-weight: 600; margin-top: 8px;
+    }
+    .qris-ket { font-size: 11.5px; color: var(--fg-dim); margin-top: 2px; }
+
     /* Gerbang konfirmasi QRIS. Nada netral saat menunggu, hijau saat sudah
        diperiksa — kasir harus dapat membedakan keduanya dengan sekali lihat,
        tanpa membaca. */
@@ -1857,10 +1875,13 @@
             <!-- Bila payload statis sudah diisi di Pengaturan, QR-nya digambar
                  di sini dengan nominal terkunci. Bila belum, kasir tetap
                  memakai stiker di meja seperti sebelumnya. -->
-            <div id="qrisDinBox" hidden style="text-align:center; padding: 6px 0 4px;">
-              <div id="qrisKode" style="display:inline-block; background:#FFFFFF; padding:10px; border-radius:10px;"></div>
-              <div id="qrisNominal" style="font-family:var(--mono); font-size:15px; font-weight:600; margin-top:8px;"></div>
-              <div style="font-size:11.5px; color:var(--fg-dim); margin-top:2px;">Nominal sudah terkunci — pelanggan tinggal scan</div>
+            <div id="qrisDinBox" hidden>
+              <div class="qris-kartu">
+                <img class="qris-logo" src="assets/logo.png" alt="Underrated Barbershop" />
+                <div id="qrisKode"></div>
+              </div>
+              <div id="qrisNominal"></div>
+              <div class="qris-ket">Nominal sudah terkunci &mdash; pelanggan tinggal scan</div>
             </div>
             <div id="qrisGagal" hidden class="svc-err" style="margin-bottom:6px;"></div>
             <p id="qrisPesanStatis" style="font-size: 12px; color: var(--fg-dim);">Silakan arahkan pelanggan scan QRIS Statis di meja kasir.</p>
