@@ -1832,7 +1832,16 @@
 
           <!-- QRIS specifics -->
           <div id="qrisPayBox" style="display: none;">
-            <p style="font-size: 12px; color: var(--fg-dim);">Silakan arahkan pelanggan scan QRIS Statis di meja kasir.</p>
+            <!-- Bila payload statis sudah diisi di Pengaturan, QR-nya digambar
+                 di sini dengan nominal terkunci. Bila belum, kasir tetap
+                 memakai stiker di meja seperti sebelumnya. -->
+            <div id="qrisDinBox" hidden style="text-align:center; padding: 6px 0 4px;">
+              <div id="qrisKode" style="display:inline-block; background:#FFFFFF; padding:10px; border-radius:10px;"></div>
+              <div id="qrisNominal" style="font-family:var(--mono); font-size:15px; font-weight:600; margin-top:8px;"></div>
+              <div style="font-size:11.5px; color:var(--fg-dim); margin-top:2px;">Nominal sudah terkunci — pelanggan tinggal scan</div>
+            </div>
+            <div id="qrisGagal" hidden class="svc-err" style="margin-bottom:6px;"></div>
+            <p id="qrisPesanStatis" style="font-size: 12px; color: var(--fg-dim);">Silakan arahkan pelanggan scan QRIS Statis di meja kasir.</p>
             <input type="text" id="inpQrisRef" class="input-field" style="margin-top: 4px;" placeholder="No. Referensi / RRN (Opsional)" />
           </div>
 
@@ -2226,6 +2235,30 @@
         <div class="svc-meta" id="csrSummary"></div>
       </div>
 
+      <!-- QRIS dinamis. Payload statis outlet disimpan apa adanya, lalu tiap
+           nota disuntik nominalnya sendiri sebelum digambar jadi QR. -->
+      <div id="qrisSection">
+        <div class="section-title-bar" style="margin-bottom: 8px;">
+          <h4 style="font-size: 13px; color: var(--brass); margin: 0;">QRIS Dinamis</h4>
+          <span style="font-size: 11px; color: var(--fg-dim);">perangkat ini saja</span>
+        </div>
+        <p style="font-size: 12px; color: var(--fg-dim); line-height: 1.6; margin-bottom: 8px;">
+          Tempel <strong style="color:var(--fg-mid);">isi</strong> QRIS statis outlet &mdash;
+          hasil scan stikernya, bukan fotonya. Diawali <code>000201</code> dan diakhiri
+          <code>6304</code> plus empat karakter. Kasir akan melihat QR bernominal terkunci
+          tiap transaksi. Kosongkan untuk kembali memakai stiker di meja.
+        </p>
+        <textarea id="inpQrisStatis" class="input-field" rows="3" autocomplete="off" spellcheck="false"
+                  style="font-family:var(--mono); font-size:11.5px; resize:vertical;"
+                  placeholder="00020101021126...6304ABCD"></textarea>
+        <div class="svc-err" id="qrisFormError" hidden></div>
+        <div class="svc-meta" id="qrisSummary"></div>
+        <div class="svc-form-actions">
+          <button id="btnHapusQris" class="btn-hdr" style="font-size: 12px;">Kosongkan</button>
+          <button id="btnSaveQris" class="btn-hdr btn-primary" style="font-size: 12px;">Simpan</button>
+        </div>
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--fg-dim);">
         <span>Tersimpan di server — tampil sama di semua perangkat.</span>
         <button id="btnReloadMaster" class="btn-hdr" style="font-size: 11px;">↻ Muat Ulang</button>
@@ -2292,6 +2325,9 @@
        bila jaringan luar terganggu di hari pembukaan. -->
   <script src="vendor/supabase.js"></script>
   <script src="vendor/jsqr.js"></script>
+  <!-- jsqr membaca QR, qrcode menggambarnya. Yang digambar di sini adalah
+       QRIS dinamis: payload statis milik outlet, disuntik nominal per nota. -->
+  <script src="vendor/qrcode.js"></script>
   <script src="sb-app.js"></script>
 
   <script>
@@ -2709,6 +2745,7 @@
       tandaiCapsterBeda();
       renderQuickCashChips(finalAmount);
       calculateCashChange();
+      renderQrisDinamis();
     }
 
     /* Pilihan capster per layanan disimpan pada item, lalu ditandai bila
@@ -3346,6 +3383,160 @@
       hitungDiskon();
     });
 
+    /* ── QRIS statis → dinamis ────────────────────────────────────────────
+       QRIS adalah TLV EMVCo: tiap ruas berbentuk <tag 2><panjang 2><nilai>.
+       Yang membedakan statis dari dinamis hanya dua ruas — tag 01 (metode
+       inisiasi, "11" statis / "12" dinamis) dan tag 54 (nominal, tidak ada
+       pada statis). Sisanya milik acquirer dan tidak disentuh.
+
+       Yang TIDAK dilakukan di sini: mengabarkan pembayaran. Uangnya tetap
+       mengalir ke rekening merchant lewat acquirer yang sama, dan sistem ini
+       tidak punya jalur untuk mendengarnya. Nominal terkunci menghapus salah
+       ketik, bukan menggantikan pemeriksaan kasir. */
+    const QRIS_KUNCI = 'barber_qris_statis_v1';
+
+    function qrisCrc16(s) {
+      // Dihitung atas byte UTF-8, bukan unit UTF-16. Payload QRIS Indonesia
+      // seluruhnya ASCII sehingga keduanya kebetulan sama, tetapi menuliskannya
+      // atas byte membuat rumus ini benar juga untuk payload beraksara lain.
+      const b = new TextEncoder().encode(s);
+      let crc = 0xFFFF;
+      for (let i = 0; i < b.length; i++) {
+        crc ^= b[i] << 8;
+        for (let j = 0; j < 8; j++) {
+          crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+        }
+      }
+      return crc.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    function qrisUrai(s) {
+      const out = [];
+      let i = 0;
+      while (i < s.length) {
+        if (i + 4 > s.length) throw new Error('Struktur QRIS terpotong.');
+        const tag = s.slice(i, i + 2);
+        const lenTeks = s.slice(i + 2, i + 4);
+        if (!/^\d{2}$/.test(tag) || !/^\d{2}$/.test(lenTeks)) {
+          throw new Error('Tag atau panjang bukan angka — payload tidak utuh.');
+        }
+        const len = parseInt(lenTeks, 10);
+        const val = s.slice(i + 4, i + 4 + len);
+        if (val.length !== len) throw new Error('Nilai tag ' + tag + ' lebih pendek dari panjangnya.');
+        out.push({ tag: tag, val: val });
+        i += 4 + len;
+      }
+      return out;
+    }
+
+    function qrisRakit(items) {
+      return items.map(function (x) {
+        if (x.val.length > 99) throw new Error('Nilai tag ' + x.tag + ' melebihi 99 karakter.');
+        return x.tag + String(x.val.length).padStart(2, '0') + x.val;
+      }).join('');
+    }
+
+    function qrisDinamis(statis, nominal) {
+      // Hanya baris baru dan tab yang dibuang — itu sampah dari salin-tempel.
+      // Spasi TIDAK boleh ikut dibuang: nama merchant sah mengandungnya
+      // ("UNDERRATED BARBERSHOP"), dan membuangnya merusak payload sekaligus
+      // panjang tag yang sudah tertulis di dalamnya.
+      const bersih = String(statis || '').replace(/[\r\n\t]+/g, '').trim();
+      if (!bersih) throw new Error('Payload QRIS statis belum diisi.');
+
+      // Checksum diperiksa lebih dulu. Payload yang salah salin menghasilkan QR
+      // yang terlihat wajar tetapi ditolak, dan itu baru ketahuan di depan
+      // pelanggan — jauh lebih mahal daripada ditolak di sini.
+      if (bersih.length < 8 || bersih.slice(-8, -4) !== '6304') {
+        throw new Error('Payload tidak diakhiri checksum (tag 63). Pastikan disalin utuh.');
+      }
+      if (qrisCrc16(bersih.slice(0, -4)) !== bersih.slice(-4).toUpperCase()) {
+        throw new Error('Checksum QRIS tidak cocok — payload salah salin atau tidak lengkap.');
+      }
+
+      const item = qrisUrai(bersih.slice(0, -8));
+      const cari = function (t) { return item.find(function (x) { return x.tag === t; }); };
+      if (!cari('00')) throw new Error('Bukan payload QRIS (tag 00 tidak ada).');
+
+      const negara = cari('58');
+      if (negara && negara.val.toUpperCase() !== 'ID') {
+        throw new Error('QRIS ini bukan terbitan Indonesia (tag 58 = ' + negara.val + ').');
+      }
+      const mata = cari('53');
+      if (mata && mata.val !== '360') {
+        throw new Error('Mata uang bukan Rupiah (tag 53 = ' + mata.val + ').');
+      }
+
+      const nom = String(Math.round(Number(nominal)));
+      if (!/^\d{1,13}$/.test(nom) || Number(nom) <= 0) {
+        throw new Error('Nominal tidak sah.');
+      }
+
+      const init = cari('01');
+      if (init) init.val = '12';
+      else item.splice(1, 0, { tag: '01', val: '12' });
+
+      // Diganti bila tag 54 sudah ada, disisipkan menurut urutan menaik bila
+      // belum. Urutan ruas lain tidak diacak supaya payload sedekat mungkin
+      // dengan terbitan acquirer-nya.
+      const lama = item.findIndex(function (x) { return x.tag === '54'; });
+      if (lama !== -1) item[lama].val = nom;
+      else {
+        let sisip = item.findIndex(function (x) { return parseInt(x.tag, 10) > 54; });
+        if (sisip === -1) sisip = item.length;
+        item.splice(sisip, 0, { tag: '54', val: nom });
+      }
+
+      const badan = qrisRakit(item) + '6304';
+      return badan + qrisCrc16(badan);
+    }
+    /* ── akhir QRIS statis → dinamis ─────────────────────────────────────── */
+
+    function qrisStatisTersimpan() {
+      try { return localStorage.getItem(QRIS_KUNCI) || ''; } catch { return ''; }
+    }
+
+    /* Digambar ulang tiap kali nominalnya berubah — pindah metode bayar,
+       keranjang berubah, diskon dipilih. QR bernominal basi lebih berbahaya
+       daripada tidak ada QR sama sekali. */
+    function renderQrisDinamis() {
+      const box = document.getElementById('qrisDinBox');
+      const gagal = document.getElementById('qrisGagal');
+      const pesan = document.getElementById('qrisPesanStatis');
+      if (!box) return;
+
+      const statis = qrisStatisTersimpan();
+      const nominal = totalTagihan();
+
+      if (!statis || selectedPaymentMethod !== 'QRIS' || !(nominal > 0)) {
+        box.hidden = true;
+        gagal.hidden = true;
+        pesan.hidden = false;
+        return;
+      }
+
+      try {
+        const payload = qrisDinamis(statis, nominal);
+        const qr = qrcode(0, 'M');
+        qr.addData(payload);
+        qr.make();
+        document.getElementById('qrisKode').innerHTML = qr.createImgTag(5, 0);
+        const img = document.getElementById('qrisKode').querySelector('img');
+        if (img) { img.alt = 'QRIS ' + formatRupiah(nominal); img.style.width = '190px'; img.style.height = '190px'; }
+        document.getElementById('qrisNominal').textContent = formatRupiah(nominal);
+        box.hidden = false;
+        gagal.hidden = true;
+        pesan.hidden = true;
+      } catch (err) {
+        // Jatuh kembali ke stiker meja, bukan layar kosong: kasir tetap bisa
+        // menerima pembayaran walau payload tersimpan bermasalah.
+        box.hidden = true;
+        gagal.textContent = 'QRIS dinamis gagal dibuat: ' + err.message + ' Gunakan stiker di meja.';
+        gagal.hidden = false;
+        pesan.hidden = false;
+      }
+    }
+
     // Payment Method Switching
     document.querySelectorAll('.pay-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -3361,6 +3552,7 @@
         document.getElementById('qrisPayBox').style.display = selectedPaymentMethod === 'QRIS' ? 'block' : 'none';
         document.getElementById('edcPayBox').style.display = selectedPaymentMethod === 'EDC' ? 'block' : 'none';
         document.getElementById('transferPayBox').style.display = selectedPaymentMethod === 'Transfer' ? 'block' : 'none';
+        renderQrisDinamis();
       });
     });
 
@@ -4154,9 +4346,73 @@
     document.getElementById('btnOpenSettings').addEventListener('click', () => {
       settingsPreviousFocus = document.activeElement;
       renderSettingsTables();
+      renderQrisSetting();
       settingsModal.classList.add('is-open');
       settingsModal.setAttribute('aria-hidden', 'false');
       document.getElementById('btnCloseSettings').focus();
+    });
+
+    /* ── Pengaturan QRIS dinamis ─────────────────────────────────────────── */
+    function qrisPesanSetting(teks, buruk) {
+      const err = document.getElementById('qrisFormError');
+      const ringkas = document.getElementById('qrisSummary');
+      err.hidden = !(buruk && teks);
+      if (buruk) err.textContent = teks;
+      ringkas.textContent = buruk ? '' : (teks || '');
+    }
+
+    function renderQrisSetting() {
+      const simpanan = qrisStatisTersimpan();
+      document.getElementById('inpQrisStatis').value = simpanan;
+      if (!simpanan) {
+        qrisPesanSetting('Belum diisi — kasir memakai stiker QRIS di meja.', false);
+        return;
+      }
+      // Diperiksa ulang tiap panel dibuka: payload yang tersimpan bisa saja
+      // sudah tidak sah karena merchant menerbitkan QRIS baru.
+      try {
+        qrisDinamis(simpanan, 10000);
+        const nama = qrisUrai(simpanan.replace(/[\r\n\t]+/g, '').trim().slice(0, -8))
+          .find(function (x) { return x.tag === '59'; });
+        qrisPesanSetting('Aktif' + (nama ? ' — ' + nama.val : '') + '. QR bernominal dibuat tiap transaksi.', false);
+      } catch (err) {
+        qrisPesanSetting('Payload tersimpan bermasalah: ' + err.message, true);
+      }
+    }
+
+    document.getElementById('btnSaveQris').addEventListener('click', () => {
+      const nilai = document.getElementById('inpQrisStatis').value.replace(/[\r\n\t]+/g, '').trim();
+      if (!nilai) {
+        qrisPesanSetting('Isi dulu payload QRIS statisnya, atau tekan Kosongkan.', true);
+        return;
+      }
+      // Diuji dengan nominal contoh sebelum disimpan. Payload yang cacat lebih
+      // baik ditolak sekarang daripada menjadi QR yang ditolak di depan
+      // pelanggan.
+      try {
+        qrisDinamis(nilai, 10000);
+      } catch (err) {
+        qrisPesanSetting(err.message, true);
+        return;
+      }
+      try {
+        localStorage.setItem(QRIS_KUNCI, nilai);
+      } catch {
+        qrisPesanSetting('Gagal menyimpan di perangkat ini.', true);
+        return;
+      }
+      renderQrisSetting();
+      renderQrisDinamis();
+      showToast('QRIS dinamis aktif.');
+    });
+
+    document.getElementById('btnHapusQris').addEventListener('click', () => {
+      if (!confirm('Kosongkan QRIS dinamis?\n\nKasir kembali memakai stiker QRIS di meja.')) return;
+      try { localStorage.removeItem(QRIS_KUNCI); } catch {}
+      document.getElementById('inpQrisStatis').value = '';
+      renderQrisSetting();
+      renderQrisDinamis();
+      showToast('QRIS dinamis dimatikan.');
     });
     function closeSettingsModal() {
       settingsModal.classList.remove('is-open');
@@ -4173,7 +4429,7 @@
         return;
       }
       if (event.key !== 'Tab') return;
-      const focusable = Array.from(settingsModal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled])'))
+      const focusable = Array.from(settingsModal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
         .filter(element => element.offsetParent !== null);
       if (!focusable.length) return;
       const first = focusable[0];
