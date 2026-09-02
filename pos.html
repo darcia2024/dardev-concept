@@ -1727,7 +1727,7 @@
         Booking <span class="booking-count" id="bookingCount" hidden>0</span>
       </button>
       <button class="btn-hdr" id="btnOpenClosing" title="Setor hitungan uang tunai akhir shift">Tutup Kas</button>
-      <button class="btn-hdr" id="btnOpenSettings" title="Kelola Layanan & Capster" hidden>Pengaturan</button>
+      <button class="btn-hdr" id="btnOpenSettings" title="Kelola Layanan & Kapster" hidden>Pengaturan</button>
       <a href="/rekap" class="btn-hdr" id="lnkRekap" title="Buka Dashboard Owner" hidden>Rekap Omzet</a>
       <button class="btn-hdr" id="btnSignOut" title="Melepas pendaftaran perangkat ini. Untuk ganti kasir, tekan nama kasir di kiri.">Lepas Perangkat</button>
     </div>
@@ -1742,7 +1742,7 @@
       <!-- Capster Selection -->
       <section class="section-box">
         <div class="section-title-bar">
-          <h2><span class="step-badge">01</span> Pilih Capster Bertugas</h2>
+          <h2><span class="step-badge">01</span> Pilih Kapster Bertugas</h2>
           <span style="font-size: 12px; color: var(--fg-dim);" id="lblSelectedCapster">Belum dipilih</span>
         </div>
         <div class="capster-grid" id="capsterContainer">
@@ -1798,7 +1798,7 @@
         <div class="form-group">
           <label class="form-label">Item Terpilih</label>
           <div class="cart-items-wrap" id="cartItemsContainer">
-            <div class="cart-empty-state">Belum ada layanan & capster dipilih</div>
+            <div class="cart-empty-state">Belum ada layanan & kapster dipilih</div>
           </div>
         </div>
 
@@ -1933,7 +1933,7 @@
         <div>
           <div class="receipt-line"><span>Pelanggan:</span><strong id="rcptCustName">Mas Budi</strong></div>
           <div class="receipt-line" id="rcptRowPhone"><span>WhatsApp:</span><span id="rcptCustPhone">08123456789</span></div>
-          <div class="receipt-line"><span>Capster:</span><span id="rcptCapster">Alex</span></div>
+          <div class="receipt-line"><span>Kapster:</span><span id="rcptCapster">Alex</span></div>
           <div class="receipt-line" id="rcptRowTier"><span>Tier Member:</span><span id="rcptMemberTier">Silver</span></div>
         </div>
         <!-- Tiap layanan mendapat barisnya sendiri. Sebelumnya semuanya
@@ -2130,12 +2130,12 @@
       <!-- Edit Capsters -->
       <div>
         <div class="section-title-bar" style="margin-bottom: 8px;">
-          <h4 style="font-size: 13px; color: var(--brass); margin: 0;">Master Capster</h4>
-          <button id="btnAddCapster" class="btn-hdr" style="font-size: 11.5px; padding: 5px 10px;">+ Tambah Capster</button>
+          <h4 style="font-size: 13px; color: var(--brass); margin: 0;">Master Kapster</h4>
+          <button id="btnAddCapster" class="btn-hdr" style="font-size: 11.5px; padding: 5px 10px;">+ Tambah Kapster</button>
         </div>
 
         <div class="svc-form" id="capsterFormWrap" hidden>
-          <input type="text" id="inpCapName" class="input-field" placeholder="Nama capster — cth: Alex" autocomplete="off" />
+          <input type="text" id="inpCapName" class="input-field" placeholder="Nama kapster — cth: Alex" autocomplete="off" />
           <input type="tel" id="inpCapPhone" class="input-field" placeholder="No. WhatsApp — 0812xxxx (opsional)" autocomplete="off" />
           <div class="svc-err" id="capFormError" hidden></div>
           <div class="svc-form-actions">
@@ -2147,7 +2147,7 @@
         <div class="settings-table-wrap">
           <table class="sm-table" id="tableCapstersSetting">
             <thead>
-              <tr><th>Nama Capster</th><th>WhatsApp</th><th style="width: 148px; text-align: right;">Aksi</th></tr>
+              <tr><th>Nama Kapster</th><th>WhatsApp</th><th style="width: 148px; text-align: right;">Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -2439,8 +2439,8 @@
         empty.className = 'svc-empty';
         empty.style.gridColumn = '1 / -1';
         empty.textContent = capsters.length === 0
-          ? 'Belum ada capster. Buka ⚙️ Pengaturan untuk menambahkan.'
-          : 'Tidak ada capster aktif. Aktifkan lewat ⚙️ Pengaturan.';
+          ? 'Belum ada kapster. Buka ⚙️ Pengaturan untuk menambahkan.'
+          : 'Tidak ada kapster aktif. Aktifkan lewat ⚙️ Pengaturan.';
         container.appendChild(empty);
         return;
       }
@@ -2689,7 +2689,7 @@
                 ${capsters.filter(c => c.is_active !== false).map(c => `
                   <option value="${escapeHtml(String(c.id))}"${(s.capsterId || selectedCapster.id) === c.id ? ' selected' : ''}>${escapeHtml(c.name)}</option>
                 `).join('')}
-              </select>` : '<span class="item-capster"><em>Pilih capster dulu</em></span>'}
+              </select>` : '<span class="item-capster"><em>Pilih kapster dulu</em></span>'}
             </div>
             <span class="item-price">${formatRupiah(s.price)}</span>
           </div>
@@ -3367,7 +3367,7 @@
     // Process Transaction & Submit
     document.getElementById('btnSubmitTransaction').addEventListener('click', async () => {
       if (!selectedCapster) {
-        showToast('Pilih capster terlebih dahulu!');
+        showToast('Pilih kapster terlebih dahulu!');
         return;
       }
       if (selectedServices.length === 0) {
@@ -3598,7 +3598,7 @@
           '',
           'Nota: ' + tx.invoice_no,
           waktuStruk + ' WIB',
-          'Capster: ' + tx.capster_name,
+          'Kapster: ' + tx.capster_name,
           '',
           '*Layanan*'
         ];
@@ -3823,7 +3823,7 @@
         baris(strukRata('WhatsApp', formatWa(tx.member_phone)));
         baris(strukRata('Tier', tx.member_tier || ''));
       }
-      baris(strukRata('Capster', tx.capster_name || ''));
+      baris(strukRata('Kapster', tx.capster_name || ''));
       baris('-'.repeat(LEBAR_STRUK));
 
       (tx.services || []).forEach(function (l) {
@@ -4257,7 +4257,7 @@
       const capTbody = document.querySelector('#tableCapstersSetting tbody');
 
       if (capsters.length === 0) {
-        capTbody.innerHTML = '<tr><td colspan="3" class="svc-empty">Belum ada capster. Tekan “+ Tambah Capster”.</td></tr>';
+        capTbody.innerHTML = '<tr><td colspan="3" class="svc-empty">Belum ada kapster. Tekan “+ Tambah Kapster”.</td></tr>';
       } else {
         capTbody.innerHTML = capsters.map(c => `
           <tr class="${c.is_active === false ? 'is-off' : ''}">
@@ -4279,7 +4279,7 @@
 
       const activeCap = capsters.filter(c => c.is_active !== false).length;
       document.getElementById('capSummary').textContent =
-        `${capsters.length} capster · ${activeCap} bertugas hari ini`;
+        `${capsters.length} kapster · ${activeCap} bertugas hari ini`;
     }
 
     /* =========================================================================
@@ -4868,13 +4868,13 @@
       const name = document.getElementById('inpCapName').value.trim();
       const phone = normalizePhone(document.getElementById('inpCapPhone').value);
 
-      if (!name) return showCapError('Nama capster wajib diisi.');
+      if (!name) return showCapError('Nama kapster wajib diisi.');
       if (phone && phone.length < 10) return showCapError('Nomor WhatsApp terlalu pendek. Kosongkan bila belum ada.');
 
       const clash = capsters.some(c =>
         c.id !== editingCapsterId && c.name.trim().toLowerCase() === name.toLowerCase()
       );
-      if (clash) return showCapError('Sudah ada capster dengan nama yang sama.');
+      if (clash) return showCapError('Sudah ada kapster dengan nama yang sama.');
 
       if (!requireOnline(showCapError)) return;
 
@@ -4896,17 +4896,17 @@
             selectedCapster = cap || data;
             document.getElementById('lblSelectedCapster').textContent = name;
           }
-          showToast('Capster "' + name + '" diperbarui.');
+          showToast('Kapster "' + name + '" diperbarui.');
         } else {
           const { data, error } = await sb.from('capsters')
             .insert({ name, phone, is_active: true }).select().single();
           if (error) throw error;
           capsters.push(data);
-          showToast('Capster "' + name + '" ditambahkan.');
+          showToast('Kapster "' + name + '" ditambahkan.');
         }
       } catch (err) {
         return showCapError(err.code === '23505'
-          ? 'Sudah ada capster dengan nama yang sama.'
+          ? 'Sudah ada kapster dengan nama yang sama.'
           : 'Gagal menyimpan: ' + (err.message || err));
       } finally {
         btn.disabled = false; btn.textContent = label;
@@ -4936,14 +4936,14 @@
 
         cap.is_active = !turningOff;
         if (turningOff) clearCapsterSelectionIf(c => c.id === cap.id);
-        showToast('Capster "' + cap.name + '" ' + (turningOff ? 'ditandai tidak bertugas.' : 'ditandai bertugas.'));
+        showToast('Kapster "' + cap.name + '" ' + (turningOff ? 'ditandai tidak bertugas.' : 'ditandai bertugas.'));
         refreshAfterCapsterChange();
         return;
       }
 
       if (btn.dataset.act === 'del') {
         if (!SBConn.online) return showToast('Sedang offline. Perubahan master data butuh koneksi.');
-        if (!confirm('Hapus capster "' + cap.name + '"?\n\nTransaksi lama tetap menyimpan namanya. Untuk capster yang sekadar libur, pakai tombol ● (tidak bertugas).')) return;
+        if (!confirm('Hapus kapster "' + cap.name + '"?\n\nTransaksi lama tetap menyimpan namanya. Untuk kapster yang sekadar libur, pakai tombol ● (tidak bertugas).')) return;
 
         const { error } = await sb.from('capsters').delete().eq('id', cap.id);
         if (error) return showToast('Gagal menghapus: ' + error.message);
@@ -4951,7 +4951,7 @@
         if (editingCapsterId === cap.id) closeCapsterForm();
         clearCapsterSelectionIf(c => c.id === cap.id);
         capsters = capsters.filter(c => c.id !== cap.id);
-        showToast('Capster dihapus.');
+        showToast('Kapster dihapus.');
         refreshAfterCapsterChange();
       }
     });

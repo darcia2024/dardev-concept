@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#F4F5F7" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>Kinerja Saya &mdash; Capster</title>
+  <title>Kinerja Saya &mdash; Kapster</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -283,7 +283,7 @@
       <div class="avatar" id="avatar">–</div>
       <div class="who-text">
         <div class="who-name" id="capsterName">Memuat…</div>
-        <div class="who-role">Capster &middot; <span id="todayLabel"></span></div>
+        <div class="who-role">Kapster &middot; <span id="todayLabel"></span></div>
       </div>
     </div>
     <button class="btn" id="btnSignOut">Keluar</button>
@@ -397,7 +397,7 @@
       <div class="note">
         Angka di halaman ini hanya milik Anda. Bila ada pelanggan yang Anda layani
         tetapi tidak muncul di sini, beri tahu kasir &mdash; kemungkinan transaksinya
-        tercatat atas nama capster lain.
+        tercatat atas nama kapster lain.
       </div>
     </div>
 
@@ -928,14 +928,14 @@
       // Penjaga sesungguhnya ada di RPC dan RLS: akun non-capster tidak
       // tertaut ke baris capsters mana pun, sehingga tidak mendapat data.
       if (profile.role !== 'capster') {
-        tampilkanDitolak(`Halaman ini khusus capster. Akun Anda terdaftar sebagai <strong>${escapeHtml(profile.role)}</strong>.`);
+        tampilkanDitolak(`Halaman ini khusus kapster. Akun Anda terdaftar sebagai <strong>${escapeHtml(profile.role)}</strong>.`);
         return;
       }
 
       const { data: meRows, error: meErr } = await sb.rpc('me_capster');
       const me = Array.isArray(meRows) ? meRows[0] : meRows;
       if (meErr || !me) {
-        tampilkanDitolak('Akun Anda belum ditautkan ke data capster. Minta owner menautkannya.');
+        tampilkanDitolak('Akun Anda belum ditautkan ke data kapster. Minta owner menautkannya.');
         return;
       }
 
