@@ -1264,6 +1264,33 @@
       </div>
     </div>
 
+    <!-- Nota QRIS yang belum diperiksa kasir. Panelnya sengaja hanya memuat
+         yang BELUM terkonfirmasi: daftar yang memuat semuanya akan dibaca
+         sekali lalu diabaikan selamanya. Kosong berarti tidak ada yang perlu
+         dikerjakan, dan itulah keadaan yang diharapkan. -->
+    <div class="table-panel" id="panelQrisPantau" hidden>
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">QRIS Belum Terkonfirmasi</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Nota QRIS yang tersimpan tanpa kasir menandai dananya sudah masuk &mdash;
+            cocokkan dengan mutasi di aplikasi merchant
+          </p>
+        </div>
+        <button class="btn-filter-date" id="btnMuatQrisPantau">Muat Ulang</button>
+      </div>
+      <div id="qrisPantauRingkas" style="padding: 0 4px 12px; font-size: 13px; color: var(--fg-mid); line-height: 1.7;"></div>
+      <div class="table-scroll">
+        <table class="tx-table" id="qrisPantauTable">
+          <thead>
+            <tr><th>Waktu</th><th>No. Invoice</th><th>Kapster</th><th>Pelanggan</th>
+                <th>Referensi</th><th style="text-align:right;">Total</th></tr>
+          </thead>
+          <tbody id="qrisPantauBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Notifikasi WhatsApp ke capster -->
     <div class="table-panel">
       <div class="table-controls">
@@ -3078,6 +3105,54 @@
       return baris.join('\n');
     }
 
+    /* ── QRIS yang lolos tanpa diperiksa ──────────────────────────────────
+       Gerbang di kasir menahan tombol simpan, tetapi penandaannya dikirim
+       lewat panggilan terpisah sesudah nota tersimpan. Bila panggilan itu
+       gagal — sinyal putus tepat di sela, atau notanya sempat mengantre
+       luring — notanya tetap sah namun tanpa jejak pemeriksaan. Di sinilah
+       sisa itu muncul, supaya tidak hilang begitu saja. */
+    async function muatQrisPantau() {
+      const panel = document.getElementById('panelQrisPantau');
+      const body = document.getElementById('qrisPantauBody');
+      const ringkas = document.getElementById('qrisPantauRingkas');
+      if (!panel) return;
+
+      // Mengikuti cara loadClosings menghitung "kemarin": tanggal kerja
+      // mengikuti zona outlet, bukan zona perangkat pemiliknya.
+      const tgl = selectedDateFilter === 'ALL' ? null
+        : (selectedDateFilter === 'YESTERDAY'
+            ? new Date(Date.now() - 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+            : sbJakartaToday());
+
+      const { data, error } = await sb.rpc('owner_qris_belum_konfirmasi', { p_tanggal: tgl });
+      if (error) {
+        // Panel ini alat bantu, bukan bagian laporan utama. Kegagalannya
+        // disembunyikan daripada menakut-nakuti dengan galat yang tidak
+        // dapat ditindaklanjuti pemilik.
+        panel.hidden = true;
+        return;
+      }
+
+      const baris = data || [];
+      if (!baris.length) { panel.hidden = true; return; }
+
+      panel.hidden = false;
+      const total = baris.reduce((a, r) => a + Number(r.final_amount || 0), 0);
+      ringkas.textContent = baris.length + ' nota QRIS senilai ' + formatRupiah(total)
+        + ' tersimpan tanpa penanda pemeriksaan. Ini belum tentu berarti dananya tidak masuk —'
+        + ' cocokkan dengan mutasi di aplikasi merchant.';
+
+      body.innerHTML = baris.map(r => '<tr>'
+        + '<td>' + new Date(r.created_at).toLocaleString('id-ID',
+            { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jakarta' }) + '</td>'
+        + '<td style="font-family:var(--mono);">' + escapeHtml(r.invoice_no || '-') + '</td>'
+        + '<td>' + escapeHtml(r.capster_name || '-') + '</td>'
+        + '<td>' + escapeHtml(r.member_name || 'Umum') + '</td>'
+        + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(r.payment_ref || '-') + '</td>'
+        + '<td style="text-align:right; font-family:var(--mono);">' + formatRupiah(r.final_amount) + '</td>'
+        + '</tr>').join('');
+    }
+
     function renderDashboard() {
       const txList = getFilteredTransactions();
 
@@ -3151,6 +3226,10 @@
       // Update Capster Performance DOM
       performaKapster = Object.entries(capsterBreakdown).sort((a, b) => b[1].omzet - a[1].omzet);
       renderPerformaKapster();
+
+      // Panel pantau berdiri di luar txList: ia bertanya langsung ke server,
+      // sebab yang dicari justru nota yang penandaannya tidak sampai.
+      muatQrisPantau();
 
       // Update Transactions Table DOM
       const tbody = document.getElementById('txTableBody');
@@ -3898,6 +3977,10 @@
         modePerforma = btn.dataset.perf;
         renderPerformaKapster();
       });
+    });
+
+    document.getElementById('btnMuatQrisPantau').addEventListener('click', function () {
+      muatQrisPantau();
     });
 
     document.getElementById('btnSalinPerforma').addEventListener('click', async () => {

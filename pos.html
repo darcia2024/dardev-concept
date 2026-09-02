@@ -2271,7 +2271,7 @@
       <div id="qrisSection">
         <div class="section-title-bar" style="margin-bottom: 8px;">
           <h4 style="font-size: 13px; color: var(--brass); margin: 0;">QRIS Dinamis</h4>
-          <span style="font-size: 11px; color: var(--fg-dim);">perangkat ini saja</span>
+          <span style="font-size: 11px; color: var(--fg-dim);">berlaku semua perangkat</span>
         </div>
         <p style="font-size: 12px; color: var(--fg-dim); line-height: 1.6; margin-bottom: 8px;">
           Tempel <strong style="color:var(--fg-mid);">isi</strong> QRIS statis outlet &mdash;
@@ -2422,6 +2422,18 @@
         products = prod || [];
         localStorage.setItem('barber_products_v1', JSON.stringify(products));
       } catch { products = []; }
+
+      /* Payload QRIS ikut pola yang sama: server sumber kebenarannya,
+         localStorage sekadar salinan supaya QR tetap dapat digambar saat
+         sinyal putus. Kegagalan di sini tidak menjatuhkan pemuatan — kasir
+         tinggal memakai stiker di meja. */
+      try {
+        const { data: qr } = await sb.rpc('pos_qris_config');
+        const baris = Array.isArray(qr) ? qr[0] : qr;
+        const payload = (baris && baris.payload_statis) || '';
+        if (payload) localStorage.setItem(QRIS_KUNCI, payload);
+        else localStorage.removeItem(QRIS_KUNCI);
+      } catch { /* salinan lama tetap dipakai */ }
 
       localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(services));
       localStorage.setItem(STORAGE_KEY_CAPSTERS, JSON.stringify(capsters));
@@ -3776,6 +3788,21 @@
         } catch { /* tautan kartu dilewati, struk tetap terkirim */ }
       }
 
+      /* Konfirmasi kasir dicatat SESUDAH notanya tersimpan, lewat RPC
+         tersendiri. create_transaction sengaja tidak disentuh: 306 baris dan
+         16 parameter, menyalinnya ulang demi satu penanda menaruh seluruh
+         jalur penjualan pada risiko.
+
+         Gagalnya penandaan tidak boleh menjatuhkan apa pun — notanya sudah
+         tersimpan dan uangnya sudah masuk. Yang hilang hanya jejak
+         pemeriksaan, dan itu muncul di dasbor pemilik sebagai
+         "belum terkonfirmasi", bukan sebagai transaksi yang lenyap. */
+      if (res.tx && selectedPaymentMethod === 'QRIS') {
+        try {
+          await sb.rpc('tandai_qris_konfirmasi', { p_client_uuid: payload.p_client_uuid });
+        } catch { /* nota tetap sah; penandaannya saja yang tertinggal */ }
+      }
+
       transactions.unshift(tx);
       updateConnPill();
 
@@ -4475,7 +4502,7 @@
       }
     }
 
-    document.getElementById('btnSaveQris').addEventListener('click', () => {
+    document.getElementById('btnSaveQris').addEventListener('click', async () => {
       const nilai = document.getElementById('inpQrisStatis').value.replace(/[\r\n\t]+/g, '').trim();
       if (!nilai) {
         qrisPesanSetting('Isi dulu payload QRIS statisnya, atau tekan Kosongkan.', true);
@@ -4490,20 +4517,37 @@
         qrisPesanSetting(err.message, true);
         return;
       }
+      // Disimpan di server supaya satu kali isi berlaku untuk semua perangkat
+      // kasir. Salinan lokal baru ditulis sesudah server menerimanya, sehingga
+      // perangkat ini tidak pernah memakai payload yang gagal tersimpan.
+      const btn = document.getElementById('btnSaveQris');
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Menyimpan…';
       try {
+        const { error } = await sb.rpc('owner_set_qris', { p_payload: nilai });
+        if (error) throw error;
         localStorage.setItem(QRIS_KUNCI, nilai);
-      } catch {
-        qrisPesanSetting('Gagal menyimpan di perangkat ini.', true);
+      } catch (err) {
+        qrisPesanSetting('Gagal menyimpan: ' + (err.message || err), true);
         return;
+      } finally {
+        btn.disabled = false; btn.textContent = label;
       }
       renderQrisSetting();
       renderQrisDinamis();
-      showToast('QRIS dinamis aktif.');
+      showToast('QRIS dinamis aktif di semua perangkat.');
     });
 
-    document.getElementById('btnHapusQris').addEventListener('click', () => {
-      if (!confirm('Kosongkan QRIS dinamis?\n\nKasir kembali memakai stiker QRIS di meja.')) return;
-      try { localStorage.removeItem(QRIS_KUNCI); } catch {}
+    document.getElementById('btnHapusQris').addEventListener('click', async () => {
+      if (!confirm('Kosongkan QRIS dinamis?\n\nBerlaku untuk SEMUA perangkat kasir. Semuanya kembali memakai stiker QRIS di meja.')) return;
+      try {
+        const { error } = await sb.rpc('owner_set_qris', { p_payload: null });
+        if (error) throw error;
+        localStorage.removeItem(QRIS_KUNCI);
+      } catch (err) {
+        qrisPesanSetting('Gagal mengosongkan: ' + (err.message || err), true);
+        return;
+      }
       document.getElementById('inpQrisStatis').value = '';
       renderQrisSetting();
       renderQrisDinamis();
