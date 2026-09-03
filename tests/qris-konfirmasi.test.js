@@ -160,4 +160,55 @@ assert.match(pantau, /escapeHtml\(r\.invoice_no/, 'isi dari basis data harus dis
 // Kalimatnya tidak boleh menuduh: penanda yang hilang bukan bukti dana tidak masuk.
 assert.match(pantau, /belum tentu berarti dananya tidak masuk/);
 
+// ── 8 · Hapus nota langsung dari daftar pantau ─────────────────────────────
+const m45 = fs.readFileSync(path.join(root, 'supabase_migration_45_hapus_dari_pantau_qris.sql'), 'utf8');
+
+// RETURNS TABLE tidak dapat diubah lewat CREATE OR REPLACE; fungsinya harus
+// dijatuhkan lebih dulu atau seluruh migrasi gagal saat ditempel.
+assert.ok(m45.indexOf('DROP FUNCTION IF EXISTS owner_qris_belum_konfirmasi(DATE);')
+          < m45.indexOf('CREATE OR REPLACE FUNCTION owner_qris_belum_konfirmasi'),
+  'fungsi harus di-DROP sebelum dibuat ulang dengan RETURNS TABLE baru');
+
+// DROP ikut membuang hak aksesnya. Tanpa ditulis ulang, fungsinya kembali ke
+// bawaan Supabase — yakni terbuka untuk anon.
+assert.match(m45, /REVOKE EXECUTE ON FUNCTION owner_qris_belum_konfirmasi\(DATE\) FROM PUBLIC, anon;/,
+  'hak akses harus ditulis ulang sesudah DROP');
+assert.match(m45, /GRANT {2}EXECUTE ON FUNCTION owner_qris_belum_konfirmasi\(DATE\) TO authenticated;/);
+assert.match(m45, /IF NOT is_owner\(\) THEN/, 'penjaga owner tidak boleh hilang saat dibuat ulang');
+
+// Yang ditambahkan hanya id; syarat penyaringnya harus tetap sama persis,
+// kalau tidak panelnya diam-diam berubah arti.
+assert.match(m45, /RETURNS TABLE \(id UUID, invoice_no VARCHAR/, 'id harus ikut dikembalikan');
+assert.match(m45, /SELECT t\.id, t\.invoice_no/);
+assert.match(m45, /t\.qris_konfirmasi_at IS NULL/, 'penyaring "belum terkonfirmasi" harus tetap');
+assert.match(m45, /t\.payment_method = 'QRIS'/, 'penyaring QRIS harus tetap');
+assert.equal((m45.match(/\$function\$/g) || []).length % 2, 0, 'penanda $function$ harus genap');
+
+// Aturan penghapusan hanya boleh ada satu. Panel yang lebih baru tidak boleh
+// memanggil delete_transaction dengan caranya sendiri, karena penghapusan di
+// sini menarik poin member dan mengurangi kunjungannya.
+assert.equal((rekap.match(/sb\.rpc\('delete_transaction'/g) || []).length, 1,
+  'delete_transaction hanya boleh dipanggil dari satu tempat');
+assert.match(rekap, /async function hapusTransaksi\(btn, alasanBawaan\)/);
+
+const pantauKlik = rekap.slice(rekap.indexOf("getElementById('qrisPantauBody').addEventListener"));
+assert.ok(pantauKlik.length > 0, 'panel pantau harus punya penangan klik');
+assert.match(pantauKlik.slice(0, 400), /hapusTransaksi\(btn, 'Dana QRIS tidak masuk'\)/,
+  'alasan bawaannya harus menyebut sebab sebenarnya, bukan "Data testing" — '
+  + 'arsip yang berbohong lebih buruk daripada arsip yang kosong');
+
+// Tombolnya membawa id transaksi, dan nomor notanya disaring sebelum masuk
+// atribut HTML.
+const barisPantau = rekap.slice(rekap.indexOf('async function muatQrisPantau'),
+                                rekap.indexOf('function renderDashboard()'));
+assert.match(barisPantau, /data-hapus="' \+ escapeHtml\(r\.id\)/, 'tombol harus membawa id transaksi');
+assert.match(barisPantau, /data-nota="' \+ escapeHtml\(r\.invoice_no \|\| ''\)/);
+
+// Menyegarkan hanya bila benar-benar terhapus; batal tidak boleh memuat ulang.
+const penangan = rekap.slice(rekap.indexOf("getElementById('txTableBody').addEventListener"),
+                             rekap.indexOf('async function muatArsip'));
+assert.equal((penangan.match(/if \(await hapusTransaksi\(/g) || []).length, 2,
+  'kedua panel harus memakai fungsi yang sama dan menghormati hasilnya');
+
 console.log('Konfirmasi QRIS tests: OK');
+
