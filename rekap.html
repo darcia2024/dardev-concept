@@ -1284,7 +1284,8 @@
         <table class="tx-table" id="qrisPantauTable">
           <thead>
             <tr><th>Waktu</th><th>No. Invoice</th><th>Kapster</th><th>Pelanggan</th>
-                <th>Referensi</th><th style="text-align:right;">Total</th></tr>
+                <th>Referensi</th><th style="text-align:right;">Total</th>
+                <th style="width:52px;"></th></tr>
           </thead>
           <tbody id="qrisPantauBody"></tbody>
         </table>
@@ -3150,6 +3151,9 @@
         + '<td>' + escapeHtml(r.member_name || 'Umum') + '</td>'
         + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(r.payment_ref || '-') + '</td>'
         + '<td style="text-align:right; font-family:var(--mono);">' + formatRupiah(r.final_amount) + '</td>'
+        + '<td><button class="btn-hapus" data-hapus="' + escapeHtml(r.id) + '"'
+        + ' data-nota="' + escapeHtml(r.invoice_no || '') + '"'
+        + ' title="Hapus nota ini — dananya memang tidak masuk">&#215;</button></td>'
         + '</tr>').join('');
     }
 
@@ -3342,16 +3346,19 @@
        member, dan klaim reward; menghapus barisnya saja meninggalkan poin
        yang tidak pernah dibelanjakan dan saldo yang tidak cocok riwayatnya.
        ═══════════════════════════════════════════════════════════════════════ */
-    document.getElementById('txTableBody').addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-hapus]');
-      if (!btn) return;
-
+    /* Dipakai dua tempat: tabel log dan daftar pantau QRIS. Aturannya sengaja
+       satu, supaya panel yang lebih baru tidak diam-diam mewarisi versi yang
+       lebih longgar — yang dihapus di sini menarik poin member dan mengurangi
+       kunjungannya, dan itu tidak boleh bergantung pada tombol mana yang
+       kebetulan ditekan. Mengembalikan true hanya bila notanya benar-benar
+       terhapus, supaya pemanggilnya tahu perlu menyegarkan atau tidak. */
+    async function hapusTransaksi(btn, alasanBawaan) {
       const nota = btn.dataset.nota || '(tanpa nomor)';
       // Dua langkah: konfirmasi, lalu alasan. Alasannya masuk arsip, sehingga
       // pertanyaan "kenapa angka kemarin berubah" masih bisa dijawab nanti.
-      if (!confirm('Hapus transaksi ' + nota + '?\n\nPoin member yang berasal dari transaksi ini akan ditarik kembali, dan kunjungannya dikurangi. Tindakan ini tidak bisa dibatalkan.')) return;
-      const alasan = prompt('Alasan penghapusan (tersimpan di arsip):', 'Data testing');
-      if (alasan === null) return;
+      if (!confirm('Hapus transaksi ' + nota + '?\n\nPoin member yang berasal dari transaksi ini akan ditarik kembali, dan kunjungannya dikurangi. Tindakan ini tidak bisa dibatalkan.')) return false;
+      const alasan = prompt('Alasan penghapusan (tersimpan di arsip):', alasanBawaan || 'Data testing');
+      if (alasan === null) return false;
 
       btn.disabled = true;
       const { data, error } = await sb.rpc('delete_transaction', {
@@ -3360,13 +3367,32 @@
       });
       btn.disabled = false;
 
-      if (error) { alert('Gagal menghapus: ' + error.message); return; }
+      if (error) { alert('Gagal menghapus: ' + error.message); return false; }
       const r = Array.isArray(data) ? data[0] : data;
       alert('Transaksi ' + (r ? r.invoice_no : nota) + ' dihapus.'
             + (r && r.poin_ditarik ? '\n\n' + r.poin_ditarik + ' poin ditarik dari member ' + (r.member_phone || '') + '.' : ''));
+      return true;
+    }
 
-      await loadData();
-      await muatArsip();
+    document.getElementById('txTableBody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-hapus]');
+      if (!btn) return;
+      if (await hapusTransaksi(btn)) {
+        await loadData();
+        await muatArsip();
+      }
+    });
+
+    /* Alasan bawaannya berbeda di sini. Yang dihapus dari daftar pantau adalah
+       nota yang dananya tidak pernah terlihat masuk — menawarkan "Data testing"
+       akan membuat arsipnya berbohong tentang apa yang sebenarnya terjadi. */
+    document.getElementById('qrisPantauBody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-hapus]');
+      if (!btn) return;
+      if (await hapusTransaksi(btn, 'Dana QRIS tidak masuk')) {
+        await loadData();
+        await muatArsip();
+      }
     });
 
     async function muatArsip() {
