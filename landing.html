@@ -29,6 +29,42 @@
   <link rel="stylesheet" href="theme.css" />
   <noscript><style>.muncul { opacity: 1 !important; transform: none !important; }</style></noscript>
 
+  <!-- ══ META PIXEL ════════════════════════════════════════════════════════
+       Pengukur iklan Instagram/Facebook milik pemilik. SENGAJA hanya di
+       halaman ini.
+
+       Tidak dipasang di pos, rekap, capster, kartu, maupun masuk. Pixel
+       mengirim URL halaman apa adanya ke Meta, dan di halaman-halaman itu
+       URL serta isinya memuat nomor telepon pelanggan, kode kartu member,
+       omzet, dan absensi karyawan. Halaman depan tidak memuat satu pun dari
+       itu: yang dilihat pengunjung di sini hanya daftar layanan dan formulir
+       booking miliknya sendiri.
+
+       POS punya alasan tambahan yang sudah tertulis di berkasnya: seluruh
+       pustaka di-host sendiri supaya kasir tidak ikut mati ketika jaringan
+       luar terganggu. Script dari CDN luar tidak boleh masuk ke sana.
+
+       Catatan untuk pemilik: matikan Automatic Advanced Matching di Events
+       Manager bila tidak diperlukan — fitur itu menyapu isi formulir di
+       halaman lalu mengirimkannya, dan formulir booking di bawah memuat nama
+       serta nomor WhatsApp pengunjung. -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '2154833071732943');
+    fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=2154833071732943&ev=PageView&noscript=1"
+    alt="" /></noscript>
+  <!-- ══ akhir Meta Pixel ═════════════════════════════════════════════════ -->
+
   <style>
     /* ══ HALAMAN DEPAN ═══════════════════════════════════════════════════════
        Memakai token yang sama dengan tujuh halaman lain di proyek ini
@@ -1193,6 +1229,23 @@
         el.innerHTML = 'Permintaan tercatat. Kami hubungi lewat WhatsApp untuk memastikan jamnya.'
           + '<span class="kode">' + esc(b.kode) + '</span>';
         el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+        /* Lapor ke Meta bahwa booking benar-benar jadi. PageView saja tidak
+           menjawab pertanyaan pemilik — "iklan mana yang menghasilkan
+           booking" — sebab tiap orang yang sekadar lewat pun ikut terhitung.
+           Schedule adalah peristiwa baku Meta untuk janji temu.
+
+           Dikirim SESUDAH kode booking tampil, dan dibungkus penjaga: pixel
+           yang gagal atau diblokir pemblokir iklan tidak boleh menyentuh apa
+           yang sudah dilihat pengunjung.
+
+           Tidak ada data pribadi yang ikut. Nama dan nomor WhatsApp tetap
+           tinggal di sini; yang dikirim hanyalah bahwa sebuah booking
+           terjadi. */
+        try {
+          if (typeof fbq === 'function') fbq('track', 'Schedule');
+        } catch (e) { /* pengukuran iklan tidak pernah lebih penting dari booking */ }
+
         $('bkNama').value = ''; $('bkTelepon').value = ''; $('bkCatatan').value = '';
         jamPilih = null;
         kapsterPilih = null;
