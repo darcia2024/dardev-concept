@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #0b0f19;
+    color: #e2e8f0;
+    margin: 0;
+    min-width: 320px;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  :focus-visible {
+    outline: 3px solid #f2b84b;
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: #f2b84b;
+    color: #10251d;
+  }
+}
+
+.demo-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #b9c4be transparent;
+}
+
+.demo-scrollbar::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.demo-scrollbar::-webkit-scrollbar-thumb {
+  background: #b9c4be;
+  border-radius: 99px;
+}
+
+.demo-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel-container {
+  background: #111827;
+  border: 1px solid #1f2937;
+}
+
+.card-container {
+  background: #151e2e;
+  border: 1px solid #1f2937;
+  transition: border-color 0.2s ease;
+}
+
+.card-container:hover {
+  border-color: #374151;
+}
+
+@keyframes fadeInSimple {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in {
+  animation: fadeInSimple 0.25s ease-out forwards;
+}
+
+@media print {
+  body { background: #fff !important; color: #0f172a !important; }
+  .no-print { display: none !important; }
+  .panel-container, .card-container { background: #fff !important; border: 1px solid #cbd5e1 !important; color: #0f172a !important; box-shadow: none !important; }
+  .text-slate-400, .text-slate-300 { color: #475569 !important; }
+  .text-white { color: #0f172a !important; }
+  .print-break { page-break-after: always; break-after: page; }
+}

@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/landing.html"
+      "destination": "/index.html"
     },
     {
       "source": "/landing",
@@ -59,6 +59,30 @@
     {
       "source": "/card",
       "destination": "/kartu.html"
+    },
+    {
+      "source": "/demo",
+      "destination": "/demo.html"
+    },
+    {
+      "source": "/almadraj/demo",
+      "destination": "/almadraj/demo.html"
+    },
+    {
+      "source": "/almadroj/demo",
+      "destination": "/almadraj/demo.html"
+    },
+    {
+      "source": "/almadraj",
+      "destination": "/almadraj/index.html"
+    },
+    {
+      "source": "/almadroj",
+      "destination": "/almadraj/index.html"
+    },
+    {
+      "source": "/proposal",
+      "destination": "/proposal.html"
     }
   ],
   "headers": [
