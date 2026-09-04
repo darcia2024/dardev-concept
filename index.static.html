@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="id" class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Penawaran Platform Kelas Al Madroj</title>
+  <meta name="description" content="Penawaran pengembangan platform kelas digital Al Madroj. Simpel, jelas, dan mudah dipahami.">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      font-weight: 400;
+    }
+    h1, h2, h3, h4, h5, h6, strong, b, .font-bold {
+      font-weight: 600 !important;
+    }
+    body {
+      background-color: #0a0a0a;
+      color: #e5e5e5;
+    }
+    @keyframes fadeInSimple {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-slide-in {
+      animation: fadeInSimple 0.2s ease-out forwards;
+    }
+    @media print {
+      body { background: #fff !important; color: #000 !important; }
+      .no-print { display: none !important; }
+      .text-neutral-400, .text-neutral-500 { color: #404040 !important; }
+      .text-white { color: #000 !important; }
+      .text-emerald-400, .text-emerald-500 { color: #047857 !important; }
+      .border-neutral-800 { border-color: #e5e5e5 !important; }
+      .print-break { page-break-after: always; break-after: page; }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-black text-neutral-200 flex flex-col justify-between selection:bg-emerald-900 selection:text-white antialiased">
+
+  <!-- Top Navigation Bar (Flat Minimalist) -->
+  <header class="sticky top-0 z-40 w-full bg-black/95 border-b border-neutral-800/80 px-4 lg:px-8 py-4 no-print backdrop-blur-md">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand Text Only -->
+      <div>
+        <span class="font-bold text-base tracking-tight text-white block">AL MADROJ</span>
+        <p class="text-xs text-neutral-400 hidden sm:block">Penawaran Platform Kelas</p>
+      </div>
+
+      <!-- Slide Indicator in Nav -->
+      <div id="navSlideBadge" onclick="openThumbnails()" class="hidden md:flex items-center gap-2 text-xs text-neutral-400 cursor-pointer hover:text-white transition-colors">
+        <span id="navSlideNumber">Slide 1 dari 12:</span>
+        <span id="navSlideTitle" class="text-white font-medium">Ringkasan Penawaran</span>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex items-center gap-2 text-xs">
+        <!-- Mode Switcher -->
+        <div class="flex items-center gap-1 border border-neutral-800 p-0.5 rounded">
+          <button id="btnModeDeck" onclick="setViewMode('presentation')" class="px-2.5 py-1 rounded bg-neutral-800 text-white font-medium transition-colors">
+            Slide Deck
+          </button>
+          <button id="btnModeDoc" onclick="setViewMode('document')" class="px-2.5 py-1 rounded text-neutral-400 hover:text-white transition-colors">
+            Dokumen
+          </button>
+        </div>
+
+        <!-- Fullscreen -->
+        <button onclick="toggleFullscreen()" class="px-2.5 py-1 text-neutral-400 hover:text-white transition-colors hidden sm:block">
+          Layar Penuh
+        </button>
+
+        <!-- Print -->
+        <button onclick="window.print()" class="px-2.5 py-1 text-neutral-400 hover:text-white transition-colors hidden md:block">
+          Cetak PDF
+        </button>
+
+        <!-- WhatsApp Direct -->
+        <a href="https://wa.me/6281311506025?text=Halo,%20saya%20tertarik%20dengan%20proposal%20platform%20kelas%20Al%20Madroj." target="_blank" class="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-600 text-black font-medium transition-colors">
+          Konsultasi WhatsApp
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Presentation Main Container -->
+  <main id="presentationContainer" class="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-8 pb-28 min-h-[calc(100vh-140px)]">
+    <div id="slideContent" class="w-full max-w-4xl animate-slide-in">
+      <!-- Slides rendered dynamically by JavaScript -->
+    </div>
+  </main>
+
+  <!-- Document View Container (Hidden in Presentation Mode) -->
+  <main id="documentContainer" class="hidden flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-16">
+    <div class="text-xs text-neutral-400 text-center border-b border-neutral-800 pb-4 no-print">
+      Mode Dokumen (Scroll Penuh). Klik tombol Slide Deck di kanan atas untuk kembali ke mode presentasi slide.
+    </div>
+    <div id="documentContent" class="space-y-16">
+      <!-- Full document list rendered here -->
+    </div>
+  </main>
+
+  <!-- Bottom Navigation Control Bar (Flat Minimalist) -->
+  <div id="bottomControls" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-lg no-print">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2.5 flex items-center justify-between gap-3 shadow-2xl">
+      
+      <button id="btnPrevSlide" onclick="prevSlide()" class="px-3 py-1 text-xs text-neutral-300 hover:text-white transition-colors">
+        Sebelumnya
+      </button>
+
+      <div class="flex items-center gap-3 text-xs text-neutral-400">
+        <span>Slide <strong id="bottomSlideCounter" class="text-emerald-400 font-semibold">1</strong> dari 12</span>
+        <span>•</span>
+        <button onclick="openThumbnails()" class="text-neutral-300 hover:text-white underline">
+          Semua Slide
+        </button>
+      </div>
+
+      <button id="btnNextSlide" onclick="nextSlide()" class="px-4 py-1.5 rounded bg-emerald-500 hover:bg-emerald-600 text-black font-medium text-xs transition-colors">
+        <span id="btnNextText">Lanjut</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Thumbnails Modal Drawer -->
+  <div id="thumbnailsModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 bg-black/90 no-print">
+    <div class="w-full max-w-3xl max-h-[85vh] bg-neutral-950 border border-neutral-800 rounded-xl p-6 flex flex-col gap-4 shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-neutral-800 pb-3">
+        <div>
+          <h3 class="font-bold text-base text-white">Daftar Slide</h3>
+          <p class="text-xs text-neutral-400">Pilih slide untuk melompat langsung</p>
+        </div>
+        <button onclick="closeThumbnails()" class="px-2.5 py-1 text-xs text-neutral-400 hover:text-white border border-neutral-800 rounded">
+          Tutup
+        </button>
+      </div>
+      <div id="thumbnailsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 overflow-y-auto pr-1">
+        <!-- Thumbnails rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Proposal Application Script -->
+  <script>
+    const SLIDES = [
+      { id: 'cover', title: 'Ringkasan Penawaran', subtitle: 'Platform Kelas Al Madroj' },
+      { id: 'problem-solution', title: 'Masalah vs Solusi', subtitle: 'Kenapa Al Madroj Butuh Platform Ini' },
+      { id: 'philosophy', title: 'Konsep Fleksibel', subtitle: 'Mulai Pas, Kembangkan Saat Siap' },
+      { id: 'packages-overview', title: 'Pilihan 3 Paket', subtitle: 'Starter, Standard, dan Pro' },
+      { id: 'package-starter', title: 'Paket 1: Starter', subtitle: 'Rp 2.200.000 (Paling Ringan)' },
+      { id: 'package-standard', title: 'Paket 2: Standard', subtitle: 'Rp 3.500.000 (Rekomendasi Utama)' },
+      { id: 'package-pro', title: 'Paket 3: Pro LMS', subtitle: 'Rp 5.000.000 (Paling Lengkap)' },
+      { id: 'comparison', title: 'Perbandingan Fitur', subtitle: 'Tabel Komparasi Lengkap' },
+      { id: 'calculator', title: 'Kalkulator Harga', subtitle: 'Hitung Paket dan Termin Pembayaran' },
+      { id: 'workflow', title: 'Skema Pembayaran', subtitle: 'Pembayaran Bertahap dan Garansi' },
+      { id: 'scope-faq', title: 'Catatan Scope', subtitle: 'Hal yang Belum Termasuk' },
+      { id: 'closing', title: 'Langkah Memulai', subtitle: 'Hubungi via WhatsApp' },
+    ];
+
+    let currentSlide = 0;
+    let viewMode = 'presentation';
+
+    let calcPackage = 'standard';
+    let calcAddOns = ['wa_notification'];
+
+    const packageData = {
+      starter: { name: 'Starter', price: 2200000, formatted: 'Rp 2.200.000', gatewayIncluded: false },
+      standard: { name: 'Standard', price: 3500000, formatted: 'Rp 3.500.000', gatewayIncluded: true },
+      pro: { name: 'Pro LMS', price: 5000000, formatted: 'Rp 5.000.000', gatewayIncluded: true }
+    };
+
+    const addOnData = [
+      { id: 'payment_gateway_starter', name: 'Payment gateway Mayar.id (Khusus Starter)', price: 750000, formatted: '+ Rp 750.000', desc: 'Integrasi Mayar.id untuk paket Starter (sudah otomatis termasuk di Standard dan Pro).' },
+      { id: 'wa_notification', name: 'WhatsApp notification otomatis', price: 500000, formatted: '+ Rp 500.000*', desc: 'Kirim invoice dan pengingat kelas otomatis ke WA peserta.' },
+      { id: 'advanced_analytics', name: 'Advanced report dan analytics', price: 600000, formatted: '+ Rp 600.000', desc: 'Grafik rekap omset penjualan dan ekspor data peserta ke Excel.' },
+      { id: 'multi_role_instructor', name: 'Multi-role pengajar lanjutan', price: 750000, formatted: '+ Rp 750.000', desc: 'Akun khusus guru untuk upload materi dan cek murid.' }
+    ];
+
+    function getSlideHtml(index) {
+      switch(index) {
+        case 0:
+          return `
+            <div class="py-4">
+              <span class="text-xs text-emerald-400 font-medium tracking-wide uppercase block mb-3">Penawaran Platform Kelas</span>
+              <h1 class="font-bold text-3xl sm:text-5xl text-white leading-tight mb-4">
+                Platform Kelas Digital Al Madroj
+              </h1>
+              <p class="text-base sm:text-lg text-neutral-300 max-w-2xl leading-relaxed mb-8">
+                Solusi praktis agar pendaftaran peserta rapi, materi video terkunci aman, dan peserta bisa belajar mandiri dari dashboard mereka sendiri.
+              </p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-left border-t border-b border-neutral-800 py-6 mb-8">
+                <div>
+                  <div class="text-white font-bold text-sm mb-1">Pilihan Paket Fleksibel</div>
+                  <p class="text-xs text-neutral-400 leading-relaxed">Pilihan tingkatan paket yang dapat disesuaikan dengan kebutuhan dan kesiapan program.</p>
+                </div>
+                <div>
+                  <div class="text-emerald-400 font-bold text-sm mb-1">Belajar Mandiri</div>
+                  <p class="text-xs text-neutral-400 leading-relaxed">Peserta memiliki akses login sendiri sehingga materi aman dan terlindungi.</p>
+                </div>
+                <div>
+                  <div class="text-white font-bold text-sm mb-1">Skema Pembayaran Bertahap</div>
+                  <p class="text-xs text-neutral-400 leading-relaxed">Pembayaran terbagi dalam beberapa termin pengerjaan serta didukung garansi teknis.</p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-4">
+                <button onclick="nextSlide()" class="px-5 py-2.5 rounded bg-emerald-500 hover:bg-emerald-600 text-black font-medium text-xs transition-colors">
+                  Lihat Pilihan Paket
+                </button>
+                <button onclick="jumpToSlide(8)" class="text-xs text-neutral-400 hover:text-white underline">
+                  Langsung Hitung di Kalkulator
+                </button>
+              </div>
+            </div>
+          `;
+        case 1:
+          return `
+            <div class="py-2">
+              <span class="text-xs text-emerald-400 font-medium uppercase tracking-wide block mb-2">Mengapa Butuh Platform?</span>
+              <h2 class="font-bold text-2xl sm:text-3xl text-white mb-6">Masalah Cara Lama vs Solusi Platform</h2>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div>
+                  <h3 class="font-bold text-neutral-400 text-sm mb-3">Cara Manual Lama</h3>
+                  <ul class="space-y-2.5 text-xs text-neutral-400">
+                    <li>- Admin repot balas chat WA satu per satu untuk kirim nomor rekening.</li>
+                    <li>- Harus rekap bukti transfer manual di Excel.</li>
+                    <li>- Link Google Drive mudah di-forward ke orang yang tidak membayar.</li>
+                    <li>- Peserta sering bertanya link rekaman yang tertimbun chat grup.</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 class="font-bold text-emerald-400 text-sm mb-3">Dengan Platform Al Madroj</h3>
+                  <ul class="space-y-2.5 text-xs text-neutral-200">
+                    <li>- Pembayaran otomatis via payment gateway (Mayar.id) langsung aktif instan.</li>
+                    <li>- Materi terkunci rapi per bab, hanya terbuka untuk murid terdaftar.</li>
+                    <li>- Peserta login mandiri di HP atau laptop untuk mengakses video dan modul.</li>
+                    <li>- Menghemat waktu kerja staf admin secara signifikan.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="border-t border-neutral-800 pt-4 text-xs text-neutral-400">
+                Ringkasnya: Platform ini membuat kelas Al Madroj beroperasi lebih rapi, aman, dan serba otomatis.
+              </div>
+            </div>
+          `;
+        case 2:
+          return `
+            <div class="py-2">
+              <span class="text-xs text-emerald-400 font-medium uppercase tracking-wide block mb-2">Prinsip Pengembangan</span>
+              <h2 class="font-bold text-2xl sm:text-3xl text-white mb-6">Mulai Pas, Kembangkan Saat Siap</h2>
+
+              <div class="space-y-4 mb-8">
+                <div class="border-b border-neutral-800 pb-4">
+                  <div class="text-white font-bold text-sm mb-1">1. Starter (Rp 2.200.000)</div>
+                  <p class="text-xs text-neutral-400">Website etalase resmi, katalog program, form pendaftaran, transfer manual, dan domain .com 1 tahun.</p>
+                </div>
+                <div class="border-b border-neutral-800 pb-4">
+                  <div class="text-emerald-400 font-bold text-sm mb-1">2. Standard (Rp 3.500.000) — Rekomendasi Utama</div>
+                  <p class="text-xs text-neutral-300">Peserta login sendiri, integrasi payment gateway Mayar.id, materi terkunci rapi per bab, dan domain .com 1 tahun.</p>
+                </div>
+                <div>
+                  <div class="text-white font-bold text-sm mb-1">3. Pro LMS (Rp 5.000.000)</div>
+                  <p class="text-xs text-neutral-400">LMS lengkap: integrasi Mayar.id, sertifikat otomatis, kuis pemahaman, absensi, mentor, dan domain .com 1 tahun.</p>
+                </div>
+              </div>
+
+              <p class="text-xs text-neutral-400">
+                Catatan: Sistem dibuat modular sehingga jika mulai dari paket ringan, nanti bisa upgrade kapan saja tanpa buat ulang dari awal.
+              </p>
+            </div>
+          `;
+        case 3:
+          return `
+            <div class="py-2">
+              <span class="text-xs text-emerald-400 font-medium uppercase tracking-wide block mb-2">Tinjauan Paket</span>
+              <h2 class="font-bold text-2xl sm:text-3xl text-white mb-6">3 Pilihan Paket Fleksibel</h2>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="border-t border-neutral-800 pt-4">
+                  <div class="text-xs text-neutral-400 mb-1">Paket 1</div>
+                  <h3 class="font-bold text-xl text-white mb-1">Starter</h3>
+                  <div class="text-base font-bold text-white mb-1">Rp 2.200.000</div>
+                  <div class="text-[11px] text-neutral-400 mb-3">Domain .com (1 Tahun) • Bayar Manual</div>
+                  <p class="text-xs text-neutral-400 mb-4">Website kelas resmi, form pendaftaran, upload bukti transfer, dan garansi 14 hari.</p>
+                  <button onclick="jumpToSlide(4)" class="text-xs text-neutral-300 hover:text-white underline">Detail Starter</button>
+                </div>
+
+                <div class="border-t-2 border-emerald-500 pt-4">
+                  <div class="text-xs text-emerald-400 font-medium mb-1">Rekomendasi Utama</div>
+                  <h3 class="font-bold text-xl text-white mb-1">Standard</h3>
+                  <div class="text-base font-bold text-emerald-400 mb-1">Rp 3.500.000</div>
+                  <div class="text-[11px] text-emerald-400 mb-3">Domain .com (1 Thn) + Mayar.id Otomatis</div>
+                  <p class="text-xs text-neutral-300 mb-4">Peserta login mandiri, materi terkunci per bab, payment gateway Mayar.id, training, dan garansi 30 hari.</p>
+                  <button onclick="jumpToSlide(5)" class="text-xs text-emerald-400 hover:text-emerald-300 underline font-medium">Detail Standard</button>
+                </div>
+
+                <div class="border-t border-neutral-800 pt-4">
+                  <div class="text-xs text-neutral-400 mb-1">Paket 3</div>
+                  <h3 class="font-bold text-xl text-white mb-1">Pro LMS</h3>
+                  <div class="text-base font-bold text-white mb-1">Rp 5.000.000</div>
+                  <div class="text-[11px] text-emerald-400 mb-3">Domain .com (1 Thn) + Mayar.id Otomatis</div>
+                  <p class="text-xs text-neutral-400 mb-4">LMS lengkap: Mayar.id, sertifikat otomatis, kuis, absensi, akun pengajar, dan prioritas revisi.</p>
+                  <button onclick="jumpToSlide(6)" class="text-xs text-neutral-300 hover:text-white underline">Detail Pro LMS</button>
+                </div>
+              </div>
+            </div>
+          `;
+        case 4:
+          return `
+            <div class="py-2">
+              <span class="text-xs text-neutral-400 font-medium uppercase tracking-wide block mb-2">Paket 1</span>
+              <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-neutral-800 pb-3 mb-5">
+                <div>
+                  <h2 class="font-bold text-2xl text-white">Paket Starter</h2>
+                  <div class="text-xs text-emerald-400 mt-0.5">Sudah termasuk domain .com untuk 1 tahun pertama</div>
+                </div>
+                <div class="text-xl font-bold text-white">Rp 2.200.000</div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                <div>
+                  <h3 class="font-bold text-sm text-white mb-3">Fitur yang Didapat:</h3>
+                  <ul class="space-y-1.5 text-xs text-neutral-300">
+                    <li>- <strong>Domain .com untuk 1 tahun pertama</strong></li>
+                    <li>- Landing page dan website utama Al Madroj</li>
+                    <li>- Daftar kelas dan halaman detail kelas</li>
+                    <li>- Profil pengajar, FAQ, dan form pendaftaran</li>
+                    <li>- Pembayaran manual via transfer atau QRIS ditambah upload bukti</li>
+                    <li>- Dashboard admin sederhana untuk cek pendaftar</li>
+                    <li>- Akses materi melalui halaman private terkontrol</li>
+                    <li>- Tampilan responsif di HP, tablet, dan desktop</li>
+                    <li>- Deployment dan basic SEO</li>
+                    <li>- Garansi bug fixing 14 hari setelah launch</li>
+                  </ul>
+                </div>
+
+                <div class="space-y-4">
+                  <div class="text-xs text-neutral-300">
+                    <strong>Cocok jika:</strong> Al Madroj butuh website kelas yang rapi dan profesional dengan sistem transfer manual sederhana.
+                  </div>
+                  <div class="border-t border-neutral-800 pt-3 text-xs space-y-1">
+                    <div class="font-bold text-white mb-1">Skema Pembayaran:</div>
+                    <div class="flex justify-between text-neutral-400"><span>50% DP:</span><span class="text-white">Rp 1.100.000</span></div>
+                    <div class="flex justify-between text-neutral-400"><span>50% Sebelum Handover:</span><span class="text-white">Rp 1.100.000</span></div>
+                  </div>
+                  <button onclick="jumpToSlide(8)" class="px-4 py-2 rounded bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-medium transition-colors">
+                    Simulasikan di Kalkulator
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        case 5:
+          return `
+            <div class="py-2">
+              <span class="text-xs text-emerald-400 font-medium uppercase tracking-wide block mb-2">Paket 2 (Rekomendasi Utama)</span>
+              <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-neutral-800 pb-3 mb-5">
+                <div>
+                  <h2 class="font-bold text-2xl text-white">Paket Standard</h2>
+                  <div class="text-xs text-emerald-400 mt-0.5">Termasuk domain .com 1 tahun + Payment Gateway Mayar.id</div>
+                </div>
+                <div class="text-xl font-bold text-emerald-400">Rp 3.500.000</div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                <div>
+                  <h3 class="font-bold text-sm text-white mb-3">Fitur yang Didapat:</h3>
+                  <ul class="space-y-1.5 text-xs text-neutral-200">
+                    <li>- <strong>Domain .com untuk 1 tahun pertama</strong></li>
+                    <li>- <strong>Integrasi Payment Gateway Otomatis (Mayar.id)</strong>: Peserta bayar via QRIS/VA dan akun langsung aktif otomatis</li>
+                    <li>- <strong>Semua fitur Paket Starter</strong></li>
+                    <li>- <strong>Register dan login peserta</strong></li>
+                    <li>- <strong>Dashboard peserta</strong> (daftar kelas yang dimiliki)</li>
+                    <li>- <strong>Struktur materi per bab dan pertemuan</strong> (video, teks, file)</li>
+                    <li>- <strong>Access control:</strong> Admin memberi atau mencabut akses</li>
+                    <li>- Status progress belajar peserta dan riwayat kelas</li>
+                    <li>- Dashboard admin lebih lengkap ditambah training admin</li>
+                    <li>- Garansi bug fixing 30 hari setelah launch</li>
+                  </ul>
+                </div>
+
+                <div class="space-y-4">
+                  <div class="text-xs text-neutral-300">
+                    <strong>Alasan Rekomendasi:</strong> Paket ini paling efisien. Peserta login sendiri, pembayaran otomatis via Mayar.id tanpa perlu admin cek mutasi rekening, dan materi terkunci rapi.
+                  </div>
+                  <div class="border-t border-neutral-800 pt-3 text-xs space-y-1">
+                    <div class="font-bold text-white mb-1">Skema Pembayaran 3 Tahap:</div>
+                    <div class="flex justify-between text-neutral-400"><span>50% DP:</span><span class="text-white">Rp 1.750.000</span></div>
+                    <div class="flex justify-between text-neutral-400"><span>30% Saat Beta:</span><span class="text-white">Rp 1.050.000</span></div>
+                    <div class="flex justify-between text-neutral-400"><span>20% Sebelum Handover:</span><span class="text-white">Rp 700.000</span></div>
+                  </div>
+                  <button onclick="jumpToSlide(8)" class="px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-medium transition-colors">
+                    Pilih Paket Standard
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        case 6:
+          return `
+            <div class="py-2">
+              <span class="text-xs text-neutral-400 font-medium uppercase tracking-wide block mb-2">Paket 3 (Paling Lengkap)</span>
+              <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-neutral-800 pb-3 mb-5">
+                <div>
+                  <h2 class="font-bold text-2xl text-white">Paket Pro LMS</h2>
+                  <div class="text-xs text-emerald-400 mt-0.5">Termasuk domain .com 1 tahun + Payment Gateway Mayar.id</div>
+                </div>
+                <div class="text-xl font-bold text-white">Rp 5.000.000</div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                <div>
+                  <h3 class="font-bold text-sm text-white mb-3">Fitur Lengkap Pro LMS:</h3>
+                  <ul class="space-y-1.5 text-xs text-neutral-300">
+                    <li>- <strong>Domain .com untuk 1 tahun pertama</strong></li>
+                    <li>- <strong>Integrasi Payment Gateway Otomatis (Mayar.id)</strong></li>
+                    <li>- <strong>Semua fitur Paket Standard</strong></li>
+                    <li>- <strong>Sertifikat digital otomatis setelah kelas selesai</strong></li>
+                    <li>- <strong>Quiz dan evaluasi sederhana per kelas</strong></li>
+                    <li>- <strong>Absensi dan kehadiran kelas basic</strong></li>
+                    <li>- <strong>Role pengajar atau mentor basic</strong></li>
+                    <li>- Laporan peserta per kelas dan riwayat akses</li>
+                    <li>- Notifikasi status pendaftaran basic</li>
+                    <li>- Dashboard admin lengkap untuk monitoring</li>
+                    <li>- Prioritas revisi saat fase development</li>
+                    <li>- Training dan handover lengkap ditambah garansi 30 hari</li>
+                  </ul>
+                </div>
+
+                <div class="space-y-4">
+                  <div class="text-xs text-neutral-300">
+                    <strong>Cocok jika:</strong> Al Madroj butuh sistem otomatis penuh dengan sertifikat digital instan, pembayaran Mayar.id otomatis, dan akun mentor pengajar.
+                  </div>
+                  <div class="border-t border-neutral-800 pt-3 text-xs space-y-1">
+                    <div class="font-bold text-white mb-1">Skema Pembayaran 3 Tahap:</div>
+                    <div class="flex justify-between text-neutral-400"><span>50% DP:</span><span class="text-white">Rp 2.500.000</span></div>
+                    <div class="flex justify-between text-neutral-400"><span>30% Saat Beta:</span><span class="text-white">Rp 1.500.000</span></div>
+                    <div class="flex justify-between text-neutral-400"><span>20% Sebelum Handover:</span><span class="text-white">Rp 1.000.000</span></div>
+                  </div>
+                  <button onclick="jumpToSlide(8)" class="px-4 py-2 rounded bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-medium transition-colors">
+                    Simulasikan di Kalkulator
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        case 7:
+          return `
+            <div class="py-2">
+              <span class="text-xs text-emerald-400 font-medium uppercase tracking-wide block mb-2">Tabel Komparasi</span>
+              <h2 class="font-bold text-2xl text-white mb-4">Perbandingan Fitur</h2>
+
+              <div class="overflow-x-auto border-t border-b border-neutral-800 py-2">
+                <table class="w-full text-left text-xs min-w-[500px]">
+                  <thead>
+                    <tr class="border-b border-neutral-800 text-neutral-400">
+                      <th class="py-2.5 font-normal">Fitur</th>
+                      <th class="py-2.5 text-center font-normal">Starter (Rp2,2 jt)</th>
+                      <th class="py-2.5 text-center font-normal text-emerald-400">Standard (Rp3,5 jt)</th>
+                      <th class="py-2.5 text-center font-normal">Pro (Rp5 jt)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-neutral-800/60 text-neutral-300">
+                    <tr><td class="py-2 text-white">Domain .com (1 tahun pertama)</td><td class="py-2 text-center text-emerald-400">Tersedia</td><td class="py-2 text-center text-emerald-400 font-medium">Tersedia</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Sistem pembayaran</td><td class="py-2 text-center">Manual Transfer</td><td class="py-2 text-center text-emerald-400 font-medium">Mayar.id Otomatis</td><td class="py-2 text-center text-emerald-400">Mayar.id Otomatis</td></tr>
+                    <tr><td class="py-2 text-white">Website utama dan katalog kelas</td><td class="py-2 text-center text-emerald-400">Tersedia</td><td class="py-2 text-center text-emerald-400 font-medium">Tersedia</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Form pendaftaran</td><td class="py-2 text-center text-emerald-400">Tersedia</td><td class="py-2 text-center text-emerald-400 font-medium">Tersedia</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Dashboard admin</td><td class="py-2 text-center">Basic</td><td class="py-2 text-center text-white font-medium">Lengkap</td><td class="py-2 text-center text-white font-medium">Lengkap</td></tr>
+                    <tr><td class="py-2 text-white">Akun peserta</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-emerald-400 font-medium">Tersedia</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Dashboard peserta</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-emerald-400 font-medium">Tersedia</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Materi terstruktur per bab</td><td class="py-2 text-center">Basic</td><td class="py-2 text-center text-emerald-400 font-medium">Tersedia</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Access control per kelas</td><td class="py-2 text-center">Basic</td><td class="py-2 text-center text-emerald-400 font-medium">Tersedia</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Progress belajar</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-white font-medium">Basic</td><td class="py-2 text-center text-white font-medium">Advanced</td></tr>
+                    <tr><td class="py-2 text-white">Quiz dan evaluasi</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Sertifikat otomatis</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Absensi basic</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Role pengajar basic</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-neutral-600">-</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                    <tr><td class="py-2 text-white">Training admin</td><td class="py-2 text-center">Basic</td><td class="py-2 text-center text-emerald-400 font-medium">Tersedia</td><td class="py-2 text-center text-emerald-400">Tersedia</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        case 8:
+          return renderCalculatorHtml();
+        case 9:
+          return `
+            <div class="py-2">
+              <span class="text-xs text-emerald-400 font-medium uppercase tracking-wide block mb-2">Skema Pembayaran</span>
+              <h2 class="font-bold text-2xl sm:text-3xl text-white mb-2">Pembayaran Bertahap & Garansi</h2>
+              <p class="text-xs text-neutral-400 mb-6">Skema dibuat bertahap agar progres dapat dicek bersama selama pengerjaan.</p>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-b border-neutral-800 py-6 mb-6">
+                <div>
+                  <h3 class="font-bold text-white text-sm mb-2">Paket Starter</h3>
+                  <div class="text-xs text-neutral-400 space-y-1">
+                    <div>• 50% DP: Rp 1.100.000</div>
+                    <div>• 50% Sebelum Handover: Rp 1.100.000</div>
+                    <div class="text-neutral-500 pt-1">Garansi: 14 hari</div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 class="font-bold text-emerald-400 text-sm mb-2">Paket Standard</h3>
+                  <div class="text-xs text-neutral-300 space-y-1">
+                    <div>• 50% DP: Rp 1.750.000</div>
+                    <div>• 30% Saat Beta: Rp 1.050.000</div>
+                    <div>• 20% Sebelum Handover: Rp 700.000</div>
+                    <div class="text-emerald-400/80 pt-1">Garansi: 30 hari + Training</div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 class="font-bold text-white text-sm mb-2">Paket Pro</h3>
+                  <div class="text-xs text-neutral-400 space-y-1">
+                    <div>• 50% DP: Rp 2.500.000</div>
+                    <div>• 30% Saat Beta: Rp 1.500.000</div>
+                    <div>• 20% Sebelum Handover: Rp 1.000.000</div>
+                    <div class="text-neutral-500 pt-1">Garansi: 30 hari + Prioritas</div>
+                  </div>
+                </div>
+              </div>
+
+              <p class="text-xs text-neutral-400">
+                Semua paket sudah termasuk domain .com 1 tahun pertama, pendampingan teknis, dan perbaikan jika ditemukan kendala fungsi.
+              </p>
+            </div>
+          `;
+        case 10:
+          return `
+            <div class="py-2">
+              <span class="text-xs text-neutral-400 font-medium uppercase tracking-wide block mb-2">Informasi Scope</span>
+              <h2 class="font-bold text-2xl sm:text-3xl text-white mb-6">Belum Termasuk & Optional Add-ons</h2>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                <div>
+                  <h3 class="font-bold text-white text-sm mb-3">Belum Termasuk:</h3>
+                  <ul class="space-y-1.5 text-xs text-neutral-400">
+                    <li>- Biaya perpanjangan domain .com di tahun ke-2 dan seterusnya</li>
+                    <li>- Biaya transaksi per transaksi dari provider Mayar.id</li>
+                    <li>- Layanan cloud hosting khusus jika butuh server kapasitas sangat tinggi</li>
+                    <li>- WhatsApp API berbayar</li>
+                    <li>- Zoom atau live streaming berbayar</li>
+                    <li>- Aplikasi Android dan iOS native</li>
+                    <li>- Fitur AI atau integrasi pihak ketiga di luar scope</li>
+                    <li>- Perubahan besar setelah scope disepakati</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 class="font-bold text-white text-sm mb-3">Optional Add-ons:</h3>
+                  <ul class="space-y-2 text-xs text-neutral-300">
+                    <li class="flex justify-between border-b border-neutral-800 pb-1"><span>Payment gateway Mayar.id (Khusus Starter)</span><span class="text-emerald-400 font-medium">+ Rp 750.000</span></li>
+                    <li class="flex justify-between border-b border-neutral-800 pb-1"><span>WhatsApp notification otomatis</span><span class="text-emerald-400 font-medium">+ Rp 500.000*</span></li>
+                    <li class="flex justify-between border-b border-neutral-800 pb-1"><span>Advanced report dan analytics</span><span class="text-emerald-400 font-medium">+ Rp 600.000</span></li>
+                    <li class="flex justify-between border-b border-neutral-800 pb-1"><span>Multi-role pengajar lanjutan</span><span class="text-emerald-400 font-medium">+ Rp 750.000</span></li>
+                    <li class="flex justify-between"><span>Custom fitur di luar paket</span><span class="text-neutral-500">Sesuai scope</span></li>
+                  </ul>
+                  <div class="text-[11px] text-neutral-500 pt-2">*Belum termasuk biaya provider pihak ketiga.</div>
+                </div>
+              </div>
+            </div>
+          `;
+        case 11:
+          return `
+            <div class="py-4 text-center">
+              <h2 class="font-bold text-3xl sm:text-4xl text-white mb-3">
+                Mulai dari Rp 2.200.000
+              </h2>
+              <p class="text-sm text-neutral-300 max-w-lg mx-auto leading-relaxed mb-8">
+                Sudah termasuk domain .com untuk 1 tahun pertama. Pilih paket sesuai kebutuhan sekarang, lalu fitur dapat dikembangkan bertahap ketika program Al Madroj bertambah.
+              </p>
+
+              <div class="flex flex-col sm:flex-row items-center gap-3 justify-center mb-8">
+                <a href="https://wa.me/6281311506025?text=Halo,%20kami%20telah%20meninjau%20proposal%20Al%20Madroj%20dan%20ingin%20berdiskusi%20lebih%20lanjut." target="_blank" class="px-6 py-3 rounded bg-emerald-500 hover:bg-emerald-600 text-black font-medium text-sm transition-colors">
+                  Hubungi via WhatsApp
+                </a>
+                <button onclick="jumpToSlide(8)" class="px-6 py-3 rounded border border-neutral-800 hover:border-neutral-700 text-white font-medium text-sm transition-colors">
+                  Buka Kalkulator Harga
+                </button>
+              </div>
+
+              <button onclick="window.print()" class="text-xs text-neutral-500 hover:text-white underline">
+                Cetak atau Simpan Dokumen Ini sebagai PDF
+              </button>
+            </div>
+          `;
+        default:
+          return `<div class="text-center">Slide ${index + 1}</div>`;
+      }
+    }
+
+    function renderCalculatorHtml() {
+      const base = packageData[calcPackage];
+      const availableAddOns = addOnData.filter(a => {
+        if (a.id === 'payment_gateway_starter' && (calcPackage === 'standard' || calcPackage === 'pro')) {
+          return false;
+        }
+        return true;
+      });
+
+      const addOnsTotal = calcAddOns.reduce((sum, id) => {
+        if (id === 'payment_gateway_starter' && (calcPackage === 'standard' || calcPackage === 'pro')) {
+          return sum;
+        }
+        const item = addOnData.find(a => a.id === id);
+        return sum + (item ? item.price : 0);
+      }, 0);
+      const grandTotal = base.price + addOnsTotal;
+
+      const isStarter = calcPackage === 'starter';
+      const dp = Math.round(grandTotal * 0.5);
+      const beta = isStarter ? 0 : Math.round(grandTotal * 0.3);
+      const handover = isStarter ? Math.round(grandTotal * 0.5) : (grandTotal - dp - beta);
+
+      return `
+        <div class="py-2">
+          <span class="text-xs text-emerald-400 font-medium uppercase tracking-wide block mb-2">Simulasi Interaktif</span>
+          <h2 class="font-bold text-2xl text-white mb-2">Kalkulator Estimasi & Termin</h2>
+          <p class="text-xs text-neutral-400 mb-6">Pilih paket dan add-on opsional untuk melihat rincian biaya.</p>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div class="lg:col-span-7 space-y-6">
+              <div>
+                <label class="text-xs text-neutral-400 font-medium block mb-2">Pilih Paket Utama:</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  ${Object.keys(packageData).map(key => {
+                    const p = packageData[key];
+                    const active = calcPackage === key;
+                    return `
+                      <div onclick="setCalcPackage('${key}')" class="p-3 border cursor-pointer transition-colors ${active ? 'border-emerald-500 text-white' : 'border-neutral-800 text-neutral-400 hover:border-neutral-700'}">
+                        <div class="font-bold text-sm mb-1 ${active ? 'text-white' : 'text-neutral-300'}">${p.name}</div>
+                        <div class="text-xs ${active ? 'text-emerald-400' : 'text-neutral-500'} font-medium">${p.formatted}</div>
+                        <div class="text-[10px] text-neutral-500 mt-1">${p.gatewayIncluded ? 'Termasuk Mayar.id & .com' : 'Termasuk domain .com'}</div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+
+              <div>
+                <label class="text-xs text-neutral-400 font-medium block mb-2">Optional Add-ons:</label>
+                <div class="space-y-2">
+                  ${availableAddOns.map(a => {
+                    const checked = calcAddOns.includes(a.id);
+                    return `
+                      <div onclick="toggleCalcAddOn('${a.id}')" class="p-3 border cursor-pointer transition-colors flex items-center justify-between gap-3 ${checked ? 'border-emerald-500 text-white' : 'border-neutral-800 text-neutral-400 hover:border-neutral-700'}">
+                        <div>
+                          <div class="font-medium text-xs ${checked ? 'text-white' : 'text-neutral-300'}">${a.name}</div>
+                          <div class="text-[11px] text-neutral-500">${a.desc}</div>
+                        </div>
+                        <span class="text-xs font-medium ${checked ? 'text-emerald-400' : 'text-neutral-500'} whitespace-nowrap">${a.formatted}</span>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-5 border-t lg:border-t-0 lg:border-l border-neutral-800 lg:pl-6 space-y-4">
+              <div>
+                <span class="text-xs text-neutral-400 block">Total Investasi:</span>
+                <div class="font-bold text-3xl text-emerald-400 mt-1">Rp ${grandTotal.toLocaleString('id-ID')}</div>
+                <span class="text-[11px] text-neutral-500 block mt-0.5">${base.gatewayIncluded ? 'Sudah termasuk integrasi Mayar.id & domain .com 1 tahun' : 'Sudah termasuk domain .com 1 tahun'}</span>
+              </div>
+
+              <div class="space-y-2 text-xs border-t border-neutral-800 pt-3">
+                <div class="text-xs text-neutral-400 font-medium">Rincian Termin Pembayaran:</div>
+                <div class="flex justify-between py-1 border-b border-neutral-900">
+                  <span class="text-neutral-400">Termin 1 (DP 50%):</span>
+                  <span class="font-medium text-white">Rp ${dp.toLocaleString('id-ID')}</span>
+                </div>
+                ${!isStarter ? `
+                  <div class="flex justify-between py-1 border-b border-neutral-900">
+                    <span class="text-neutral-400">Termin 2 (Saat Beta 30%):</span>
+                    <span class="font-medium text-white">Rp ${beta.toLocaleString('id-ID')}</span>
+                  </div>
+                ` : ''}
+                <div class="flex justify-between py-1">
+                  <span class="text-neutral-400">${isStarter ? 'Termin 2 (Handover 50%):' : 'Termin 3 (Handover 20%):'}</span>
+                  <span class="font-medium text-white">Rp ${handover.toLocaleString('id-ID')}</span>
+                </div>
+              </div>
+
+              <button onclick="orderViaWhatsApp()" class="w-full py-2.5 rounded bg-emerald-500 hover:bg-emerald-600 text-black font-medium text-xs transition-colors">
+                Kirim Rincian Ini ke WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function setCalcPackage(pkg) {
+      calcPackage = pkg;
+      document.getElementById('slideContent').innerHTML = renderCalculatorHtml();
+    }
+
+    function toggleCalcAddOn(id) {
+      if (calcAddOns.includes(id)) {
+        calcAddOns = calcAddOns.filter(x => x !== id);
+      } else {
+        calcAddOns.push(id);
+      }
+      document.getElementById('slideContent').innerHTML = renderCalculatorHtml();
+    }
+
+    function orderViaWhatsApp() {
+      const base = packageData[calcPackage];
+      const addOnsTotal = calcAddOns.reduce((sum, id) => {
+        if (id === 'payment_gateway_starter' && (calcPackage === 'standard' || calcPackage === 'pro')) return sum;
+        const item = addOnData.find(a => a.id === id);
+        return sum + (item ? item.price : 0);
+      }, 0);
+      const grandTotal = base.price + addOnsTotal;
+
+      const addOnNames = calcAddOns
+        .filter(id => !(id === 'payment_gateway_starter' && (calcPackage === 'standard' || calcPackage === 'pro')))
+        .map(id => addOnData.find(a => a.id === id)?.name)
+        .filter(Boolean);
+
+      const msg = `Halo Tim Pengembang Platform Al Madroj,
+
+Saya telah melihat simulasi di website penawaran dan tertarik untuk mendiskusikan paket berikut:
+
+Paket Utama: Paket ${base.name} (${base.formatted} - ${base.gatewayIncluded ? 'Termasuk Mayar.id & Domain .com 1 Thn' : 'Termasuk Domain .com 1 Thn'})
+${addOnNames.length > 0 ? `Optional Add-on:\n${addOnNames.map(n => `- ${n}`).join('\n')}\n` : ''}
+Estimasi Total Investasi: Rp ${grandTotal.toLocaleString('id-ID')}
+
+Mohon informasi langkah selanjutnya untuk penjadwalan diskusi project ini. Terima kasih.`;
+
+      window.open(`https://wa.me/6281311506025?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function updateSlide() {
+      const container = document.getElementById('slideContent');
+      container.className = 'w-full max-w-4xl animate-slide-in';
+      container.innerHTML = getSlideHtml(currentSlide);
+
+      document.getElementById('navSlideNumber').innerText = `Slide ${currentSlide + 1} dari 12:`;
+      document.getElementById('navSlideTitle').innerText = SLIDES[currentSlide].title;
+      document.getElementById('bottomSlideCounter').innerText = currentSlide + 1;
+
+      document.getElementById('btnPrevSlide').disabled = currentSlide === 0;
+      document.getElementById('btnPrevSlide').className = currentSlide === 0
+        ? 'px-3 py-1 text-xs text-neutral-600 opacity-40 cursor-not-allowed'
+        : 'px-3 py-1 text-xs text-neutral-300 hover:text-white transition-colors';
+
+      document.getElementById('btnNextText').innerText = currentSlide === SLIDES.length - 1 ? 'Selesai' : 'Lanjut';
+    }
+
+    function nextSlide() {
+      if (currentSlide < SLIDES.length - 1) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function jumpToSlide(idx) {
+      if (idx >= 0 && idx < SLIDES.length) {
+        currentSlide = idx;
+        updateSlide();
+        closeThumbnails();
+      }
+    }
+
+    function setViewMode(mode) {
+      viewMode = mode;
+      const pres = document.getElementById('presentationContainer');
+      const doc = document.getElementById('documentContainer');
+      const bottom = document.getElementById('bottomControls');
+      const btnDeck = document.getElementById('btnModeDeck');
+      const btnDoc = document.getElementById('btnModeDoc');
+
+      if (mode === 'presentation') {
+        pres.classList.remove('hidden');
+        doc.classList.add('hidden');
+        bottom.classList.remove('hidden');
+        btnDeck.className = 'px-2.5 py-1 rounded bg-neutral-800 text-white font-medium transition-colors';
+        btnDoc.className = 'px-2.5 py-1 rounded text-neutral-400 hover:text-white transition-colors';
+        updateSlide();
+      } else {
+        pres.classList.add('hidden');
+        doc.classList.remove('hidden');
+        bottom.classList.add('hidden');
+        btnDoc.className = 'px-2.5 py-1 rounded bg-neutral-800 text-white font-medium transition-colors';
+        btnDeck.className = 'px-2.5 py-1 rounded text-neutral-400 hover:text-white transition-colors';
+        
+        document.getElementById('documentContent').innerHTML = SLIDES.map((s, idx) => `
+          <section id="${s.id}" class="print-break space-y-2 border-b border-neutral-800/80 pb-10">
+            <div class="text-xs text-neutral-500 font-medium no-print">Slide ${idx + 1} dari 12: ${s.title}</div>
+            ${getSlideHtml(idx)}
+          </section>
+        `).join('');
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    function openThumbnails() {
+      const grid = document.getElementById('thumbnailsGrid');
+      grid.innerHTML = SLIDES.map((s, i) => `
+        <div onclick="jumpToSlide(${i})" class="p-3 border cursor-pointer text-left transition-colors ${i === currentSlide ? 'border-emerald-500 bg-neutral-900' : 'border-neutral-800 hover:border-neutral-700'}">
+          <div class="text-[11px] text-neutral-400 mb-1">Slide ${i + 1}</div>
+          <div class="font-medium text-xs text-white mb-0.5">${s.title}</div>
+          <div class="text-[11px] text-neutral-500">${s.subtitle}</div>
+        </div>
+      `).join('');
+      document.getElementById('thumbnailsModal').classList.remove('hidden');
+      document.getElementById('thumbnailsModal').classList.add('flex');
+    }
+
+    function closeThumbnails() {
+      document.getElementById('thumbnailsModal').classList.add('hidden');
+      document.getElementById('thumbnailsModal').classList.remove('flex');
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (['input', 'textarea'].includes(e.target?.tagName?.toLowerCase())) return;
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        if (viewMode === 'presentation') { e.preventDefault(); nextSlide(); }
+      } else if (e.key === 'ArrowLeft' || e.key === 'Backspace' || e.key === 'PageUp') {
+        if (viewMode === 'presentation') { e.preventDefault(); prevSlide(); }
+      } else if (e.key === 'Home') {
+        if (viewMode === 'presentation') { e.preventDefault(); jumpToSlide(0); }
+      } else if (e.key === 'End') {
+        if (viewMode === 'presentation') { e.preventDefault(); jumpToSlide(SLIDES.length - 1); }
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        setViewMode(viewMode === 'presentation' ? 'document' : 'presentation');
+      } else if (e.key === 'g' || e.key === 'G') {
+        e.preventDefault();
+        openThumbnails();
+      } else if (e.key === 'Escape') {
+        closeThumbnails();
+      }
+    });
+
+    updateSlide();
+  </script>
+</body>
+</html>
