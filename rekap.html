@@ -156,6 +156,30 @@
       flex-wrap: wrap;
     }
 
+    /* Pemilih periode. Dibuat setinggi 44px supaya tetap nyaman ditekan di
+       ponsel — dasbor ini lebih sering dibuka pemilik dari HP daripada dari
+       meja kasir. */
+    .sel-periode {
+      appearance: none; -webkit-appearance: none;
+      background: var(--ink-inset);
+      border: 1px solid var(--line);
+      color: var(--fg);
+      min-height: 44px; padding: 8px 34px 8px 12px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600;
+      cursor: pointer;
+      background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                        linear-gradient(135deg, currentColor 50%, transparent 50%);
+      background-position: calc(100% - 17px) calc(50% + 1px), calc(100% - 12px) calc(50% + 1px);
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+    }
+    .sel-periode:hover { border-color: var(--fg-dim); }
+    .sel-periode:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+    /* Saat rentang panjang sedang diambil dari server, pemilihnya dikunci —
+       menumpuk permintaan hanya membuat angkanya berkedip-kedip. */
+    .sel-periode:disabled { opacity: .6; cursor: progress; }
+
     .btn-filter-date {
       background: var(--ink-inset);
       border: 1px solid var(--line);
@@ -760,9 +784,11 @@
     <div class="control-strip">
       <div class="date-filter-group">
         <span style="font-size: 12.5px; color: var(--fg-dim); font-weight: 600;">Periode:</span>
-        <button class="btn-filter-date active" data-range="TODAY">Hari Ini</button>
-        <button class="btn-filter-date" data-range="YESTERDAY">Kemarin</button>
-        <button class="btn-filter-date" data-range="ALL">Semua Riwayat</button>
+        <!-- Pilihannya diisi dari tabel PERIODE di bawah, bukan ditulis di
+             sini: label yang tampil dan rentang yang diambil dari server harus
+             berasal dari satu sumber, kalau tidak keduanya menyimpang tanpa
+             ada yang menyadarinya. -->
+        <select id="selPeriode" class="sel-periode" aria-label="Periode laporan"></select>
       </div>
 
       <div class="export-group">
@@ -1518,6 +1544,51 @@
     let selectedDateFilter = 'TODAY';
     let searchQuery = '';
 
+    /* ── Periode laporan ──────────────────────────────────────────────────
+       Satu tabel yang dipakai kueri, penyaring, label layar, dan nama berkas
+       CSV. Sebelumnya rentangnya tersebar di empat tempat dengan bentuk
+       berbeda, dan kueri awalnya terkunci 30 hari — sehingga "Semua Riwayat"
+       pun sebenarnya tidak pernah menampilkan lebih dari sebulan.
+
+       `tepat` menandai periode satu hari (0 = hari ini, 1 = kemarin).
+       `mundur` adalah jumlah hari inklusif ke belakang dari hari ini: 7
+       berarti hari ini beserta enam hari sebelumnya. Tanpa keduanya berarti
+       tanpa batas. */
+    const PERIODE = {
+      TODAY:     { label: 'Hari Ini',           tepat: 0 },
+      YESTERDAY: { label: 'Kemarin',            tepat: 1 },
+      D7:        { label: '7 Hari Terakhir',    mundur: 7 },
+      D30:       { label: '1 Bulan Terakhir',   mundur: 30 },
+      D90:       { label: '3 Bulan Terakhir',   mundur: 90 },
+      D180:      { label: '6 Bulan Terakhir',   mundur: 180 },
+      D365:      { label: '12 Bulan Terakhir',  mundur: 365 },
+      ALL:       { label: 'Semua Riwayat' }
+    };
+
+    /* Tanggal kerja selalu zona outlet, bukan zona perangkat pemiliknya.
+       Pemilik yang membuka dasbor dari luar negeri tetap membaca hari yang
+       sama dengan kasirnya. */
+    function tanggalMundur(hari) {
+      return new Date(Date.now() - hari * 864e5)
+        .toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    }
+
+    /** Rentang periode terpilih sebagai { dari, sampai } YYYY-MM-DD.
+        null berarti tanpa batas di sisi itu. */
+    function rentangPeriode(kunci) {
+      const p = PERIODE[kunci] || PERIODE.TODAY;
+      if (p.tepat !== undefined) {
+        const t = tanggalMundur(p.tepat);
+        return { dari: t, sampai: t };
+      }
+      if (p.mundur) return { dari: tanggalMundur(p.mundur - 1), sampai: tanggalMundur(0) };
+      return { dari: null, sampai: null };
+    }
+
+    function labelPeriode() {
+      return (PERIODE[selectedDateFilter] || PERIODE.TODAY).label;
+    }
+
     function formatRupiah(num) {
       return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
     }
@@ -1527,13 +1598,20 @@
         kasir. Rentang hari memakai business_date (WIB), bukan UTC. */
     async function loadData() {
       const today = sbJakartaToday();
-      const since = new Date(Date.now() - 30 * 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+      /* Rentangnya mengikuti periode yang dipilih, bukan 30 hari tetap seperti
+         sebelumnya. Dengan batas tetap itu, memilih "3 Bulan" akan menampilkan
+         layar kosong untuk bulan-bulan yang datanya memang tidak pernah
+         diambil — kegagalan yang terbaca sebagai "tidak ada transaksi". */
+      const r = rentangPeriode(selectedDateFilter);
+      let qTx = sb.from('transactions')
+        .select('*, transaction_items(service_name, price, capster_name)')
+        .order('created_at', { ascending: false });
+      if (r.dari)   qTx = qTx.gte('business_date', r.dari);
+      if (r.sampai) qTx = qTx.lte('business_date', r.sampai);
 
       const [txRes, capRes, memRes] = await Promise.all([
-        sb.from('transactions')
-          .select('*, transaction_items(service_name, price, capster_name)')
-          .gte('business_date', since)
-          .order('created_at', { ascending: false }),
+        qTx,
         sb.from('capsters').select('id, name, is_active'),
         sb.from('members').select('phone_wa, name, tier, visit_count, total_spend')
       ]);
@@ -1751,14 +1829,13 @@
     let closingsData = [];
 
     async function loadClosings() {
-      const tgl = selectedDateFilter === 'YESTERDAY'
-        ? new Date(Date.now() - 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
-        : sbJakartaToday();
+      const r = rentangPeriode(selectedDateFilter);
 
       let q = sb.from('cash_closings_view')
         .select('id, cashier_name, tx_count, expected_amount, counted_amount, difference, difference_after_adjust, status_selisih, owner_adjustment, cashier_notes, owner_notes, reviewed_at')
         .order('cashier_name', { ascending: true });
-      if (selectedDateFilter !== 'ALL') q = q.eq('business_date', tgl);
+      if (r.dari)   q = q.gte('business_date', r.dari);
+      if (r.sampai) q = q.lte('business_date', r.sampai);
 
       const { data, error } = await q;
       if (error) return;
@@ -3005,15 +3082,16 @@
       // business_date sudah dihitung server dalam zona Asia/Jakarta, sehingga
       // transaksi dini hari tidak lagi jatuh ke tanggal sebelumnya seperti
       // bila memakai toISOString() yang berbasis UTC.
-      const todayStr = sbJakartaToday();
-      const yesterdayStr = new Date(Date.now() - 864e5)
-        .toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+      // Rentangnya sama dengan yang dipakai kueri. Penyaring ini tetap ada
+      // sebagai jaring kedua: baris yang tersisa dari periode sebelumnya tidak
+      // boleh ikut terhitung sebelum pemuatan berikutnya selesai.
+      const r = rentangPeriode(selectedDateFilter);
 
       return rawTransactions.filter(tx => {
         const txDate = tx.business_date || (tx.created_at || '').slice(0, 10);
 
-        if (selectedDateFilter === 'TODAY' && txDate !== todayStr) return false;
-        if (selectedDateFilter === 'YESTERDAY' && txDate !== yesterdayStr) return false;
+        if (r.dari && txDate < r.dari) return false;
+        if (r.sampai && txDate > r.sampai) return false;
 
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
@@ -3094,8 +3172,8 @@
     function performaSebagaiTeks() {
       const daftar = performaTerurut();
       if (!daftar.length) return '';
-      const tombolPeriode = document.querySelector('.btn-filter-date.active[data-range]');
-      const judulPeriode = tombolPeriode ? tombolPeriode.textContent : '';
+      const opsiPeriode = document.querySelector('#selPeriode option:checked');
+      const judulPeriode = opsiPeriode ? opsiPeriode.textContent : '';
       const baris = ['*Performa Kapster*' + (judulPeriode ? ' — ' + judulPeriode.trim() : ''), ''];
       daftar.forEach(([name, stat], i) => {
         baris.push((i + 1) + '. ' + name + ' — ' + stat.heads + ' pangkas & layanan'
@@ -3118,12 +3196,13 @@
       const ringkas = document.getElementById('qrisPantauRingkas');
       if (!panel) return;
 
-      // Mengikuti cara loadClosings menghitung "kemarin": tanggal kerja
-      // mengikuti zona outlet, bukan zona perangkat pemiliknya.
-      const tgl = selectedDateFilter === 'ALL' ? null
-        : (selectedDateFilter === 'YESTERDAY'
-            ? new Date(Date.now() - 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
-            : sbJakartaToday());
+      /* owner_qris_belum_konfirmasi menerima SATU tanggal, bukan rentang.
+         Untuk periode satu hari, tanggal itu dikirim. Untuk rentang panjang
+         dikirim null — daftar ini sebuah daftar kerjaan, dan menampilkan
+         seluruh nota yang belum diperiksa justru lebih benar daripada
+         memotongnya menurut rentang laporan yang sedang dibaca. */
+      const pr = PERIODE[selectedDateFilter] || PERIODE.TODAY;
+      const tgl = pr.tepat !== undefined ? tanggalMundur(pr.tepat) : null;
 
       const { data, error } = await sb.rpc('owner_qris_belum_konfirmasi', { p_tanggal: tgl });
       if (error) {
@@ -3983,17 +4062,42 @@
     });
 
     // Date Filters
-    /* Dipersempit ke [data-range]. Kelas .btn-filter-date kini dipakai juga
-       oleh pemilih mode performa kapster, dan tanpa penyaring ini menekan
-       "Tanpa Omzet" akan mengosongkan selectedDateFilter lalu menggambar
-       ulang dasbor dengan periode yang tidak ada. */
-    document.querySelectorAll('.btn-filter-date[data-range]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.btn-filter-date[data-range]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedDateFilter = btn.dataset.range;
-        renderDashboard();
-      });
+    /* Pilihan periode dibuat dari tabel PERIODE, bukan ditulis di HTML.
+       Menuliskannya dua kali membuat label layar dan rentang kueri dapat
+       menyimpang tanpa ada yang menyadarinya. */
+    function isiPilihanPeriode() {
+      const sel = document.getElementById('selPeriode');
+      if (!sel) return;
+      sel.innerHTML = Object.keys(PERIODE).map(function (k) {
+        return '<option value="' + k + '">' + escapeHtml(PERIODE[k].label) + '</option>';
+      }).join('');
+      sel.value = selectedDateFilter;
+    }
+    isiPilihanPeriode();
+
+    /* Berganti periode kini MEMUAT ULANG dari server, bukan sekadar menyaring
+       yang sudah ada. Pemuatan hanya membawa rentang yang sedang dipilih, jadi
+       memilih rentang yang lebih panjang tanpa mengambil ulang akan
+       menampilkan layar kosong dan terbaca sebagai "tidak ada transaksi".
+
+       Pemilihnya dikunci selama pengambilan: rentang setahun bisa memakan
+       beberapa detik, dan permintaan yang menumpuk hanya membuat angkanya
+       berkedip di antara dua periode. */
+    document.getElementById('selPeriode').addEventListener('change', async function () {
+      const sel = this;
+      selectedDateFilter = sel.value;
+      const stamp = document.getElementById('syncStamp');
+      const stampLama = stamp ? stamp.textContent : '';
+      sel.disabled = true;
+      if (stamp) stamp.textContent = 'Memuat ' + labelPeriode().toLowerCase() + '…';
+      try {
+        await loadData();
+      } catch (err) {
+        if (stamp) stamp.textContent = stampLama;
+        alert('Gagal memuat periode itu: ' + (err.message || err));
+      } finally {
+        sel.disabled = false;
+      }
     });
 
     // Pemilih mode performa kapster. Hanya menggambar ulang panelnya —
