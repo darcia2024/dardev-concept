@@ -1,4 +1,0 @@
-{
-  "//": "Pustaka di folder ini berformat UMD dan dimuat peramban lewat <script src>. Sejak package.json ber-\"type\": \"module\" ada di akar repo, Node membacanya sebagai ES module dan UMD-nya gagal karena tidak menemukan objek global. Berkas ini mengembalikannya ke CommonJS untuk Node. Peramban tidak membaca berkas ini sama sekali, jadi cara pustaka ini disajikan ke kasir tidak berubah.",
-  "type": "commonjs"
-}
