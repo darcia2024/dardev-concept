@@ -28,9 +28,9 @@ function buat(mode, periode) {
     ${sumber}
     modePerforma = mode;
     performaKapster = [
-      ['Cena',   { omzet: 850000, heads: 6 }],
-      ['Lukman', { omzet: 415000, heads: 11 }],
-      ['Wanda',  { omzet: 620000, heads: 4 }]
+      ['Cena',   { omzet: 850000, heads: 6,  layanan: { Haircut: 4, Hairwash: 2 } }],
+      ['Lukman', { omzet: 415000, heads: 11, layanan: { Haircut: 5, Hairwash: 6 } }],
+      ['Wanda',  { omzet: 620000, heads: 4,  layanan: { Haircut: 4 } }]
     ];
     return { urut: performaTerurut, teks: performaSebagaiTeks };
   `)(mode, periode);
@@ -55,13 +55,21 @@ for (const angka of ['850.000', '415.000', '620.000', '850000', '415000', '62000
 }
 // Yang justru harus ada: nama, peringkat, dan jumlah kerjanya.
 for (const nama of ['Cena', 'Lukman', 'Wanda']) assert.ok(teksTanpa.includes(nama));
-assert.match(teksTanpa, /1\. Lukman — 11 pangkas & layanan/, 'peringkat dan jumlah harus tertulis');
-assert.match(teksTanpa, /Total 21 pangkas & layanan\./, 'total layanan harus dijumlahkan');
+/* Rincian, bukan angka gabungan. "4 pangkas & layanan" terbaca sama antara
+   empat potong dan dua potong dua cuci — dan kapster yang menerimanya di grup
+   membantah daftar yang sebenarnya benar. Diurutkan menurut jumlah, jadi
+   Hairwash 6 berdiri sebelum Haircut 5. */
+assert.match(teksTanpa, /1\. Lukman — 6 Hairwash · 5 Haircut/,
+  'peringkat dan rincian layanan harus tertulis');
+assert.equal(teksTanpa.indexOf('pangkas & layanan'), -1,
+  'kalimat gabungan yang membingungkan tidak boleh tersisa');
+assert.match(teksTanpa, /Total: 13 Haircut · 8 Hairwash\./,
+  'totalnya pun harus dirinci, bukan dijumlahkan menjadi satu angka');
 
 // Mode pemilik tetap memuat omzetnya — yang lama tidak boleh ikut hilang.
 const teksDgn = buat('omzet').teks();
 assert.match(teksDgn, /Rp/, 'mode dengan omzet harus tetap memuat rupiah');
-assert.match(teksDgn, /Cena — 6 pangkas & layanan · Rp 850\.000/);
+assert.match(teksDgn, /Cena — 4 Haircut · 2 Hairwash · Rp 850\.000/);
 
 // Periode ikut terbawa supaya penerima tahu daftar ini tentang rentang mana.
 assert.match(buat('tanpa', 'Hari Ini').teks(), /^\*Performa Kapster\* — Hari Ini/);
@@ -95,8 +103,8 @@ function gambar(mode) {
     ${sumber}
     modePerforma = mode;
     performaKapster = [
-      ['Cena',   { omzet: 850000, heads: 6 }],
-      ['Lukman', { omzet: 415000, heads: 11 }]
+      ['Cena',   { omzet: 850000, heads: 6,  layanan: { Haircut: 4, Hairwash: 2 } }],
+      ['Lukman', { omzet: 415000, heads: 11, layanan: { Haircut: 5, Hairwash: 6 } }]
     ];
     renderPerformaKapster();
     return wadah.innerHTML;
@@ -108,7 +116,9 @@ assert.doesNotMatch(htmlTanpa, /Rp/, 'HTML mode bagikan tidak boleh memuat rupia
 assert.doesNotMatch(htmlTanpa, /850\.000|415\.000/, 'angka omzet tidak boleh tergambar');
 assert.match(htmlTanpa, /class="capster-rank">1</, 'peringkat harus tergambar');
 assert.match(htmlTanpa, /Lukman/);
-assert.match(htmlTanpa, /11 pangkas &amp; layanan/, 'ampersand harus lolos sebagai entitas');
+assert.match(htmlTanpa, /6 Hairwash · 5 Haircut/, 'rincian harus tergambar di kartu');
+assert.equal(htmlTanpa.indexOf('pangkas &amp; layanan'), -1,
+  'kalimat gabungan tidak boleh tersisa di layar');
 
 const htmlDgn = gambar('omzet');
 assert.match(htmlDgn, /capster-omzet">Rp 850\.000/, 'mode pemilik harus tetap menampilkan omzet');
@@ -126,12 +136,16 @@ const jahat = new Function(`
   };
   ${sumber}
   modePerforma = 'omzet';
-  performaKapster = [['<img src=x onerror=alert(1)>', { omzet: 1000, heads: 1 }]];
+  performaKapster = [['<img src=x onerror=alert(1)>',
+    { omzet: 1000, heads: 1, layanan: { '<svg onload=alert(2)>': 1 } }]];
   renderPerformaKapster();
   return wadah.innerHTML;
 `)();
 assert.doesNotMatch(jahat, /<img src=x/, 'nama kapster harus disaring sebelum disisipkan');
 assert.match(jahat, /&lt;img src=x/);
+// Nama LAYANAN kini ikut digambar; itu titik masuk yang sebelumnya tidak ada.
+assert.doesNotMatch(jahat, /<svg onload/, 'nama layanan harus ikut disaring');
+assert.match(jahat, /&lt;svg onload/);
 
 // ── 4 · Mode pemilik tidak dihapus ─────────────────────────────────────────
 assert.match(rekap, /data-perf="omzet"/, 'mode dengan omzet harus tetap dapat dipilih');

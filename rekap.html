@@ -3116,6 +3116,30 @@
     let performaKapster = [];
     let modePerforma = 'omzet';
 
+    /* "2 Haircut · 2 Hairwash", bukan "4 pangkas & layanan". Yang dibaca
+       kapster di grup harus dapat ia cocokkan dengan ingatannya sendiri; angka
+       gabungan justru membuatnya membantah daftar yang sebenarnya benar.
+
+       Diurutkan menurut jumlah supaya yang paling banyak dikerjakan berdiri di
+       depan, dan nama layanan disaring karena ia datang dari basis data. */
+    function rincianLayanan(stat) {
+      const daftar = Object.entries((stat && stat.layanan) || {})
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'id'));
+      if (!daftar.length) return ((stat && stat.heads) || 0) + ' layanan';
+      return daftar.map(function (x) { return x[1] + ' ' + x[0]; }).join(' · ');
+    }
+
+    /** Gabungan seluruh kapster, dipakai pada baris total teks bagikan. */
+    function rincianSemua(daftar) {
+      const gabung = {};
+      daftar.forEach(function (baris) {
+        Object.entries((baris[1] && baris[1].layanan) || {}).forEach(function (x) {
+          gabung[x[0]] = (gabung[x[0]] || 0) + x[1];
+        });
+      });
+      return rincianLayanan({ layanan: gabung, heads: 0 });
+    }
+
     function performaTerurut() {
       const salinan = performaKapster.slice();
       // Peringkat harus cocok dengan angka yang terlihat. Mengurutkan menurut
@@ -3154,7 +3178,7 @@
             <div class="capster-avatar-sm">${avatarKapster(name)}</div>
             <div>
               <div class="capster-perf-name">${escapeHtml(name)}</div>
-              <div class="capster-heads">${stat.heads} pangkas &amp; layanan</div>
+              <div class="capster-heads">${escapeHtml(rincianLayanan(stat))}</div>
             </div>
           </div>
           <div class="capster-stat">
@@ -3176,11 +3200,12 @@
       const judulPeriode = opsiPeriode ? opsiPeriode.textContent : '';
       const baris = ['*Performa Kapster*' + (judulPeriode ? ' — ' + judulPeriode.trim() : ''), ''];
       daftar.forEach(([name, stat], i) => {
-        baris.push((i + 1) + '. ' + name + ' — ' + stat.heads + ' pangkas & layanan'
+        baris.push((i + 1) + '. ' + name + ' — ' + rincianLayanan(stat)
           + (modePerforma === 'tanpa' ? '' : ' · ' + formatRupiah(stat.omzet)));
       });
-      const totalLayanan = daftar.reduce((a, x) => a + x[1].heads, 0);
-      baris.push('', 'Total ' + totalLayanan + ' pangkas & layanan.');
+      // Totalnya pun dirinci. "Total 7 pangkas & layanan" menyisakan pertanyaan
+      // yang sama pada tingkat yang lebih besar.
+      baris.push('', 'Total: ' + rincianSemua(daftar) + '.');
       return baris.join('\n');
     }
 
@@ -3277,9 +3302,17 @@
 
         daftarItem.forEach(it => {
           const capName = it.capster_name || tx.capster_name || 'Tidak Ditentukan';
-          if (!capsterBreakdown[capName]) capsterBreakdown[capName] = { omzet: 0, heads: 0 };
+          if (!capsterBreakdown[capName]) capsterBreakdown[capName] = { omzet: 0, heads: 0, layanan: {} };
           capsterBreakdown[capName].omzet += Number(it.price) || 0;
           capsterBreakdown[capName].heads += 1;
+          /* Nama layanannya ikut dihitung. "4 pangkas & layanan" tidak memberi
+             tahu apa yang dikerjakan: dua potong dan dua cuci terbaca sama
+             dengan empat potong. Kapster yang menerima daftar itu di grup
+             membantahnya sendiri — "aku potong 2 aja tadi" — dan yang
+             sebenarnya keliru adalah kalimatnya, bukan angkanya. */
+          const namaLayanan = it.name || 'Layanan';
+          capsterBreakdown[capName].layanan[namaLayanan] =
+            (capsterBreakdown[capName].layanan[namaLayanan] || 0) + 1;
         });
       });
 
