@@ -145,16 +145,22 @@ const render = rekap.slice(rekap.indexOf('function renderPerformaKapster()'),
 assert.match(render, /modePerforma === 'tanpa'[\s\S]*capster-omzet/,
   'omzet hanya digambar pada mode omzet');
 
-// ── 4 · Kelas tombol tidak boleh menabrak filter periode ───────────────────
-// .btn-filter-date kini dipakai dua kelompok tombol. Tanpa penyaring
-// [data-range], menekan "Tanpa Omzet" mengosongkan selectedDateFilter lalu
-// menggambar ulang dasbor dengan periode yang tidak ada.
-const filter = rekap.slice(rekap.indexOf("document.querySelectorAll('.btn-filter-date[data-range]')"));
-assert.ok(filter.length > 0, 'penangan filter periode harus dipersempit ke [data-range]');
-assert.doesNotMatch(
-  rekap,
-  /querySelectorAll\('\.btn-filter-date'\)/,
-  'penangan filter periode tidak boleh lagi menyapu seluruh .btn-filter-date'
-);
+// ── 5 · Pemilih periode tidak boleh menabrak tombol mode ───────────────────
+/* Dulu periode dipilih lewat tombol ber-kelas .btn-filter-date, kelas yang
+   sama dengan tombol mode di sini — menekan "Tanpa Omzet" ikut mengosongkan
+   periode. Sejak periode menjadi dropdown, benturan itu hilang seluruhnya.
+
+   Versi awal pemeriksaan ini memakai rekap.slice(rekap.indexOf(...)).length > 0
+   dan TIDAK PERNAH BISA GAGAL: indexOf mengembalikan -1 saat tidak ketemu, dan
+   slice(-1) mengembalikan satu karakter terakhir. */
+assert.match(rekap, /<select id="selPeriode"/, 'periode harus dipilih lewat dropdown');
+assert.equal(rekap.indexOf('data-range='), -1, 'tombol periode lama tidak boleh tersisa');
+
+// Tombol mode tetap disaring lewat [data-perf], bukan lewat kelasnya — kelas
+// .btn-filter-date masih dipakai belasan tombol lain di halaman ini.
+assert.notEqual(rekap.indexOf("querySelectorAll('[data-perf]')"), -1,
+  'tombol mode harus disaring lewat [data-perf]');
+assert.equal(rekap.indexOf("querySelectorAll('.btn-filter-date')"), -1,
+  'tidak boleh ada penangan yang menyapu seluruh .btn-filter-date');
 
 console.log('Mode performa kapster tests: OK');
