@@ -486,6 +486,20 @@
       font-family: var(--mono);
       font-weight: 600;
     }
+    /* Tombol hapus per baris. Sejak klik pada katalog selalu menambah, inilah
+       satu-satunya jalan membatalkan — dan ia harus menghapus baris ITU saja,
+       bukan seluruh layanan sejenis. Dibuat tenang supaya tidak menarik jari
+       kasir yang sedang buru-buru, tetapi tetap 32px agar tidak meleset. */
+    .cart-row .item-hapus {
+      flex: none; width: 32px; height: 32px; margin-left: 4px;
+      background: transparent; border: 1px solid transparent; border-radius: 7px;
+      color: var(--fg-dim); font-size: 15px; line-height: 1; padding: 0;
+      cursor: pointer;
+      transition: color .15s ease, background .15s ease, border-color .15s ease;
+    }
+    .cart-row .item-hapus:hover {
+      color: var(--clay); background: var(--clay-wash); border-color: var(--clay);
+    }
 
     /* Payment Method Selector */
     .pay-methods {
@@ -2609,11 +2623,14 @@
       }
 
       filtered.forEach(s => {
-        const isSel = selectedServices.some(item => item.id === s.id);
+        // Jumlahnya ditampilkan, bukan sekadar tanda centang: dua potong
+        // rambut dalam satu nota harus terlihat sebagai dua, kalau tidak kasir
+        // tidak punya cara mengetahui ia sudah menekan sekali atau dua kali.
+        const jml = selectedServices.filter(item => item.id === s.id).length;
         const card = document.createElement('div');
-        card.className = `service-card ${isSel ? 'is-selected' : ''}`;
+        card.className = `service-card ${jml > 0 ? 'is-selected' : ''}`;
         card.innerHTML = `
-          <div class="check-indicator">✓</div>
+          <div class="check-indicator">${jml > 1 ? jml : '✓'}</div>
           <div class="service-head">
             <span class="service-name">${escapeHtml(s.name)}</span>
             <span class="service-dur">${s.item_type === 'produk' ? 'produk' : s.duration + ' mnt'}</span>
@@ -2621,22 +2638,36 @@
           <div class="service-price">${formatRupiah(s.price)}</div>
         `;
         card.onclick = () => {
-          toggleServiceSelection(s);
+          tambahLayanan(s);
         };
         container.appendChild(card);
       });
     }
 
-    function toggleServiceSelection(service) {
-      const index = selectedServices.findIndex(item => item.id === service.id);
-      if (index > -1) {
-        selectedServices.splice(index, 1);
-      } else {
-        // Salinan, bukan referensi. selectedServices menyimpan capster per item,
-        // dan menempelkannya ke objek katalog akan membuat pilihan satu
-        // transaksi ikut terbawa ke transaksi berikutnya.
-        selectedServices.push({ ...service, capsterId: null });
-      }
+    /* Menambah, bukan menyalakan-mematikan. Dulu klik kedua pada layanan yang
+       sama justru menghapusnya, sehingga satu nota tidak pernah bisa memuat dua
+       potong rambut — padahal ayah dan anak yang mencukur lalu membayar sekali
+       adalah kejadian sehari-hari di barbershop.
+
+       Tiap klik menghasilkan BARIS tersendiri, bukan menaikkan jumlah pada satu
+       baris. Alasannya bukan selera: tiap baris membawa kapsternya sendiri, dan
+       ayah bisa saja dicukur Cena sementara anaknya oleh Lukman. Jumlah pada
+       satu baris tidak punya tempat untuk menyimpan dua nama itu.
+
+       Membatalkan kini lewat tombol pada barisnya di keranjang, yang menghapus
+       baris ITU saja — bukan seluruh layanan sejenis. */
+    function tambahLayanan(service) {
+      // Salinan, bukan referensi. selectedServices menyimpan capster per item,
+      // dan menempelkannya ke objek katalog akan membuat pilihan satu
+      // transaksi ikut terbawa ke transaksi berikutnya.
+      selectedServices.push({ ...service, capsterId: null });
+      renderServices(currentFilterCat);
+      updateCartView();
+    }
+
+    function hapusBarisLayanan(indeks) {
+      if (indeks < 0 || indeks >= selectedServices.length) return;
+      selectedServices.splice(indeks, 1);
       renderServices(currentFilterCat);
       updateCartView();
     }
@@ -2778,20 +2809,26 @@
       let subtotal = 0;
       let html = '';
 
-      selectedServices.forEach(s => {
+      /* Dikunci pakai INDEKS baris, bukan id layanan. Sejak satu nota dapat
+         memuat dua potong rambut, id layanannya sama pada dua baris — dan
+         mencarinya dengan find() akan selalu menemukan yang pertama, sehingga
+         mengubah kapster baris kedua diam-diam mengubah baris pertama. */
+      selectedServices.forEach((s, i) => {
         subtotal += s.price;
         html += `
           <div class="cart-row">
             <div class="item-info">
               <span><strong>${escapeHtml(s.name)}</strong></span>
               ${selectedCapster ? `
-              <select class="item-capster-pilih" data-item="${escapeHtml(String(s.id))}" title="Siapa yang mengerjakan layanan ini">
+              <select class="item-capster-pilih" data-idx="${i}" title="Siapa yang mengerjakan layanan ini">
                 ${capsters.filter(c => c.is_active !== false).map(c => `
                   <option value="${escapeHtml(String(c.id))}"${(s.capsterId || selectedCapster.id) === c.id ? ' selected' : ''}>${escapeHtml(c.name)}</option>
                 `).join('')}
               </select>` : '<span class="item-capster"><em>Pilih kapster dulu</em></span>'}
             </div>
             <span class="item-price">${formatRupiah(s.price)}</span>
+            <button type="button" class="item-hapus" data-idx="${i}"
+                    title="Hapus baris ini" aria-label="Hapus ${escapeHtml(s.name)}">&#215;</button>
           </div>
         `;
       });
@@ -2817,10 +2854,16 @@
 
     /* Pilihan capster per layanan disimpan pada item, lalu ditandai bila
        berbeda dari capster transaksinya. */
+    document.getElementById('cartItemsContainer').addEventListener('click', (e) => {
+      const btn = e.target.closest('.item-hapus');
+      if (!btn) return;
+      hapusBarisLayanan(Number(btn.dataset.idx));
+    });
+
     document.getElementById('cartItemsContainer').addEventListener('change', (e) => {
       const sel = e.target.closest('.item-capster-pilih');
       if (!sel) return;
-      const item = selectedServices.find(x => String(x.id) === sel.dataset.item);
+      const item = selectedServices[Number(sel.dataset.idx)];
       if (!item) return;
       item.capsterId = sel.value;
       tandaiCapsterBeda();
