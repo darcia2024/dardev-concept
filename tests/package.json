@@ -1,0 +1,4 @@
+{
+  "//": "Proyek Al Madraj menambahkan package.json ber-\"type\": \"module\" di akar repo, dan Node mewarisi setelan itu ke seluruh berkas .js di bawahnya — termasuk seluruh berkas tes, yang memakai require(). Berkas ini mengembalikan folder tes ke CommonJS tanpa perlu mengganti nama 18 berkas menjadi .cjs. Node membaca package.json terdekat ke atas, jadi yang di sini menang atas yang di akar.",
+  "type": "commonjs"
+}
