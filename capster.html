@@ -283,7 +283,7 @@
       <div class="avatar" id="avatar">–</div>
       <div class="who-text">
         <div class="who-name" id="capsterName">Memuat…</div>
-        <div class="who-role">Kapster &middot; <span id="todayLabel"></span></div>
+        <div class="who-role"><span id="jabatanLabel">Kapster</span> &middot; <span id="todayLabel"></span></div>
       </div>
     </div>
     <button class="btn" id="btnSignOut">Keluar</button>
@@ -925,22 +925,30 @@
       const { profile } = await sbLoadProfile(session.user);
 
       // Pemeriksaan peran di klien hanya untuk memberi pesan yang jelas.
-      // Penjaga sesungguhnya ada di RPC dan RLS: akun non-capster tidak
-      // tertaut ke baris capsters mana pun, sehingga tidak mendapat data.
+      // Penjaga sesungguhnya ada di RPC dan RLS: akun yang tidak tertaut ke
+      // baris capsters mana pun tidak mendapat data.
+      //
+      // Peran 'capster' di sini berarti "karyawan yang boleh absen", bukan
+      // "tukang cukur". Sejak migrasi 47, admin dan kebersihan juga memakai
+      // peran ini; yang membedakan pekerjaannya adalah kolom jabatan, dan
+      // itu sebutan untuk layar, bukan hak akses.
       if (profile.role !== 'capster') {
-        tampilkanDitolak(`Halaman ini khusus kapster. Akun Anda terdaftar sebagai <strong>${escapeHtml(profile.role)}</strong>.`);
+        tampilkanDitolak(`Halaman ini khusus karyawan. Akun Anda terdaftar sebagai <strong>${escapeHtml(profile.role)}</strong>.`);
         return;
       }
 
       const { data: meRows, error: meErr } = await sb.rpc('me_capster');
       const me = Array.isArray(meRows) ? meRows[0] : meRows;
       if (meErr || !me) {
-        tampilkanDitolak('Akun Anda belum ditautkan ke data kapster. Minta owner menautkannya.');
+        tampilkanDitolak('Akun Anda belum ditautkan ke data karyawan. Minta owner menautkannya.');
         return;
       }
 
       meCapster = me;          // dipakai sebagai awalan jalur unggah selfie
       $('capsterName').textContent = me.name;
+      // Jabatan datang dari data, bukan ditulis tetap: tukang bersih-bersih
+      // yang membuka layar ini tidak boleh disapa sebagai Kapster.
+      if (me.jabatan) $('jabatanLabel').textContent = me.jabatan;
       const FOTO_KAPSTER = {
         'cena': 'assets/cena',
         'lukman': 'assets/lukman',

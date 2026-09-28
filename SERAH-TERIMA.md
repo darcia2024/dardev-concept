@@ -127,8 +127,69 @@ orangnya sampai owner turun tangan.
 ### Owner
 
 Buka `/rekap`. Berisi omzet, metode bayar, performa capster, log transaksi,
-setoran kas, HPP & laba produk, rekap absensi, persetujuan cuti, dan
-pengaturan notifikasi WhatsApp ke capster.
+setoran kas, HPP & laba produk, rekap absensi, persetujuan cuti, pengaturan
+notifikasi WhatsApp ke capster, dan panel **Data Karyawan & PIN Kasir**.
+
+### Menambah karyawan
+
+Panel *Data Karyawan & PIN Kasir* di `/rekap` → tombol **+ Karyawan**.
+
+Isi nama, jabatan (Kapster, Kasir, Admin, Kebersihan, atau apa pun), dan nomor
+WhatsApp bila ia perlu menerima notifikasi booking. Satu centang yang perlu
+diperhatikan: **"Ikut jadi pilihan pencukur"**. Biarkan tercentang untuk
+kapster; lepas untuk karyawan yang tidak mencukur — ia tetap bisa absen, tetapi
+tidak muncul sebagai pilihan di kasir maupun di halaman booking pelanggan.
+
+Menambah karyawan **belum** membuatkannya akun. Tanpa akun ia belum bisa absen,
+dan kartunya akan menulis "Belum punya akun". Akun dibuat terpisah:
+
+1. Supabase Dashboard → Authentication → Users → **Add user**
+   - Email mengikuti pola yang ada, misalnya `amirul@underrated.com`
+   - Password minimal 8 karakter, **Auto Confirm User** dinyalakan
+   - **User Metadata** diisi — ini yang paling sering terlewat:
+     `{ "full_name": "Amirul", "role": "capster" }`
+
+   Bila metadata itu dikosongkan, akun terbentuk dengan peran `kasir`. Akibatnya
+   dua-duanya gagal tanpa pesan yang jelas: tombol ganti sandi menolak dengan
+   "Akun itu bukan akun capster", dan absennya menolak dengan "Akun Anda belum
+   ditautkan ke data karyawan aktif".
+
+   Peran `capster` di sini berarti "karyawan yang boleh absen", bukan "tukang
+   cukur". Admin dan kebersihan memakai peran yang sama; yang membedakan
+   pekerjaan mereka adalah kolom jabatan.
+
+2. SQL Editor — tautkan akunnya ke baris karyawannya:
+
+   ```sql
+   update public.profiles p
+      set role = 'capster', full_name = 'Amirul'
+     from auth.users u
+    where u.id = p.id and u.email = 'amirul@underrated.com';
+
+   update public.capsters c
+      set auth_user_id = u.id
+     from auth.users u
+    where u.email = 'amirul@underrated.com'
+      and lower(c.name) = 'amirul';
+   ```
+
+3. Periksa hasilnya:
+
+   ```sql
+   select c.name, c.jabatan, c.ikut_pos, c.is_active, u.email, p.role
+     from public.capsters c
+     left join auth.users u on u.id = c.auth_user_id
+     left join public.profiles p on p.id = c.auth_user_id
+    order by c.name;
+   ```
+
+Setelah itu ia masuk lewat `/masuk` dan absennya berjalan seperti kapster lain.
+
+**Untuk karyawan yang berhenti bekerja, hilangkan centang *Aktif* — jangan
+Hapus.** `attendances` dan `leave_requests` keduanya `ON DELETE CASCADE`, jadi
+menghapus orangnya ikut menghapus seluruh riwayat absen dan cutinya tanpa bisa
+dikembalikan. Sejak migrasi 47 tombol Hapus menolak melakukannya bila
+riwayatnya sudah ada — baik di `/rekap` maupun di layar Setting `/pos`.
 
 ---
 
