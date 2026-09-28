@@ -92,4 +92,31 @@ assert.match(rekap, /String\(kar\.jam_pulang\)\.slice\(0, 5\)/, 'jam pulang haru
 
 assert.match(rekap, /if \(!!jamMasuk !== !!jamPulang\)/, 'layar harus menolak jam yang diisi sebelah sebelum mengirim');
 
+/* ── 5 · Yang ditulis di layar absen = yang dipakai menilai (migrasi 52) ──
+   Migrasi 50 mengubah PENILAIAN, tetapi layar absen tetap menulis jam dari
+   work_rules — satu angka umum. Habibah (09.00-17.00) membaca 10:00-21:00,
+   dan setiap Jumat kapster membaca 10:00 padahal dinilai dari 13.00. Tidak
+   ada yang gagal; layarnya hanya berbohong kepada orang yang membacanya. */
+const jks = definisiTerakhir('jam_kerja_saya').badan;
+assert.match(jks, /jam_masuk_karyawan\(c\.id, jakarta_today\(\)\)/,
+  'jam masuk di layar harus datang dari fungsi yang sama dengan penilaian clock_in');
+assert.match(jks, /jam_pulang_karyawan\(c\.id, jakarta_today\(\)\)/);
+assert.match(jks, /WHERE c\.auth_user_id = auth\.uid\(\)/, 'hanya jam milik pemanggil sendiri');
+assert.match(jks, /FUNCTION jam_kerja_saya\(\)\s*\n/,
+  'jam_kerja_saya tidak boleh menerima id — karyawan tidak perlu menanyakan jam rekannya');
+
+const jpk = definisiTerakhir('jam_pulang_karyawan').badan;
+const pOrang = jpk.indexOf('c.jam_pulang FROM capsters');
+const pToko  = jpk.indexOf('jh.tutup FROM jam_hari_ini(');
+const pUmum  = jpk.indexOf('wr.jam_pulang FROM work_rules');
+assert.ok(pOrang > 0 && pOrang < pToko && pToko < pUmum,
+  'jam pulang: milik karyawan, lalu jadwal toko, lalu work_rules — urutan yang sama dengan jam masuk');
+
+const kapster = fs.readFileSync(path.join(root, 'capster.html'), 'utf8');
+assert.match(kapster, /sb\.rpc\('jam_kerja_saya'\)/, 'layar absen harus menanyakan jam milik orangnya');
+assert.match(kapster, /const jamTampil = jamKerjaSaya \|\| aturanKerja;/,
+  'jam milik orangnya diutamakan; work_rules hanya cadangan bila migrasi 52 belum jalan');
+assert.doesNotMatch(kapster, /\$\('jamKerja'\)\.textContent = String\(aturanKerja\./,
+  'label jam tidak boleh lagi ditulis langsung dari work_rules');
+
 console.log('jam-kerja-karyawan: semua pemeriksaan lolos');

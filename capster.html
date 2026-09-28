@@ -467,6 +467,7 @@
        ------------------------------------------------------------------------- */
 
     let aturanKerja = null;
+    let jamKerjaSaya = null;   // jam_kerja_saya(): jam yang dipakai menilai orang ini hari ini
     let meCapster = null;
 
     function jamWIB(iso) {
@@ -491,9 +492,12 @@
       const a = Array.isArray(res.data) ? res.data[0] : res.data;
       const dot = $('absenDot'), btn = $('btnAbsen');
 
+      const jamTampil = jamKerjaSaya || aturanKerja;
+      if (jamTampil) {
+        $('jamKerja').textContent = String(jamTampil.jam_masuk).slice(0,5)
+          + '–' + String(jamTampil.jam_pulang).slice(0,5);
+      }
       if (aturanKerja) {
-        $('jamKerja').textContent = String(aturanKerja.jam_masuk).slice(0,5)
-          + '–' + String(aturanKerja.jam_pulang).slice(0,5);
         // Keterangan mengikuti aturan yang sedang berlaku. Menyebut radius
         // padahal pengecekannya dimatikan membuat layar ini berbohong, dan
         // capster akan mengira absennya gagal karena posisi.
@@ -830,6 +834,19 @@
             + '). Absen tetap bisa dicoba, tetapi lokasi akan diminta.';
         }
         aturanKerja = r.data || null;
+      }
+      if (!jamKerjaSaya) {
+        /* Jam yang dipakai MENILAI orang ini hari ini — jamnya sendiri bila
+           ada, selain itu jadwal toko hari itu. work_rules di atas hanya satu
+           angka umum untuk semua orang: menampilkannya membuat karyawan
+           09.00 - 17.00 membaca 10:00 - 21:00, dan kapster membaca 10:00 pada
+           hari Jumat padahal toko baru buka 13.00.
+
+           Bila gagal — misalnya migrasi 52 belum dijalankan — layar kembali
+           memakai work_rules seperti sebelumnya, bukan kosong. */
+        const j = await sb.rpc('jam_kerja_saya');
+        const baris = !j.error && (Array.isArray(j.data) ? j.data[0] : j.data);
+        jamKerjaSaya = baris && baris.jam_masuk ? baris : null;
       }
       await Promise.all([muatAbsen(), muatCuti()]);
     }
