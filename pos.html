@@ -2541,12 +2541,29 @@
     }
 
     // Render Capsters
+    /* Satu-satunya penentu siapa yang boleh ditawarkan sebagai pencukur.
+       Dipakai di pilihan kapster, di dropdown per item, dan saat memeriksa
+       apakah pilihan yang tersimpan masih sah — kalau ketiganya menyaring
+       sendiri-sendiri, cepat atau lambat salah satunya akan tertinggal.
+
+       Perbandingannya !== false, bukan === true: perangkat kasir menyimpan
+       salinan master data secara luring, dan salinan yang dibuat sebelum
+       migrasi 47 belum punya kolom ikut_pos sama sekali. Menuntut === true
+       akan mengosongkan daftar kapster di perangkat yang belum sempat
+       menyegarkan datanya, dan kasir tidak bisa menutup nota. */
+    function bolehMencukur(c) {
+      return c && c.is_active !== false && c.ikut_pos !== false;
+    }
+
     function renderCapsters() {
       const container = document.getElementById('capsterContainer');
       container.innerHTML = '';
 
-      // Capster nonaktif (libur/cuti/resign) disembunyikan dari pilihan kasir
-      const activeCapsters = capsters.filter(c => c.is_active !== false);
+      // Capster nonaktif (libur/cuti/resign) disembunyikan dari pilihan kasir.
+      // Begitu pula karyawan yang memang tidak mencukur — admin, kebersihan —
+      // yang sejak migrasi 47 ikut tercatat di tabel yang sama supaya bisa
+      // absen, tetapi tidak boleh ditawarkan sebagai pencukur.
+      const activeCapsters = capsters.filter(bolehMencukur);
 
       if (activeCapsters.length === 0) {
         const empty = document.createElement('div');
@@ -2821,7 +2838,7 @@
               <span><strong>${escapeHtml(s.name)}</strong></span>
               ${selectedCapster ? `
               <select class="item-capster-pilih" data-idx="${i}" title="Siapa yang mengerjakan layanan ini">
-                ${capsters.filter(c => c.is_active !== false).map(c => `
+                ${capsters.filter(bolehMencukur).map(c => `
                   <option value="${escapeHtml(String(c.id))}"${(s.capsterId || selectedCapster.id) === c.id ? ' selected' : ''}>${escapeHtml(c.name)}</option>
                 `).join('')}
               </select>` : '<span class="item-capster"><em>Pilih kapster dulu</em></span>'}
@@ -4736,9 +4753,13 @@
         `).join('');
       }
 
-      const activeCap = capsters.filter(c => c.is_active !== false).length;
+      // Tabel ini memuat seluruh karyawan sejak migrasi 47, jadi menyebut
+      // semuanya "kapster" sudah tidak benar. Yang berguna diketahui owner
+      // bukan berapa yang aktif, melainkan berapa yang benar-benar muncul
+      // sebagai pilihan di layar kasir.
+      const bisaDipilih = capsters.filter(bolehMencukur).length;
       document.getElementById('capSummary').textContent =
-        `${capsters.length} kapster · ${activeCap} bertugas hari ini`;
+        `${capsters.length} karyawan · ${bisaDipilih} dapat dipilih kasir`;
     }
 
     /* =========================================================================
@@ -5402,9 +5423,16 @@
 
       if (btn.dataset.act === 'del') {
         if (!SBConn.online) return showToast('Sedang offline. Perubahan master data butuh koneksi.');
-        if (!confirm('Hapus kapster "' + cap.name + '"?\n\nTransaksi lama tetap menyimpan namanya. Untuk kapster yang sekadar libur, pakai tombol ● (tidak bertugas).')) return;
+        // Kalimat lama berbunyi "Transaksi lama tetap menyimpan namanya".
+        // Itu benar — transaction_items.capster_id memang ON DELETE SET NULL —
+        // tetapi menyesatkan, sebab yang justru hilang tidak disebut sama
+        // sekali: attendances dan leave_requests keduanya ON DELETE CASCADE.
+        if (!confirm('Hapus karyawan "' + cap.name + '"?\n\nSeluruh riwayat absen dan pengajuan cutinya ikut terhapus dan tidak bisa dikembalikan. Transaksi lama tetap menyimpan namanya.\n\nUntuk yang sekadar libur atau berhenti bekerja, pakai tombol ● (tidak bertugas).')) return;
 
-        const { error } = await sb.from('capsters').delete().eq('id', cap.id);
+        // Lewat RPC, bukan DELETE langsung: fungsinya menolak bila riwayatnya
+        // sudah ada, sehingga peringatan di atas tidak bergantung pada apakah
+        // orang membacanya.
+        const { error } = await sb.rpc('owner_hapus_karyawan', { p_id: cap.id });
         if (error) return showToast('Gagal menghapus: ' + error.message);
 
         if (editingCapsterId === cap.id) closeCapsterForm();
@@ -5429,7 +5457,7 @@
       }
       // Pilihan lama bisa menunjuk id yang sudah dihapus di perangkat lain
       selectedServices = selectedServices.filter(s => services.some(x => x.id === s.id && x.is_active !== false));
-      if (selectedCapster && !capsters.some(c => c.id === selectedCapster.id && c.is_active !== false)) {
+      if (selectedCapster && !capsters.some(c => c.id === selectedCapster.id && bolehMencukur(c))) {
         selectedCapster = null;
         document.getElementById('lblSelectedCapster').textContent = 'Belum dipilih';
       }

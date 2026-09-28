@@ -752,6 +752,39 @@
     .kelola-pesan { font-size: 12px; line-height: 1.45; }
     .kelola-pesan.ok  { color: var(--sage, #0F7355); }
     .kelola-pesan.bad { color: var(--brand, #BE0000); }
+
+    /* Penanda jabatan dan status pada kartu karyawan. Dibedakan warnanya
+       supaya "tidak mencukur" terbaca sekilas tanpa perlu dieja — itu satu
+       satunya hal di kartu ini yang mengubah apa yang dilihat pelanggan. */
+    .kelola-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .kelola-tag {
+      font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+      padding: 2px 7px; border-radius: 4px;
+      color: var(--fg-dim); background: var(--ink-inset);
+    }
+    .kelola-tag.cukur  { color: var(--sage, #0F7355); background: var(--sage-wash, rgba(15,115,85,.1)); }
+    .kelola-tag.mati   { color: var(--brand, #BE0000); background: rgba(190,0,0,.08); }
+
+    .kelola-form {
+      border: 1px solid var(--line); border-radius: var(--r-md);
+      background: var(--ink-card); padding: 15px 16px; margin-bottom: 12px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .kelola-form[hidden] { display: none; }
+    .kelola-form input, .kelola-form select {
+      background: var(--ink-inset); border: 1px solid var(--line); border-radius: var(--r-sm);
+      color: var(--fg); padding: 9px 11px; font-size: 14px; font-family: inherit;
+      outline: none; width: 100%;
+    }
+    .kelola-form input:focus, .kelola-form select:focus { border-color: var(--brand, #BE0000); }
+    .kelola-form-dua { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    @media (max-width: 520px) { .kelola-form-dua { grid-template-columns: 1fr; } }
+    .kelola-cek {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 12.5px; color: var(--fg-dim); line-height: 1.45;
+    }
+    .kelola-cek input { width: auto; margin-top: 2px; flex: none; }
+    .kelola-aksi { display: flex; gap: 8px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
@@ -1241,19 +1274,66 @@
       </div>
     </div>
 
-    <!-- Kelola capster (nomor & sandi) dan PIN kasir -->
+    <!-- Kelola karyawan (tambah, nomor & sandi) dan PIN kasir -->
     <div class="table-panel">
       <div class="table-controls">
         <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Data Kapster &amp; PIN Kasir</h2>
+          <h2 style="font-size: 15px; font-weight: 600;">Data Karyawan &amp; PIN Kasir</h2>
           <p style="font-size: 12px; color: var(--fg-dim);">
-            Nomor WhatsApp kapster untuk notifikasi booking, sandi yang terlupa, dan PIN kasir
+            Tambah karyawan, nomor WhatsApp untuk notifikasi booking, sandi yang terlupa, dan PIN kasir
           </p>
         </div>
+        <button class="btn-filter-date" id="btnTambahKaryawan">+ Karyawan</button>
       </div>
       <div style="padding: 4px 2px 8px; display:flex; flex-direction:column; gap:18px;">
         <div>
-          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Kapster</div>
+          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Karyawan</div>
+
+          <!-- Formulir tambah/ubah. Satu formulir dipakai bergantian: dua
+               formulir yang mirip akan lambat laun berbeda isinya. -->
+          <div class="kelola-form" id="formKaryawan" hidden>
+            <div class="kelola-nama" id="formKaryawanJudul">Karyawan baru</div>
+            <div>
+              <div class="kelola-label">Nama</div>
+              <input type="text" id="inpKarNama" maxlength="150" autocomplete="off"
+                     placeholder="Nama lengkap karyawan" />
+            </div>
+            <div class="kelola-form-dua">
+              <div>
+                <div class="kelola-label">Jabatan</div>
+                <input type="text" id="inpKarJabatan" maxlength="40" autocomplete="off"
+                       list="daftarJabatan" placeholder="Kapster" />
+                <datalist id="daftarJabatan">
+                  <option value="Kapster"></option>
+                  <option value="Kasir"></option>
+                  <option value="Admin"></option>
+                  <option value="Kebersihan"></option>
+                </datalist>
+              </div>
+              <div>
+                <div class="kelola-label">Nomor WhatsApp</div>
+                <input type="text" id="inpKarTelepon" inputmode="tel" autocomplete="off"
+                       placeholder="081297754581" />
+              </div>
+            </div>
+            <label class="kelola-cek">
+              <input type="checkbox" id="chkKarIkutPos" checked />
+              <span>Ikut jadi pilihan pencukur di kasir dan halaman booking.
+                    Lepas centangnya untuk karyawan yang tidak mencukur &mdash;
+                    ia tetap bisa absen.</span>
+            </label>
+            <label class="kelola-cek">
+              <input type="checkbox" id="chkKarAktif" checked />
+              <span>Aktif. Karyawan nonaktif hilang dari pilihan kasir tetapi
+                    riwayat absen dan transaksinya tetap utuh.</span>
+            </label>
+            <div class="kelola-pesan" id="pesanKaryawan"></div>
+            <div class="kelola-aksi">
+              <button class="btn-hdr" id="btnSimpanKaryawan">Simpan</button>
+              <button class="btn-hdr" id="btnBatalKaryawan">Batal</button>
+            </div>
+          </div>
+
           <div class="kelola-grid" id="gridCapster"></div>
         </div>
         <div>
@@ -1612,7 +1692,7 @@
 
       const [txRes, capRes, memRes] = await Promise.all([
         qTx,
-        sb.from('capsters').select('id, name, is_active'),
+        sb.from('capsters').select('id, name, is_active, ikut_pos'),
         sb.from('members').select('phone_wa, name, tier, visit_count, total_spend')
       ]);
 
@@ -3420,7 +3500,12 @@
       const tx = rawTransactions.find(x => x.id === btn.dataset.ubahCapster);
       if (!tx) return;
 
-      const aktif = (capstersData || []).filter(c => c.is_active);
+      // Hanya yang memang mencukur. Sejak migrasi 47 tabel yang sama juga
+      // memuat karyawan non-cukur, dan memindahkan sebuah nota ke tukang
+      // bersih-bersih akan merusak laporan produktivitas tanpa ada yang
+      // menyadarinya. !== false, bukan === true: baris lama yang belum
+      // tersentuh migrasi harus tetap terbaca sebagai kapster.
+      const aktif = (capstersData || []).filter(c => c.is_active && c.ikut_pos !== false);
       if (!aktif.length) return alert('Belum ada kapster aktif.');
 
       const daftar = aktif.map((c, i) => (i + 1) + '. ' + c.name).join('\n');
@@ -3937,11 +4022,39 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
-       SANDI CAPSTER & PIN KASIR
+       KARYAWAN, SANDI, & PIN KASIR
+
+       Tabelnya masih bernama capsters — lihat migrasi 47. Yang berubah adalah
+       pengakuannya: isinya seluruh karyawan outlet, dan kolom ikut_pos yang
+       menentukan siapa di antara mereka yang boleh ditawarkan sebagai
+       pencukur. Layar ini menyebutnya Karyawan karena itulah isinya.
        ═══════════════════════════════════════════════════════════════════════ */
+    let daftarKaryawan = [];
+    let karyawanDiubah = null;   // null = sedang menambah, bukan mengubah
+
     function kelolaPesan(el, teks, baik) {
       el.textContent = teks;
       el.className = 'kelola-pesan ' + (baik ? 'ok' : 'bad');
+    }
+
+    function bukaFormKaryawan(kar) {
+      karyawanDiubah = kar ? kar.capster_id : null;
+      document.getElementById('formKaryawanJudul').textContent =
+        kar ? ('Ubah ' + kar.name) : 'Karyawan baru';
+      document.getElementById('inpKarNama').value    = kar ? (kar.name || '') : '';
+      document.getElementById('inpKarJabatan').value = kar ? (kar.jabatan || 'Kapster') : '';
+      document.getElementById('inpKarTelepon').value = kar ? (kar.telepon || '') : '';
+      document.getElementById('chkKarIkutPos').checked = kar ? (kar.ikut_pos !== false) : true;
+      document.getElementById('chkKarAktif').checked   = kar ? (kar.is_active !== false) : true;
+      document.getElementById('pesanKaryawan').textContent = '';
+      document.getElementById('pesanKaryawan').className = 'kelola-pesan';
+      document.getElementById('formKaryawan').hidden = false;
+      document.getElementById('inpKarNama').focus();
+    }
+
+    function tutupFormKaryawan() {
+      karyawanDiubah = null;
+      document.getElementById('formKaryawan').hidden = true;
     }
 
     async function muatKelolaAkun() {
@@ -3954,13 +4067,32 @@
       ]);
 
       if (staf.error) {
-        gc.innerHTML = '<div class="kelola-pesan bad">Gagal memuat kapster: ' + escapeHtml(staf.error.message) + '</div>';
+        gc.innerHTML = '<div class="kelola-pesan bad">Gagal memuat karyawan: ' + escapeHtml(staf.error.message) + '</div>';
       } else {
-        gc.innerHTML = (staf.data || []).map(function (c) {
+        // Disimpan supaya tombol Ubah dapat mengisi formulir tanpa memanggil
+        // server lagi. Baris yang sama sudah ada di tangan.
+        daftarKaryawan = staf.data || [];
+        gc.innerHTML = daftarKaryawan.map(function (c) {
           const bisa = c.punya_akun;
+          // ikut_pos dibandingkan !== false, bukan === true: sebelum migrasi
+          // 47 terpasang kolomnya belum ada, dan daftar yang datang tanpa
+          // kolom itu harus tetap terbaca sebagai kapster seperti sediakala.
+          const mencukur = c.ikut_pos !== false;
           return '<div class="kelola-kartu">'
-            + '<div><div class="kelola-nama">' + escapeHtml(c.name) + (c.is_active ? '' : ' <span style="font-size:11px;color:var(--fg-dim);">(nonaktif)</span>') + '</div>'
-            + '<div class="kelola-sub">' + escapeHtml(c.email || 'belum punya akun') + '</div></div>'
+            + '<div><div class="kelola-nama">' + escapeHtml(c.name) + '</div>'
+            + '<div class="kelola-sub">' + escapeHtml(c.email || 'belum punya akun') + '</div>'
+            + '<div class="kelola-tags" style="margin-top:7px;">'
+            +   '<span class="kelola-tag">' + escapeHtml(c.jabatan || 'Kapster') + '</span>'
+            +   (mencukur
+                  ? '<span class="kelola-tag cukur">Mencukur</span>'
+                  : '<span class="kelola-tag">Tidak mencukur</span>')
+            +   (c.is_active ? '' : '<span class="kelola-tag mati">Nonaktif</span>')
+            + '</div></div>'
+            + '<div class="kelola-aksi">'
+            +   '<button class="btn-hdr" data-kar-ubah="' + c.capster_id + '">Ubah</button>'
+            +   '<button class="btn-hdr" data-kar-hapus="' + c.capster_id + '">Hapus</button>'
+            + '</div>'
+            + '<div class="kelola-pesan" data-kar-pesan="' + c.capster_id + '"></div>'
             + '<div class="kelola-label">Nomor WhatsApp</div>'
             + '<div class="kelola-baris">'
             + '<input type="text" inputmode="tel" placeholder="081297754581" value="'
@@ -3997,10 +4129,91 @@
       }
     }
 
+    document.getElementById('btnTambahKaryawan').addEventListener('click', function () {
+      bukaFormKaryawan(null);
+    });
+    document.getElementById('btnBatalKaryawan').addEventListener('click', tutupFormKaryawan);
+
+    document.getElementById('btnSimpanKaryawan').addEventListener('click', async function () {
+      const msg  = document.getElementById('pesanKaryawan');
+      const nama = document.getElementById('inpKarNama').value.trim();
+      if (!nama) { kelolaPesan(msg, 'Nama karyawan wajib diisi.', false); return; }
+
+      // Bentuk akhir nomor ditentukan server lewat normalkan_nomor_wa(). Di
+      // sini hanya disaring yang jelas bukan nomor, supaya owner tidak perlu
+      // menunggu jaringan untuk tahu ia salah ketik.
+      const telp  = document.getElementById('inpKarTelepon').value.trim();
+      const angka = telp.replace(/[^0-9]/g, '');
+      if (telp !== '' && angka.length < 9) {
+        kelolaPesan(msg, 'Nomor terlalu pendek. Contoh: 081297754581.', false); return;
+      }
+
+      const btn = this;
+      btn.disabled = true;
+      const label = btn.textContent;
+      btn.textContent = 'Menyimpan…';
+      try {
+        const { error } = await sb.rpc('owner_upsert_karyawan', {
+          p_id:       karyawanDiubah,
+          p_nama:     nama,
+          p_telepon:  telp || null,
+          p_jabatan:  document.getElementById('inpKarJabatan').value.trim() || 'Kapster',
+          p_ikut_pos: document.getElementById('chkKarIkutPos').checked,
+          p_aktif:    document.getElementById('chkKarAktif').checked
+        });
+        if (error) throw error;
+        tutupFormKaryawan();
+        await muatKelolaAkun();
+      } catch (err) {
+        kelolaPesan(msg, 'Gagal menyimpan: ' + (err.message || err), false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+      }
+    });
+
     document.addEventListener('click', async (e) => {
       const bSandi = e.target.closest('[data-sandi-simpan]');
       const bPin   = e.target.closest('[data-pin-simpan]');
       const bTelp  = e.target.closest('[data-telp-simpan]');
+      const bUbah  = e.target.closest('[data-kar-ubah]');
+      const bHapus = e.target.closest('[data-kar-hapus]');
+
+      if (bUbah) {
+        const kar = daftarKaryawan.find(k => k.capster_id === bUbah.dataset.karUbah);
+        if (kar) bukaFormKaryawan(kar);
+        return;
+      }
+
+      if (bHapus) {
+        const id  = bHapus.dataset.karHapus;
+        const kar = daftarKaryawan.find(k => k.capster_id === id);
+        const msg = document.querySelector('[data-kar-pesan="' + id + '"]');
+        if (!kar) return;
+
+        // Peringatan ditulis dengan angkanya, bukan dengan kalimat umum:
+        // owner perlu tahu persis berapa banyak yang akan ikut hilang. Server
+        // tetap menolak kalau riwayatnya ada — ini hanya supaya penolakan itu
+        // tidak datang sebagai kejutan.
+        const jml = Number(kar.jml_absen || 0);
+        const ingat = jml > 0
+          ? 'Hapus ' + kar.name + '?\n\n' + jml + ' catatan absen miliknya ikut '
+            + 'terhapus tanpa bisa dikembalikan. Untuk yang sekadar berhenti '
+            + 'bekerja, hilangkan centang Aktif lewat tombol Ubah.'
+          : 'Hapus ' + kar.name + '?';
+        if (!confirm(ingat)) return;
+
+        bHapus.disabled = true;
+        try {
+          const { error } = await sb.rpc('owner_hapus_karyawan', { p_id: id });
+          if (error) throw error;
+          await muatKelolaAkun();
+        } catch (err) {
+          if (msg) kelolaPesan(msg, 'Gagal menghapus: ' + (err.message || err), false);
+          bHapus.disabled = false;
+        }
+        return;
+      }
 
       if (bTelp) {
         const id = bTelp.dataset.telpSimpan;
