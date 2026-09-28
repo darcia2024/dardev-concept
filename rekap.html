@@ -4567,8 +4567,14 @@
         await muatKelolaAkun();
         const baru = document.querySelector('[data-sandi-pesan="' + id + '"]');
         if (baru) {
+          // Akun lama yang ditautkan ulang disebut terang-terangan: sandinya
+          // baru saja diganti, dan siapa pun yang masih memegang sandi lamanya
+          // perlu tahu sandi itu sudah tidak berlaku.
           kelolaPesan(baru, 'Akun ' + (r ? r.email : mail)
-            + ' dibuat. Kapster sudah bisa masuk dan absen.', true);
+            + (r && r.akun_lama
+                ? ' yang sudah ada ditautkan ulang dengan sandi baru.'
+                : ' dibuat.')
+            + ' Karyawan sudah bisa masuk dan absen.', true);
         }
         return;
       }
