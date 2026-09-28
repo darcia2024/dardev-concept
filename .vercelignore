@@ -1,0 +1,14 @@
+# Berkas yang tetap tinggal di repositori tetapi tidak ikut diunggah ke Vercel.
+#
+# Menghapus rute dari vercel.json saja TIDAK cukup: proyek ini statis, jadi
+# setiap berkas di akar tetap dilayani apa adanya. Tanpa daftar ini,
+# /perencanaan memang mati tetapi /perencanaan.html masih terbuka lebar.
+
+# Dokumen penawaran per Agustus 2026. Isinya merinci manfaat per level yang
+# tidak pernah dibangun — antara lain diskon produk retail 5%/10% untuk
+# Platinum dan Infinite, prioritas antrean kasir, dan layanan gratis untuk
+# Platinum ke atas yang menunggu keputusan K-05. Selama halaman ini terbuka
+# untuk publik, member yang membacanya berhak menagih di kasir dan akan
+# bertemu orang yang tidak tahu apa-apa. Pemilik memutuskan menurunkannya
+# dari publik dan menyimpannya sebagai arsip.
+perencanaan.html
