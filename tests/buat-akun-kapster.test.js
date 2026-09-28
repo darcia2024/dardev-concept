@@ -3,7 +3,27 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const m47 = fs.readFileSync(path.join(root, 'supabase_migration_47_owner_buat_akun_capster.sql'), 'utf8');
+
+/* Yang diperiksa adalah definisi TERAKHIR owner_buat_akun_capster, bukan
+   berkas migrasi tertentu. Fungsi ini pernah ditulis ulang di migrasi 49
+   untuk memperbaiki bentrok dengan trigger profil; tes yang terpaku pada
+   migrasi 47 akan lulus sambil menjaga kode yang sudah tidak berjalan lagi —
+   bentuk kegagalan yang paling menyesatkan, sebab layarnya hijau. */
+function migrasiTerakhirYangMendefinisikan(nama) {
+  const berkas = fs.readdirSync(root)
+    .filter(f => /^supabase_migration_\d+.*\.sql$/.test(f))
+    .map(f => ({ f, n: Number(f.match(/^supabase_migration_(\d+)/)[1]) }))
+    .sort((a, b) => a.n - b.n);
+  let isi = null, dari = null;
+  for (const { f } of berkas) {
+    const teks = fs.readFileSync(path.join(root, f), 'utf8');
+    if (teks.includes('FUNCTION ' + nama + '(')) { isi = teks; dari = f; }
+  }
+  assert.ok(isi, nama + ' tidak didefinisikan di migrasi mana pun');
+  return { isi, dari };
+}
+
+const { isi: m47, dari: berkasFungsi } = migrasiTerakhirYangMendefinisikan('owner_buat_akun_capster');
 const rekap = fs.readFileSync(path.join(root, 'rekap.html'), 'utf8');
 
 /* Fungsi ini membuat akun yang dapat masuk ke sistem. Kegagalannya tidak
@@ -21,6 +41,35 @@ const tandaTangan = m47.slice(m47.indexOf('CREATE OR REPLACE FUNCTION owner_buat
 assert.equal(tandaTangan.indexOf('role'), -1, 'peran tidak boleh menjadi parameter');
 assert.match(m47, /INSERT INTO profiles \(id, full_name, role, is_active\)\s*\n\s*VALUES \(v_uid, v_cap\.name, 'capster', TRUE\)/,
   "peran harus dipaku 'capster' di badan fungsi");
+
+/* ── 1b · Bentrok dengan trigger profil ───────────────────────────────────
+   supabase_schema.sql memasang on_auth_user_created pada auth.users: tiap
+   baris baru di sana OTOMATIS mendapat barisnya di profiles. Menyisipkan ke
+   profiles sesudahnya tanpa ON CONFLICT bertabrakan dengan baris yang dibuat
+   fungsi itu sendiri, dan tombol Buat selalu gagal dengan
+
+       duplicate key value violates unique constraint "profiles_pkey"
+
+   Ini pernah terjadi sungguhan, dan selalu — bukan kadang-kadang. */
+const sisipProfil = m47.slice(m47.indexOf('INSERT INTO profiles'),
+                              m47.indexOf('UPDATE capsters SET auth_user_id'));
+assert.match(
+  sisipProfil, /ON CONFLICT \(id\) DO UPDATE/,
+  'sisipan ke profiles harus ON CONFLICT: trigger on_auth_user_created sudah membuat barisnya lebih dulu'
+);
+assert.match(
+  sisipProfil, /role\s*=\s*'capster'/,
+  'pada tabrakan, perannya harus tetap dipaksa capster — bukan dibiarkan apa adanya'
+);
+
+/* Dan sebaliknya: trigger membaca role dari raw_user_meta_data. Tanpa kunci
+   itu ia memberi peran 'kasir', sehingga kapsternya tidak bisa absen dan
+   penggantian sandinya ditolak dengan "Akun itu bukan akun capster" —
+   dua kegagalan yang tidak satu pun menyebut sebabnya. */
+assert.match(
+  m47, /jsonb_build_object\('full_name', v_cap\.name, 'role', 'capster'\)/,
+  "raw_user_meta_data harus memuat role: trigger membacanya, dan tanpanya profilnya jadi 'kasir'"
+);
 for (const peran of ["'owner'", "'kasir'"]) {
   assert.equal(m47.indexOf('role, is_active)\n    VALUES (v_uid, v_cap.name, ' + peran), -1,
     'fungsi ini tidak boleh dapat membuat akun ber-peran ' + peran);
