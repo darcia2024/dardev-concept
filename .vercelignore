@@ -18,3 +18,17 @@ perencanaan.html
 # /supabase/functions/buat-akun-karyawan/index.ts — tidak memuat rahasia,
 # tetapi tidak ada alasan menyiarkannya.
 supabase/
+
+# Migrasi dan skema. Dijalankan manual pemilik di SQL Editor, tidak pernah
+# diambil halaman mana pun saat berjalan — sudah diperiksa: tidak ada satu pun
+# fetch ke berkas .sql di seluruh HTML dan JS.
+#
+# Tanpa baris ini seluruhnya terbuka di /supabase_migration_02_akses.sql dan
+# seterusnya: skema lengkap, seluruh kebijakan RLS, dan isi tiap fungsi.
+# Datanya sendiri tetap dijaga RLS, jadi ini bukan kebocoran data — tetapi
+# memberitahu persis di mana tiap penjaga berdiri bukan sesuatu yang gratis.
+*.sql
+
+# Penjaga regresi. Dijalankan di mesin pengembang dengan `node`, tidak ada
+# hubungannya dengan situs yang dilayani.
+tests/
