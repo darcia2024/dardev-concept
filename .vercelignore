@@ -13,11 +13,6 @@
 # dari publik dan menyimpannya sebagai arsip.
 perencanaan.html
 
-# Edge Function di-deploy lewat `supabase functions deploy`, bukan lewat
-# Vercel. Tanpa baris ini kodenya ikut terunggah dan dilayani apa adanya di
-# /supabase/functions/buat-akun-karyawan/index.ts — tidak memuat rahasia,
-# tetapi tidak ada alasan menyiarkannya.
-supabase/
 
 # Migrasi dan skema. Dijalankan manual pemilik di SQL Editor, tidak pernah
 # diambil halaman mana pun saat berjalan — sudah diperiksa: tidak ada satu pun

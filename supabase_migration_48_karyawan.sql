@@ -322,3 +322,49 @@ $function$;
 
 REVOKE EXECUTE ON FUNCTION me_capster() FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION me_capster() TO authenticated;
+
+
+-- ==============================================================================
+-- MELEPAS AKUN KARYAWAN
+--
+-- owner_buat_akun_capster() pada migrasi 47 menolak karyawan yang sudah punya
+-- akun. Penolakan itu benar — membuat akun kedua meninggalkan akun pertama
+-- menggantung tanpa pemilik — tetapi tanpa jalan keluar ia jadi buntu: akun
+-- yang salah tertaut tidak dapat diperbaiki dari layar mana pun.
+--
+-- Melepas tidak menghapus akunnya di auth.users. Karyawan yang kembali
+-- bekerja dapat ditautkan lagi, dan riwayat absennya tetap utuh karena absen
+-- menunjuk ke capsters.id, bukan ke akunnya.
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION owner_lepas_akun_karyawan(p_karyawan_id UUID)
+RETURNS TABLE (nama CHARACTER VARYING)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $function$
+DECLARE
+    v_kar capsters%ROWTYPE;
+BEGIN
+    IF NOT is_owner() THEN
+        RAISE EXCEPTION 'Hanya owner yang boleh melepas akun karyawan.';
+    END IF;
+
+    SELECT * INTO v_kar FROM capsters c WHERE c.id = p_karyawan_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Karyawan tidak ditemukan.';
+    END IF;
+    IF v_kar.auth_user_id IS NULL THEN
+        RAISE EXCEPTION '% memang belum punya akun.', v_kar.name;
+    END IF;
+
+    -- Batasi sasaran: fungsi ini tidak boleh dipakai melepas akun owner atau
+    -- akun perangkat POS, meski id karyawannya ditebak-tebak.
+    IF EXISTS (SELECT 1 FROM profiles p
+                WHERE p.id = v_kar.auth_user_id AND p.role <> 'capster') THEN
+        RAISE EXCEPTION 'Akun itu bukan akun karyawan.';
+    END IF;
+
+    UPDATE capsters c SET auth_user_id = NULL WHERE c.id = p_karyawan_id;
+    RETURN QUERY SELECT v_kar.name;
+END $function$;
+
+REVOKE EXECUTE ON FUNCTION owner_lepas_akun_karyawan(UUID) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION owner_lepas_akun_karyawan(UUID) TO authenticated;
