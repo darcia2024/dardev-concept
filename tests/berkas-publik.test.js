@@ -40,11 +40,10 @@ function tertutup(berkas) {
 const WAJIB_TERTUTUP = [
   'supabase_schema.sql',
   'supabase_migration_02_akses.sql',
-  'supabase_migration_48_tautkan_akun.sql',
+  'supabase_migration_48_karyawan.sql',
   'koreksi_data_01b_terapkan_poin.sql',
   'tests/berkas-publik.test.js',
   'tests/akun-karyawan.test.js',
-  'supabase/functions/buat-akun-karyawan/index.ts',
   'perencanaan.html',
   'SERAH-TERIMA.md',
   'README.md',

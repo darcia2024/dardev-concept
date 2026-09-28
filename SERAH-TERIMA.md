@@ -145,24 +145,28 @@ dan kartunya akan menulis "belum punya akun".
 
 ### Membuatkan akun karyawan
 
-Di kartu orangnya, bagian **Buatkan akun**. Alamat emailnya sudah diisikan dari
+Di kartu orangnya, bagian **Buatkan Akun**. Alamat emailnya sudah diisikan dari
 namanya mengikuti pola yang ada (`amirul@underrated.com`) dan masih bisa
-diubah. Kolom sandi boleh dikosongkan — bila kosong, sistem membuatkan sandi
-acak 14 karakter dan **menampilkannya sekali** di kartu itu. Catat saat itu
-juga; ia tidak ditampilkan lagi. Kalau terlewat, pakai kolom Sandi untuk
-menggantinya.
+diubah — email ini tidak pernah menjadi kotak surat sungguhan, ia hanya nama
+pengguna. Isi sandi awal minimal 8 karakter, lalu tekan **Buat**.
 
-Akun yang terbentuk otomatis berperan `capster` dan langsung tertaut ke baris
-karyawannya, jadi tidak ada langkah manual di Supabase Dashboard lagi.
+**Catat sandinya saat itu juga.** Layar tidak menampilkannya lagi. Kalau
+terlewat, pakai kolom Sandi pada kartu yang sama untuk menggantinya.
+
+Akun yang terbentuk langsung berperan `capster`, tertaut ke baris karyawannya,
+dan sudah terkonfirmasi — tidak ada langkah manual di Supabase Dashboard lagi.
+Sesudah itu karyawan dapat mengganti sendiri sandinya dari halamannya.
 
 Peran `capster` di sini berarti "karyawan yang boleh absen", bukan "tukang
 cukur". Admin dan kebersihan memakai peran yang sama; yang membedakan pekerjaan
 mereka adalah kolom jabatan.
 
 Tombol **Lepas akun** memutus tautannya tanpa menghapus akunnya di Supabase.
-Dipakai saat seseorang berhenti, atau saat akunnya salah tertaut. Riwayat
-absennya tetap utuh, sebab absen menunjuk ke baris karyawannya, bukan ke
-akunnya — dan bila ia kembali bekerja, akun yang sama dapat ditautkan lagi.
+Dipakai saat seseorang berhenti, atau saat akunnya salah tertaut — pembuatan
+akun menolak karyawan yang sudah punya, jadi tanpa tombol ini keadaan itu
+buntu. Riwayat absennya tetap utuh, sebab absen menunjuk ke baris karyawannya,
+bukan ke akunnya, dan bila ia kembali bekerja akun yang sama dapat ditautkan
+lagi.
 
 Untuk memeriksa keadaan semua orang sekaligus:
 
@@ -177,53 +181,31 @@ select c.name, c.jabatan, c.ikut_pos, c.is_active, u.email, p.role
 Setelah akunnya ada, ia masuk lewat `/masuk` dan absennya berjalan seperti
 kapster lain.
 
-#### Kenapa lewat Edge Function
+#### Bagaimana akunnya dibuat, dan harganya
 
-Membuat pengguna di `auth.users` butuh **service-role key**, yang memintas
-seluruh Row Level Security. Layar owner memakai *publishable key* yang memang
-dirancang untuk publik — siapa pun dapat membacanya dari sumber halaman.
-Menaruh service-role key di sana sama dengan menyerahkan seluruh basis data,
-termasuk nama dan nomor WhatsApp setiap pelanggan.
+`owner_buat_akun_capster()` (migrasi 47) menulis langsung ke `auth.users`
+dengan `extensions.crypt`, cara yang sama persis dengan yang sudah dipakai
+`owner_set_capster_password` sejak migrasi 12. Baris `auth.identities` ikut
+dibuat — tanpanya akun tercipta dan terlihat wajar di dashboard, tetapi tidak
+pernah bisa masuk.
 
-Karena itu kunci tersebut tinggal di Edge Function `buat-akun-karyawan`, dan
-peramban hanya mengirim permintaan bersama JWT miliknya sendiri. Fungsi itu
-memeriksa bahwa pemanggilnya owner dengan membaca `profiles.role` dari id yang
-sudah diverifikasi — bukan dari klaim di dalam JWT, yang bisa basi bila peran
-seseorang dicabut. Peran akun baru ditulis tetap `capster` dan tidak pernah
-dibaca dari permintaan, sehingga endpoint ini tidak bisa dipakai mencetak owner
-baru sekalipun penjaga pertamanya suatu saat bocor.
+Jalan resminya adalah service-role key, dan kunci itu tidak boleh pernah berada
+di halaman yang dibuka peramban: siapa pun yang membaca sumbernya menguasai
+seluruh basis data. Alternatif resmi lainnya, Edge Function, menuntut
+penerapan terpisah di luar alur `vercel` repositori ini. Fungsi SECURITY
+DEFINER menaruh kewenangannya di tempat yang tidak pernah meninggalkan server,
+tanpa menambah permukaan penerapan baru.
 
-`tests/akun-karyawan.test.js` menjaga janji-janji itu, termasuk membongkar tiap
-JWT yang ada di berkas yang dikirim ke peramban untuk memastikan tidak ada yang
-berperan `service_role`.
+Harganya, dengan jujur: `auth.users` milik Supabase, bukan milik kita. Bila
+mereka mengubah bentuknya pada pembaruan mendatang, fungsi ini akan **gagal
+dengan galat** — bukan merusak data, sebab seluruh badan fungsi plpgsql
+berjalan sebagai satu transaksi dan yang setengah jadi tidak pernah tersimpan.
+Bila itu terjadi, gejalanya jelas: tombol Buat menjawab galat, dan pembuatan
+akun kembali manual sampai fungsinya disesuaikan.
 
-#### Memasang Edge Function-nya
-
-Hanya perlu sekali, dan **wajib sebelum** halaman barunya di-deploy — tanpa itu
-tombol Buat akan menjawab "Failed to send a request to the Edge Function".
-
-```bash
-supabase functions deploy buat-akun-karyawan --project-ref grzjfnqljjzjkvmgtohe
-```
-
-`SUPABASE_URL`, `SUPABASE_ANON_KEY`, dan `SUPABASE_SERVICE_ROLE_KEY` disediakan
-Supabase sendiri — tidak perlu diisi manual, dan **jangan** disalin ke mana pun.
-
-Jangan pernah memasangnya dengan `--no-verify-jwt`. Flag itu mematikan
-pemeriksaan JWT di gerbangnya, menyisakan hanya penjaga di dalam fungsinya.
-
-Bila domainnya berubah, daftar asal yang boleh memanggil diatur lewat secret
-`ORIGIN_DIIZINKAN` (dipisah koma) tanpa menyunting kodenya:
-
-```bash
-supabase secrets set ORIGIN_DIIZINKAN="https://underratedbarbershop.com,https://www.underratedbarbershop.com" --project-ref grzjfnqljjzjkvmgtohe
-```
-
-**Untuk karyawan yang berhenti bekerja, hilangkan centang *Aktif* — jangan
-Hapus.** `attendances` dan `leave_requests` keduanya `ON DELETE CASCADE`, jadi
-menghapus orangnya ikut menghapus seluruh riwayat absen dan cutinya tanpa bisa
-dikembalikan. Sejak migrasi 47 tombol Hapus menolak melakukannya bila
-riwayatnya sudah ada — baik di `/rekap` maupun di layar Setting `/pos`.
+Perannya dipaku `capster` di dalam fungsinya dan tidak dapat ditentukan
+pemanggil, sehingga jalur ini tidak bisa dipakai memunculkan owner atau kasir
+baru. `tests/buat-akun-kapster.test.js` menjaganya.
 
 ---
 
@@ -512,7 +494,6 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | `vendor/` | Library Supabase, pembuat QR, dan pembaca QR, di-host sendiri |
 | `supabase_schema.sql` | Skema dasar |
 | `supabase_migration_02..48_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. Ada **dua** berkas bernomor 44 — lihat catatan di bawah. |
-| `supabase/functions/` | Edge Function. Di-deploy terpisah dengan `supabase functions deploy`, tidak ikut `vercel`. |
 | `tests/*.test.js` | Penjaga regresi. Jalankan `node tests/<nama>.test.js`; tidak perlu dependensi. |
 
 Dua migrasi sama-sama bernomor **44** — `44_qris_dinamis.sql` dan
