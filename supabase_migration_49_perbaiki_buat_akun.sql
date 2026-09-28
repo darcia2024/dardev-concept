@@ -1,3 +1,8 @@
+-- !!! JANGAN DIJALANKAN ULANG. owner_buat_akun_capster di berkas ini sudah
+-- !!! digantikan migrasi 51. Menjalankan berkas ini sekarang akan MENIMPA versi
+-- !!! yang benar dengan versi lama tanpa peringatan apa pun — itu pernah terjadi
+-- !!! di produksi pada 29 September 2026, dan tombol Buat akun kembali rusak.
+-- !!! Berkas ini disimpan sebagai riwayat, bukan untuk dijalankan.
 -- ==============================================================================
 -- MIGRASI 49 - Perbaikan owner_buat_akun_capster: bentrok dengan trigger profil
 --
