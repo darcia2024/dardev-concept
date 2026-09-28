@@ -141,49 +141,83 @@ kapster; lepas untuk karyawan yang tidak mencukur — ia tetap bisa absen, tetap
 tidak muncul sebagai pilihan di kasir maupun di halaman booking pelanggan.
 
 Menambah karyawan **belum** membuatkannya akun. Tanpa akun ia belum bisa absen,
-dan kartunya akan menulis "Belum punya akun". Akun dibuat terpisah:
+dan kartunya akan menulis "belum punya akun".
 
-1. Supabase Dashboard → Authentication → Users → **Add user**
-   - Email mengikuti pola yang ada, misalnya `amirul@underrated.com`
-   - Password minimal 8 karakter, **Auto Confirm User** dinyalakan
-   - **User Metadata** diisi — ini yang paling sering terlewat:
-     `{ "full_name": "Amirul", "role": "capster" }`
+### Membuatkan akun karyawan
 
-   Bila metadata itu dikosongkan, akun terbentuk dengan peran `kasir`. Akibatnya
-   dua-duanya gagal tanpa pesan yang jelas: tombol ganti sandi menolak dengan
-   "Akun itu bukan akun capster", dan absennya menolak dengan "Akun Anda belum
-   ditautkan ke data karyawan aktif".
+Di kartu orangnya, bagian **Buatkan akun**. Alamat emailnya sudah diisikan dari
+namanya mengikuti pola yang ada (`amirul@underrated.com`) dan masih bisa
+diubah. Kolom sandi boleh dikosongkan — bila kosong, sistem membuatkan sandi
+acak 14 karakter dan **menampilkannya sekali** di kartu itu. Catat saat itu
+juga; ia tidak ditampilkan lagi. Kalau terlewat, pakai kolom Sandi untuk
+menggantinya.
 
-   Peran `capster` di sini berarti "karyawan yang boleh absen", bukan "tukang
-   cukur". Admin dan kebersihan memakai peran yang sama; yang membedakan
-   pekerjaan mereka adalah kolom jabatan.
+Akun yang terbentuk otomatis berperan `capster` dan langsung tertaut ke baris
+karyawannya, jadi tidak ada langkah manual di Supabase Dashboard lagi.
 
-2. SQL Editor — tautkan akunnya ke baris karyawannya:
+Peran `capster` di sini berarti "karyawan yang boleh absen", bukan "tukang
+cukur". Admin dan kebersihan memakai peran yang sama; yang membedakan pekerjaan
+mereka adalah kolom jabatan.
 
-   ```sql
-   update public.profiles p
-      set role = 'capster', full_name = 'Amirul'
-     from auth.users u
-    where u.id = p.id and u.email = 'amirul@underrated.com';
+Tombol **Lepas akun** memutus tautannya tanpa menghapus akunnya di Supabase.
+Dipakai saat seseorang berhenti, atau saat akunnya salah tertaut. Riwayat
+absennya tetap utuh, sebab absen menunjuk ke baris karyawannya, bukan ke
+akunnya — dan bila ia kembali bekerja, akun yang sama dapat ditautkan lagi.
 
-   update public.capsters c
-      set auth_user_id = u.id
-     from auth.users u
-    where u.email = 'amirul@underrated.com'
-      and lower(c.name) = 'amirul';
-   ```
+Untuk memeriksa keadaan semua orang sekaligus:
 
-3. Periksa hasilnya:
+```sql
+select c.name, c.jabatan, c.ikut_pos, c.is_active, u.email, p.role
+  from public.capsters c
+  left join auth.users u on u.id = c.auth_user_id
+  left join public.profiles p on p.id = c.auth_user_id
+ order by c.name;
+```
 
-   ```sql
-   select c.name, c.jabatan, c.ikut_pos, c.is_active, u.email, p.role
-     from public.capsters c
-     left join auth.users u on u.id = c.auth_user_id
-     left join public.profiles p on p.id = c.auth_user_id
-    order by c.name;
-   ```
+Setelah akunnya ada, ia masuk lewat `/masuk` dan absennya berjalan seperti
+kapster lain.
 
-Setelah itu ia masuk lewat `/masuk` dan absennya berjalan seperti kapster lain.
+#### Kenapa lewat Edge Function
+
+Membuat pengguna di `auth.users` butuh **service-role key**, yang memintas
+seluruh Row Level Security. Layar owner memakai *publishable key* yang memang
+dirancang untuk publik — siapa pun dapat membacanya dari sumber halaman.
+Menaruh service-role key di sana sama dengan menyerahkan seluruh basis data,
+termasuk nama dan nomor WhatsApp setiap pelanggan.
+
+Karena itu kunci tersebut tinggal di Edge Function `buat-akun-karyawan`, dan
+peramban hanya mengirim permintaan bersama JWT miliknya sendiri. Fungsi itu
+memeriksa bahwa pemanggilnya owner dengan membaca `profiles.role` dari id yang
+sudah diverifikasi — bukan dari klaim di dalam JWT, yang bisa basi bila peran
+seseorang dicabut. Peran akun baru ditulis tetap `capster` dan tidak pernah
+dibaca dari permintaan, sehingga endpoint ini tidak bisa dipakai mencetak owner
+baru sekalipun penjaga pertamanya suatu saat bocor.
+
+`tests/akun-karyawan.test.js` menjaga janji-janji itu, termasuk membongkar tiap
+JWT yang ada di berkas yang dikirim ke peramban untuk memastikan tidak ada yang
+berperan `service_role`.
+
+#### Memasang Edge Function-nya
+
+Hanya perlu sekali, dan **wajib sebelum** halaman barunya di-deploy — tanpa itu
+tombol Buat akan menjawab "Failed to send a request to the Edge Function".
+
+```bash
+supabase functions deploy buat-akun-karyawan --project-ref grzjfnqljjzjkvmgtohe
+```
+
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, dan `SUPABASE_SERVICE_ROLE_KEY` disediakan
+Supabase sendiri — tidak perlu diisi manual, dan **jangan** disalin ke mana pun.
+
+Jangan pernah memasangnya dengan `--no-verify-jwt`. Flag itu mematikan
+pemeriksaan JWT di gerbangnya, menyisakan hanya penjaga di dalam fungsinya.
+
+Bila domainnya berubah, daftar asal yang boleh memanggil diatur lewat secret
+`ORIGIN_DIIZINKAN` (dipisah koma) tanpa menyunting kodenya:
+
+```bash
+supabase secrets set ORIGIN_DIIZINKAN="https://underratedbarbershop.com,https://www.underratedbarbershop.com" --project-ref grzjfnqljjzjkvmgtohe
+```
 
 **Untuk karyawan yang berhenti bekerja, hilangkan centang *Aktif* — jangan
 Hapus.** `attendances` dan `leave_requests` keduanya `ON DELETE CASCADE`, jadi
@@ -477,8 +511,14 @@ Disebutkan apa adanya, bukan dianggap tidak ada.
 | `assets/logo.png` · `logo-putih.png` | Logo Underrated Barbershop (gelap & putih) |
 | `vendor/` | Library Supabase, pembuat QR, dan pembaca QR, di-host sendiri |
 | `supabase_schema.sql` | Skema dasar |
-| `supabase_migration_02..44_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. |
+| `supabase_migration_02..48_*.sql` | Migrasi berurutan; jalankan sesuai nomor. Nomor 15 sengaja belum dijalankan. Ada **dua** berkas bernomor 44 — lihat catatan di bawah. |
+| `supabase/functions/` | Edge Function. Di-deploy terpisah dengan `supabase functions deploy`, tidak ikut `vercel`. |
 | `tests/*.test.js` | Penjaga regresi. Jalankan `node tests/<nama>.test.js`; tidak perlu dependensi. |
+
+Dua migrasi sama-sama bernomor **44** — `44_qris_dinamis.sql` dan
+`44_tampilan_masa_level.sql` — akibat dikerjakan di cabang paralel. Keduanya
+saling lepas dan urutan di antara keduanya tidak berpengaruh, tetapi periksa
+mana yang sudah benar-benar jalan di produksi sebelum menambah nomor baru.
 
 Kunci di `sb-app.js` adalah *publishable key* yang memang dirancang untuk
 publik. Yang menjaga data adalah RLS. **Jangan pernah** menaruh `service_role`

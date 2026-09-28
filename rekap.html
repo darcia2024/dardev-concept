@@ -4057,6 +4057,16 @@
       document.getElementById('formKaryawan').hidden = true;
     }
 
+    /* Usulan alamat email dari nama, mengikuti pola akun yang sudah ada.
+       Huruf non-ASCII dan spasi dibuang, bukan diganti: alamat email yang
+       memuat keduanya ditolak sebagian penyedia tanpa penjelasan. Hasil
+       kosong dibiarkan kosong supaya owner mengetiknya sendiri, bukan
+       diberi alamat "@underrated.com" tanpa nama di depannya. */
+    function emailUsulan(nama) {
+      const slug = String(nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return slug ? slug + '@underrated.com' : '';
+    }
+
     async function muatKelolaAkun() {
       const gc = document.getElementById('gridCapster');
       const gk = document.getElementById('gridKasir');
@@ -4100,13 +4110,30 @@
             + '<button class="btn-hdr" data-telp-simpan="' + c.capster_id + '">Simpan</button>'
             + '</div>'
             + '<div class="kelola-pesan" data-telp-pesan="' + c.capster_id + '"></div>'
-            + '<div class="kelola-label">Sandi</div>'
             + (bisa
-              ? '<div class="kelola-baris">'
+              ? '<div class="kelola-label">Sandi</div>'
+                + '<div class="kelola-baris">'
                 + '<input type="text" placeholder="Sandi baru, min. 8 karakter" data-sandi-input="' + c.capster_id + '" autocomplete="off" />'
                 + '<button class="btn-hdr" data-sandi-simpan="' + c.capster_id + '">Simpan</button>'
                 + '</div>'
-              : '<div class="kelola-pesan bad">Belum punya akun — buatkan dulu lewat Dardev.</div>')
+                + '<div class="kelola-aksi">'
+                +   '<button class="btn-hdr" data-akun-lepas="' + c.capster_id + '">Lepas akun</button>'
+                + '</div>'
+              // Belum punya akun. Sejak Edge Function buat-akun-karyawan
+              // terpasang, owner tidak perlu lagi membuka Supabase Dashboard.
+              //
+              // Emailnya diisikan lebih dulu dari namanya, mengikuti pola yang
+              // sudah ada (cena@underrated.com), tetapi tetap dapat diubah —
+              // ada nama yang sama dan ada orang yang sudah punya alamat.
+              : '<div class="kelola-label">Buatkan akun</div>'
+                + '<div class="kelola-baris">'
+                + '<input type="email" placeholder="nama@underrated.com" value="'
+                + escapeHtml(emailUsulan(c.name)) + '" data-akun-email="' + c.capster_id + '" autocomplete="off" />'
+                + '<button class="btn-hdr" data-akun-buat="' + c.capster_id + '">Buat</button>'
+                + '</div>'
+                + '<div class="kelola-baris" style="grid-template-columns:1fr;">'
+                + '<input type="text" placeholder="Sandi — kosongkan agar otomatis" data-akun-sandi="' + c.capster_id + '" autocomplete="off" />'
+                + '</div>')
             + '<div class="kelola-pesan" data-sandi-pesan="' + c.capster_id + '"></div>'
             + '</div>';
         }).join('') || '<div class="kelola-pesan">Belum ada kapster.</div>';
@@ -4178,6 +4205,77 @@
       const bTelp  = e.target.closest('[data-telp-simpan]');
       const bUbah  = e.target.closest('[data-kar-ubah]');
       const bHapus = e.target.closest('[data-kar-hapus]');
+      const bAkun  = e.target.closest('[data-akun-buat]');
+      const bLepas = e.target.closest('[data-akun-lepas]');
+
+      if (bAkun) {
+        const id   = bAkun.dataset.akunBuat;
+        const msg  = document.querySelector('[data-kar-pesan="' + id + '"]');
+        const mail = (document.querySelector('[data-akun-email="' + id + '"]').value || '').trim();
+        const pass = (document.querySelector('[data-akun-sandi="' + id + '"]').value || '').trim();
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+          kelolaPesan(msg, 'Alamat email belum benar.', false); return;
+        }
+        if (pass && pass.length < 8) {
+          kelolaPesan(msg, 'Sandi minimal 8 karakter, atau kosongkan agar dibuatkan.', false); return;
+        }
+
+        bAkun.disabled = true;
+        const labelAkun = bAkun.textContent;
+        bAkun.textContent = 'Membuat…';
+        kelolaPesan(msg, 'Membuat akun…', true);
+        try {
+          // Lewat Edge Function, bukan RPC: membuat pengguna di auth.users
+          // butuh service-role key, dan kunci itu tidak boleh ada di halaman
+          // yang memakai publishable key.
+          const { data, error } = await sb.functions.invoke('buat-akun-karyawan', {
+            body: { karyawan_id: id, email: mail, sandi: pass || null }
+          });
+          // functions.invoke membungkus galat HTTP; pesan sebenarnya ada di
+          // badan jawaban, bukan di error.message yang cuma berbunyi
+          // "non-2xx status code".
+          if (error) {
+            let pesan = error.message || String(error);
+            try { const b = await error.context.json(); if (b && b.error) pesan = b.error; } catch (_) {}
+            throw new Error(pesan);
+          }
+
+          await muatKelolaAkun();
+          const baru = document.querySelector('[data-kar-pesan="' + id + '"]');
+          if (baru) {
+            kelolaPesan(baru, data && data.sandi_dibuat
+              ? 'Akun ' + data.email + ' dibuat. Sandi: ' + data.sandi_dibuat
+                + ' — catat sekarang, tidak ditampilkan lagi.'
+              : 'Akun ' + (data ? data.email : mail) + ' dibuat.', true);
+          }
+        } catch (err) {
+          kelolaPesan(msg, 'Gagal membuat akun: ' + (err.message || err), false);
+          bAkun.disabled = false;
+          bAkun.textContent = labelAkun;
+        }
+        return;
+      }
+
+      if (bLepas) {
+        const id  = bLepas.dataset.akunLepas;
+        const kar = daftarKaryawan.find(k => k.capster_id === id);
+        const msg = document.querySelector('[data-kar-pesan="' + id + '"]');
+        if (!confirm('Lepas akun ' + (kar ? kar.name : 'karyawan ini') + '?\n\n'
+          + 'Ia tidak bisa masuk dan tidak bisa absen sampai ditautkan lagi. '
+          + 'Riwayat absennya tetap utuh, dan akunnya tidak dihapus.')) return;
+
+        bLepas.disabled = true;
+        try {
+          const { error } = await sb.rpc('owner_lepas_akun_karyawan', { p_karyawan_id: id });
+          if (error) throw error;
+          await muatKelolaAkun();
+        } catch (err) {
+          if (msg) kelolaPesan(msg, 'Gagal melepas akun: ' + (err.message || err), false);
+          bLepas.disabled = false;
+        }
+        return;
+      }
 
       if (bUbah) {
         const kar = daftarKaryawan.find(k => k.capster_id === bUbah.dataset.karUbah);
