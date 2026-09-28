@@ -812,6 +812,21 @@
     .tab-btn.is-on .tab-dot { box-shadow: 0 0 0 2px var(--fg); }
     .tab-dot[hidden] { display: none; }
 
+    /* Navigasi halaman di bawah tabel. :empty menyembunyikannya sama sekali
+       saat semua baris muat dalam satu halaman — kotak kosong bergaris di
+       bawah tabel pendek terbaca seperti sesuatu yang gagal dimuat. */
+    .pager {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 8px; flex-wrap: wrap;
+    }
+    .pager:empty { display: none; }
+    .pager-info {
+      font-size: 12px; color: var(--fg-dim);
+      font-family: var(--mono); white-space: nowrap;
+    }
+    .pager .btn-filter-date { min-width: 38px; }
+    .pager .btn-filter-date:disabled { opacity: .4; cursor: default; }
+
     .tab-pane { display: none; flex-direction: column; gap: 18px; }
     .tab-pane.is-on { display: flex; }
 
@@ -1207,6 +1222,9 @@
           <tbody id="absenRowBody"></tbody>
         </table>
       </div>
+      <!-- Diisi gambarBerhalaman(). Kosong bila seluruh baris muat dalam satu
+           halaman, supaya tidak ada tombol yang tidak melakukan apa-apa. -->
+      <div class="pager" id="absenRowPager"></div>
     </div>
 
     <div class="table-panel">
@@ -3024,6 +3042,10 @@
         el.addEventListener('change', function () {
           if (!el.value) { el.value = bulanAbsensi; return; }
           bulanAbsensi = el.value;
+          // Bulan lain berarti daftar lain: halaman 9 September tidak ada
+          // hubungannya dengan Agustus. Penjepitan di gambarBerhalaman hanya
+          // menjaga agar nomornya sah, bukan agar ia bermakna.
+          halamanTabel.absen = 1;
           document.querySelectorAll('.inp-bulan').forEach(function (lain) { lain.value = bulanAbsensi; });
           tulisJudulBulan();
           muatSemuaAbsensi();
@@ -3992,22 +4014,81 @@
        tetapi tidak memberi cara menunjuk satu catatan untuk dihapus. Tabel ini
        memakai attendance_rows() yang mengembalikan barisnya satu per satu.
        ═══════════════════════════════════════════════════════════════════════ */
+    /* ── Tabel berhalaman ─────────────────────────────────────────────────
+       Tiga karyawan dikali tiga puluh hari sudah hampir seratus baris untuk
+       satu bulan, dan seluruhnya dirender sekaligus.
+
+       Pemenggalannya dilakukan di sisi layar, bukan di kueri: datanya sudah
+       dibatasi per bulan oleh attendance_rows, jadi yang datang memang tidak
+       banyak. Memindahkan pemenggalan ke server berarti satu panggilan tiap
+       kali halaman berganti, untuk baris yang sudah ada di tangan.
+
+       Nomor halaman disimpan per tabel dan DIJEPIT, bukan disetel ulang, tiap
+       kali digambar. Menghapus baris terakhir di halaman 9 dari 9 akan
+       menyisakan halaman yang tidak ada lagi; menjepitnya membawa owner ke
+       halaman terakhir yang masih sah, bukan ke tabel kosong yang terbaca
+       seperti kerusakan. */
+    const BARIS_PER_HALAMAN = 10;
+    const halamanTabel = {};
+
+    function gambarBerhalaman(kunci, baris, opsi) {
+      const tb = document.getElementById(opsi.tbody);
+      const nav = document.getElementById(opsi.nav);
+      if (!tb) return;
+
+      if (!baris.length) {
+        tb.innerHTML = '<tr><td colspan="' + opsi.kolom + '" class="empty-row">'
+                     + opsi.kosong + '</td></tr>';
+        if (nav) nav.innerHTML = '';
+        return;
+      }
+
+      const maks = Math.ceil(baris.length / BARIS_PER_HALAMAN);
+      const h = Math.min(Math.max(1, halamanTabel[kunci] || 1), maks);
+      halamanTabel[kunci] = h;
+
+      const dari = (h - 1) * BARIS_PER_HALAMAN;
+      const sampai = Math.min(dari + BARIS_PER_HALAMAN, baris.length);
+      tb.innerHTML = baris.slice(dari, sampai).map(opsi.baris).join('');
+
+      if (!nav) return;
+      if (maks === 1) { nav.innerHTML = ''; return; }
+      nav.innerHTML =
+          '<span class="pager-info">' + (dari + 1) + '&ndash;' + sampai
+        + ' dari ' + baris.length + '</span>'
+        + '<button class="btn-filter-date" data-pager="' + kunci + '" data-ke="' + (h - 1) + '"'
+        + (h === 1 ? ' disabled' : '') + '>&larr;</button>'
+        + '<span class="pager-info">Hal. ' + h + '/' + maks + '</span>'
+        + '<button class="btn-filter-date" data-pager="' + kunci + '" data-ke="' + (h + 1) + '"'
+        + (h === maks ? ' disabled' : '') + '>&rarr;</button>';
+    }
+
+    /* Penggambar ulang per tabel, supaya tombol halaman tahu apa yang harus
+       dipanggil tanpa memuat ulang dari server. */
+    const gambarUlangTabel = {};
+
+    document.addEventListener('click', function (e) {
+      const b = e.target.closest('[data-pager]');
+      if (!b || b.disabled) return;
+      const kunci = b.dataset.pager;
+      halamanTabel[kunci] = Number(b.dataset.ke);
+      if (gambarUlangTabel[kunci]) gambarUlangTabel[kunci]();
+    });
+
     async function muatAbsenBaris() {
       const tb = document.getElementById('absenRowBody');
       const { data, error } = await sb.rpc('attendance_rows', { p_bulan: bulanKeTanggal(bulanAbsensi) });
       if (error) {
         tb.innerHTML = '<tr><td colspan="9" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
+        const nav = document.getElementById('absenRowPager');
+        if (nav) nav.innerHTML = '';
         return;
       }
       const rows = data || [];
-      if (!rows.length) {
-        tb.innerHTML = '<tr><td colspan="9" class="empty-row">Belum ada catatan absensi bulan ini.</td></tr>';
-        return;
-      }
       const jam = function (t) {
         return t ? new Date(t).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '-';
       };
-      tb.innerHTML = rows.map(function (r) {
+      const satuBaris = function (r) {
         const telat = (r.terlambat_menit || 0) > 0;
         return '<tr>'
           + '<td style="font-family:var(--mono); font-size:12px;">' + r.business_date + '</td>'
@@ -4025,7 +4106,16 @@
           + 'data-nama="' + escapeHtml(r.capster_name) + '" data-tgl="' + r.business_date + '" '
           + 'title="Hapus catatan absensi ini">&#215;</button></td>'
           + '</tr>';
-      }).join('');
+      };
+
+      const gambar = function () {
+        gambarBerhalaman('absen', rows, {
+          tbody: 'absenRowBody', nav: 'absenRowPager', kolom: 9,
+          kosong: 'Belum ada catatan absensi bulan ini.', baris: satuBaris
+        });
+      };
+      gambarUlangTabel.absen = gambar;
+      gambar();
     }
 
     document.getElementById('absenRowBody').addEventListener('click', async (e) => {
