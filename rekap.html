@@ -156,6 +156,30 @@
       flex-wrap: wrap;
     }
 
+    /* Pemilih periode. Dibuat setinggi 44px supaya tetap nyaman ditekan di
+       ponsel — dasbor ini lebih sering dibuka pemilik dari HP daripada dari
+       meja kasir. */
+    .sel-periode {
+      appearance: none; -webkit-appearance: none;
+      background: var(--ink-inset);
+      border: 1px solid var(--line);
+      color: var(--fg);
+      min-height: 44px; padding: 8px 34px 8px 12px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600;
+      cursor: pointer;
+      background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                        linear-gradient(135deg, currentColor 50%, transparent 50%);
+      background-position: calc(100% - 17px) calc(50% + 1px), calc(100% - 12px) calc(50% + 1px);
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+    }
+    .sel-periode:hover { border-color: var(--fg-dim); }
+    .sel-periode:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+    /* Saat rentang panjang sedang diambil dari server, pemilihnya dikunci —
+       menumpuk permintaan hanya membuat angkanya berkedip-kedip. */
+    .sel-periode:disabled { opacity: .6; cursor: progress; }
+
     .btn-filter-date {
       background: var(--ink-inset);
       border: 1px solid var(--line);
@@ -173,6 +197,19 @@
       color: var(--ink);
       border-color: var(--fg);
     }
+
+    /* Pemilih bacaan performa kapster. Dibiarkan membungkus pada layar sempit
+       supaya tidak menekan judul panelnya. */
+    .perf-alat { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .perf-alat .btn-filter-date { padding: 5px 10px; font-size: 11.5px; }
+    /* Peringkat menggantikan angka omzet sebagai jangkar baca pada mode yang
+       dibagikan ke kapster. Tanpa jangkar, daftarnya terbaca seperti catatan
+       acak alih-alih urutan. */
+    .capster-rank {
+      flex: none; width: 22px; text-align: center;
+      font-family: var(--mono); font-size: 12.5px; color: var(--fg-dim);
+    }
+    .capster-layanan { font-family: var(--mono); font-size: 13.5px; color: var(--fg-mid); }
 
     /* ══ EDITOR MASTER DATA ═══════════════════════════════════════════════
        Sebelum ini halaman rekap tidak punya modal sama sekali, sehingga setiap
@@ -747,9 +784,11 @@
     <div class="control-strip">
       <div class="date-filter-group">
         <span style="font-size: 12.5px; color: var(--fg-dim); font-weight: 600;">Periode:</span>
-        <button class="btn-filter-date active" data-range="TODAY">Hari Ini</button>
-        <button class="btn-filter-date" data-range="YESTERDAY">Kemarin</button>
-        <button class="btn-filter-date" data-range="ALL">Semua Riwayat</button>
+        <!-- Pilihannya diisi dari tabel PERIODE di bawah, bukan ditulis di
+             sini: label yang tampil dan rentang yang diambil dari server harus
+             berasal dari satu sumber, kalau tidak keduanya menyimpang tanpa
+             ada yang menyadarinya. -->
+        <select id="selPeriode" class="sel-periode" aria-label="Periode laporan"></select>
       </div>
 
       <div class="export-group">
@@ -832,8 +871,16 @@
       <!-- Capster Performance Summary -->
       <div class="panel-box">
         <div class="panel-head">
-          <h2>Performa Capster</h2>
-          <span style="font-size: 11px; color: var(--fg-dim); font-family: var(--mono);">Kontribusi Omzet</span>
+          <h2>Performa Kapster</h2>
+          <!-- Dua bacaan atas data yang sama. Yang tanpa omzet dibuat supaya
+               daftar ini dapat dibagikan ke kapster tanpa ikut membocorkan
+               pendapatan satu sama lain. -->
+          <div class="perf-alat">
+            <button type="button" class="btn-filter-date active" data-perf="omzet">Dengan Omzet</button>
+            <button type="button" class="btn-filter-date" data-perf="tanpa">Tanpa Omzet</button>
+            <button type="button" class="btn-filter-date" id="btnSalinPerforma"
+                    title="Salin sebagai teks siap tempel ke WhatsApp">Salin</button>
+          </div>
         </div>
         <div class="capster-perf-list" id="capsterPerfContainer">
           <!-- Populated by JS -->
@@ -1198,15 +1245,15 @@
     <div class="table-panel">
       <div class="table-controls">
         <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Data Capster &amp; PIN Kasir</h2>
+          <h2 style="font-size: 15px; font-weight: 600;">Data Kapster &amp; PIN Kasir</h2>
           <p style="font-size: 12px; color: var(--fg-dim);">
-            Nomor WhatsApp capster untuk notifikasi booking, sandi yang terlupa, dan PIN kasir
+            Nomor WhatsApp kapster untuk notifikasi booking, sandi yang terlupa, dan PIN kasir
           </p>
         </div>
       </div>
       <div style="padding: 4px 2px 8px; display:flex; flex-direction:column; gap:18px;">
         <div>
-          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Capster</div>
+          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Kapster</div>
           <div class="kelola-grid" id="gridCapster"></div>
         </div>
         <div>
@@ -1243,13 +1290,41 @@
       </div>
     </div>
 
+    <!-- Nota QRIS yang belum diperiksa kasir. Panelnya sengaja hanya memuat
+         yang BELUM terkonfirmasi: daftar yang memuat semuanya akan dibaca
+         sekali lalu diabaikan selamanya. Kosong berarti tidak ada yang perlu
+         dikerjakan, dan itulah keadaan yang diharapkan. -->
+    <div class="table-panel" id="panelQrisPantau" hidden>
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">QRIS Belum Terkonfirmasi</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Nota QRIS yang tersimpan tanpa kasir menandai dananya sudah masuk &mdash;
+            cocokkan dengan mutasi di aplikasi merchant
+          </p>
+        </div>
+        <button class="btn-filter-date" id="btnMuatQrisPantau">Muat Ulang</button>
+      </div>
+      <div id="qrisPantauRingkas" style="padding: 0 4px 12px; font-size: 13px; color: var(--fg-mid); line-height: 1.7;"></div>
+      <div class="table-scroll">
+        <table class="tx-table" id="qrisPantauTable">
+          <thead>
+            <tr><th>Waktu</th><th>No. Invoice</th><th>Kapster</th><th>Pelanggan</th>
+                <th>Referensi</th><th style="text-align:right;">Total</th>
+                <th style="width:52px;"></th></tr>
+          </thead>
+          <tbody id="qrisPantauBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Notifikasi WhatsApp ke capster -->
     <div class="table-panel">
       <div class="table-controls">
         <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Notifikasi WhatsApp ke Capster</h2>
+          <h2 style="font-size: 15px; font-weight: 600;">Notifikasi WhatsApp ke Kapster</h2>
           <p style="font-size: 12px; color: var(--fg-dim);">
-            Dikirim otomatis saat pelanggan memilih capster di halaman booking &mdash;
+            Dikirim otomatis saat pelanggan memilih kapster di halaman booking &mdash;
             nomor pelanggan tidak ikut dikirim
           </p>
         </div>
@@ -1259,7 +1334,7 @@
       <div class="table-scroll">
         <table class="tx-table" id="waTable">
           <thead>
-            <tr><th>Waktu</th><th>Kode Booking</th><th>Capster</th><th>Status</th><th>Keterangan</th></tr>
+            <tr><th>Waktu</th><th>Kode Booking</th><th>Kapster</th><th>Status</th><th>Keterangan</th></tr>
           </thead>
           <tbody id="waTableBody"></tbody>
         </table>
@@ -1279,7 +1354,7 @@
       <div class="table-scroll">
         <table class="tx-table" id="arsipTable">
           <thead>
-            <tr><th>Dihapus</th><th>No. Invoice</th><th>Tanggal</th><th>Capster</th><th>Kasir</th>
+            <tr><th>Dihapus</th><th>No. Invoice</th><th>Tanggal</th><th>Kapster</th><th>Kasir</th>
                 <th>Alasan</th><th style="text-align:right;">Total</th></tr>
           </thead>
           <tbody id="arsipTableBody"></tbody>
@@ -1293,7 +1368,7 @@
           <h2 style="font-size: 15px; font-weight: 600;">Log Transaksi Detail</h2>
           <p style="font-size: 12px; color: var(--fg-dim);">Data tersimpan otomatis & real-time</p>
         </div>
-        <input type="text" id="inpSearchTx" class="search-input" placeholder="🔍 Cari nama, invoice, capster..." />
+        <input type="text" id="inpSearchTx" class="search-input" placeholder="🔍 Cari nama, invoice, kapster..." />
       </div>
 
       <div class="table-scroll">
@@ -1304,7 +1379,7 @@
               <th>No. Invoice</th>
               <th>Pelanggan</th>
               <th>WhatsApp</th>
-              <th>Capster</th>
+              <th>Kapster</th>
               <th>Layanan</th>
               <th>Metode</th>
               <th>Ref / Approval</th>
@@ -1469,6 +1544,51 @@
     let selectedDateFilter = 'TODAY';
     let searchQuery = '';
 
+    /* ── Periode laporan ──────────────────────────────────────────────────
+       Satu tabel yang dipakai kueri, penyaring, label layar, dan nama berkas
+       CSV. Sebelumnya rentangnya tersebar di empat tempat dengan bentuk
+       berbeda, dan kueri awalnya terkunci 30 hari — sehingga "Semua Riwayat"
+       pun sebenarnya tidak pernah menampilkan lebih dari sebulan.
+
+       `tepat` menandai periode satu hari (0 = hari ini, 1 = kemarin).
+       `mundur` adalah jumlah hari inklusif ke belakang dari hari ini: 7
+       berarti hari ini beserta enam hari sebelumnya. Tanpa keduanya berarti
+       tanpa batas. */
+    const PERIODE = {
+      TODAY:     { label: 'Hari Ini',           tepat: 0 },
+      YESTERDAY: { label: 'Kemarin',            tepat: 1 },
+      D7:        { label: '7 Hari Terakhir',    mundur: 7 },
+      D30:       { label: '1 Bulan Terakhir',   mundur: 30 },
+      D90:       { label: '3 Bulan Terakhir',   mundur: 90 },
+      D180:      { label: '6 Bulan Terakhir',   mundur: 180 },
+      D365:      { label: '12 Bulan Terakhir',  mundur: 365 },
+      ALL:       { label: 'Semua Riwayat' }
+    };
+
+    /* Tanggal kerja selalu zona outlet, bukan zona perangkat pemiliknya.
+       Pemilik yang membuka dasbor dari luar negeri tetap membaca hari yang
+       sama dengan kasirnya. */
+    function tanggalMundur(hari) {
+      return new Date(Date.now() - hari * 864e5)
+        .toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    }
+
+    /** Rentang periode terpilih sebagai { dari, sampai } YYYY-MM-DD.
+        null berarti tanpa batas di sisi itu. */
+    function rentangPeriode(kunci) {
+      const p = PERIODE[kunci] || PERIODE.TODAY;
+      if (p.tepat !== undefined) {
+        const t = tanggalMundur(p.tepat);
+        return { dari: t, sampai: t };
+      }
+      if (p.mundur) return { dari: tanggalMundur(p.mundur - 1), sampai: tanggalMundur(0) };
+      return { dari: null, sampai: null };
+    }
+
+    function labelPeriode() {
+      return (PERIODE[selectedDateFilter] || PERIODE.TODAY).label;
+    }
+
     function formatRupiah(num) {
       return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
     }
@@ -1478,13 +1598,20 @@
         kasir. Rentang hari memakai business_date (WIB), bukan UTC. */
     async function loadData() {
       const today = sbJakartaToday();
-      const since = new Date(Date.now() - 30 * 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+      /* Rentangnya mengikuti periode yang dipilih, bukan 30 hari tetap seperti
+         sebelumnya. Dengan batas tetap itu, memilih "3 Bulan" akan menampilkan
+         layar kosong untuk bulan-bulan yang datanya memang tidak pernah
+         diambil — kegagalan yang terbaca sebagai "tidak ada transaksi". */
+      const r = rentangPeriode(selectedDateFilter);
+      let qTx = sb.from('transactions')
+        .select('*, transaction_items(service_name, price, capster_name)')
+        .order('created_at', { ascending: false });
+      if (r.dari)   qTx = qTx.gte('business_date', r.dari);
+      if (r.sampai) qTx = qTx.lte('business_date', r.sampai);
 
       const [txRes, capRes, memRes] = await Promise.all([
-        sb.from('transactions')
-          .select('*, transaction_items(service_name, price, capster_name)')
-          .gte('business_date', since)
-          .order('created_at', { ascending: false }),
+        qTx,
         sb.from('capsters').select('id, name, is_active'),
         sb.from('members').select('phone_wa, name, tier, visit_count, total_spend')
       ]);
@@ -1600,7 +1727,7 @@
     const WA_STATUS = {
       terkirim:        { teks: 'Terkirim',        warna: 'var(--sage)' },
       nonaktif:        { teks: 'Fitur nonaktif',  warna: 'var(--fg-dim)' },
-      tanpa_capster:   { teks: 'Tanpa capster',   warna: 'var(--fg-dim)' },
+      tanpa_capster:   { teks: 'Tanpa kapster',   warna: 'var(--fg-dim)' },
       nomor_tidak_sah: { teks: 'Nomor bermasalah', warna: 'var(--warn)' },
       gagal:           { teks: 'Gagal',           warna: 'var(--brand)' }
     };
@@ -1657,7 +1784,7 @@
     document.getElementById('btnUbahWa').addEventListener('click', function () {
       if (!waData) return;
       const kolom = [
-        { key: 'aktif', label: 'Kirim notifikasi ke capster', tipe: 'centang',
+        { key: 'aktif', label: 'Kirim notifikasi ke kapster', tipe: 'centang',
           hint: 'Saat dimatikan, booking tetap tersimpan dan tercatat di sini sebagai "Fitur nonaktif".' },
         { key: 'provider', label: 'Provider', tipe: 'pilih',
           pilihan: [{ nilai: 'meta', label: 'WhatsApp Cloud API (Meta)' },
@@ -1702,14 +1829,13 @@
     let closingsData = [];
 
     async function loadClosings() {
-      const tgl = selectedDateFilter === 'YESTERDAY'
-        ? new Date(Date.now() - 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
-        : sbJakartaToday();
+      const r = rentangPeriode(selectedDateFilter);
 
       let q = sb.from('cash_closings_view')
         .select('id, cashier_name, tx_count, expected_amount, counted_amount, difference, difference_after_adjust, status_selisih, owner_adjustment, cashier_notes, owner_notes, reviewed_at')
         .order('cashier_name', { ascending: true });
-      if (selectedDateFilter !== 'ALL') q = q.eq('business_date', tgl);
+      if (r.dari)   q = q.gte('business_date', r.dari);
+      if (r.sampai) q = q.lte('business_date', r.sampai);
 
       const { data, error } = await q;
       if (error) return;
@@ -2052,7 +2178,7 @@
       unduhCsv(
         'Audit-Poin_' + bulanPoin + '.csv',
         ['Waktu', 'Member', 'Kode Member', 'WhatsApp', 'Jenis', 'Poin', 'Saldo Sesudah',
-         'No Invoice', 'Kasir', 'Capster', 'Keterangan'],
+         'No Invoice', 'Kasir', 'Kapster', 'Keterangan'],
         poinData.map(function (r) {
           return [
             new Date(r.waktu).toLocaleString('id-ID',
@@ -2956,15 +3082,16 @@
       // business_date sudah dihitung server dalam zona Asia/Jakarta, sehingga
       // transaksi dini hari tidak lagi jatuh ke tanggal sebelumnya seperti
       // bila memakai toISOString() yang berbasis UTC.
-      const todayStr = sbJakartaToday();
-      const yesterdayStr = new Date(Date.now() - 864e5)
-        .toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+      // Rentangnya sama dengan yang dipakai kueri. Penyaring ini tetap ada
+      // sebagai jaring kedua: baris yang tersisa dari periode sebelumnya tidak
+      // boleh ikut terhitung sebelum pemuatan berikutnya selesai.
+      const r = rentangPeriode(selectedDateFilter);
 
       return rawTransactions.filter(tx => {
         const txDate = tx.business_date || (tx.created_at || '').slice(0, 10);
 
-        if (selectedDateFilter === 'TODAY' && txDate !== todayStr) return false;
-        if (selectedDateFilter === 'YESTERDAY' && txDate !== yesterdayStr) return false;
+        if (r.dari && txDate < r.dari) return false;
+        if (r.sampai && txDate > r.sampai) return false;
 
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
@@ -2978,6 +3105,160 @@
 
         return true;
       });
+    }
+
+    /* ── Performa kapster: dua bacaan, satu data ──────────────────────────
+       Mode "tanpa omzet" ada supaya daftar ini dapat dikirim ke grup kapster.
+       Yang ditahan bukan sekadar angka rupiahnya: pendapatan seorang kapster
+       adalah urusannya sendiri, dan menempelkannya di grup mengubah laporan
+       kerja menjadi perbandingan penghasilan. Mode dengan omzet tetap ada dan
+       tidak berubah — itu milik pemilik. */
+    let performaKapster = [];
+    let modePerforma = 'omzet';
+
+    /* "2 Haircut · 2 Hairwash", bukan "4 pangkas & layanan". Yang dibaca
+       kapster di grup harus dapat ia cocokkan dengan ingatannya sendiri; angka
+       gabungan justru membuatnya membantah daftar yang sebenarnya benar.
+
+       Diurutkan menurut jumlah supaya yang paling banyak dikerjakan berdiri di
+       depan, dan nama layanan disaring karena ia datang dari basis data. */
+    function rincianLayanan(stat) {
+      const daftar = Object.entries((stat && stat.layanan) || {})
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'id'));
+      if (!daftar.length) return ((stat && stat.heads) || 0) + ' layanan';
+      return daftar.map(function (x) { return x[1] + ' ' + x[0]; }).join(' · ');
+    }
+
+    /** Gabungan seluruh kapster, dipakai pada baris total teks bagikan. */
+    function rincianSemua(daftar) {
+      const gabung = {};
+      daftar.forEach(function (baris) {
+        Object.entries((baris[1] && baris[1].layanan) || {}).forEach(function (x) {
+          gabung[x[0]] = (gabung[x[0]] || 0) + x[1];
+        });
+      });
+      return rincianLayanan({ layanan: gabung, heads: 0 });
+    }
+
+    function performaTerurut() {
+      const salinan = performaKapster.slice();
+      // Peringkat harus cocok dengan angka yang terlihat. Mengurutkan menurut
+      // omzet sementara yang tampil jumlah layanan membuat daftarnya terbaca
+      // seperti salah urut oleh orang yang tidak melihat omzetnya.
+      return modePerforma === 'tanpa'
+        ? salinan.sort((a, b) => b[1].heads - a[1].heads || a[0].localeCompare(b[0], 'id'))
+        : salinan.sort((a, b) => b[1].omzet - a[1].omzet);
+    }
+
+    function avatarKapster(name) {
+      const foto = { cena: 'assets/cena', lukman: 'assets/lukman', wanda: 'assets/wanda' }[(name || '').toLowerCase().trim()];
+      return foto
+        ? `<picture><source srcset="${foto}.webp?v=8" type="image/webp" /><img src="${foto}.png?v=8" alt="${escapeHtml(name)}" loading="lazy" /></picture>`
+        : escapeHtml(name.charAt(0).toUpperCase());
+    }
+
+    function renderPerformaKapster() {
+      const wadah = document.getElementById('capsterPerfContainer');
+      if (!wadah) return;
+      const daftar = performaTerurut();
+
+      document.querySelectorAll('[data-perf]').forEach(b => {
+        b.classList.toggle('active', b.dataset.perf === modePerforma);
+      });
+
+      if (!daftar.length) {
+        wadah.innerHTML = `<div style="text-align:center; padding:16px; color:var(--fg-dim); font-size:13px;">Belum ada data kapster pada periode ini</div>`;
+        return;
+      }
+
+      wadah.innerHTML = daftar.map(([name, stat], i) => `
+        <div class="capster-perf-row">
+          <div class="capster-info">
+            ${modePerforma === 'tanpa' ? `<div class="capster-rank">${i + 1}</div>` : ''}
+            <div class="capster-avatar-sm">${avatarKapster(name)}</div>
+            <div>
+              <div class="capster-perf-name">${escapeHtml(name)}</div>
+              <div class="capster-heads">${escapeHtml(rincianLayanan(stat))}</div>
+            </div>
+          </div>
+          <div class="capster-stat">
+            ${modePerforma === 'tanpa'
+              ? `<div class="capster-layanan">${stat.heads}&times;</div>`
+              : `<div class="capster-omzet">${formatRupiah(stat.omzet)}</div>`}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /* Teks polos untuk ditempel ke WhatsApp. Mengikuti mode yang sedang
+       tampil, jadi yang tersalin selalu sama dengan yang dilihat — tidak ada
+       cara tak sengaja mengirim angka omzet dari layar yang menyembunyikannya. */
+    function performaSebagaiTeks() {
+      const daftar = performaTerurut();
+      if (!daftar.length) return '';
+      const opsiPeriode = document.querySelector('#selPeriode option:checked');
+      const judulPeriode = opsiPeriode ? opsiPeriode.textContent : '';
+      const baris = ['*Performa Kapster*' + (judulPeriode ? ' — ' + judulPeriode.trim() : ''), ''];
+      daftar.forEach(([name, stat], i) => {
+        baris.push((i + 1) + '. ' + name + ' — ' + rincianLayanan(stat)
+          + (modePerforma === 'tanpa' ? '' : ' · ' + formatRupiah(stat.omzet)));
+      });
+      // Totalnya pun dirinci. "Total 7 pangkas & layanan" menyisakan pertanyaan
+      // yang sama pada tingkat yang lebih besar.
+      baris.push('', 'Total: ' + rincianSemua(daftar) + '.');
+      return baris.join('\n');
+    }
+
+    /* ── QRIS yang lolos tanpa diperiksa ──────────────────────────────────
+       Gerbang di kasir menahan tombol simpan, tetapi penandaannya dikirim
+       lewat panggilan terpisah sesudah nota tersimpan. Bila panggilan itu
+       gagal — sinyal putus tepat di sela, atau notanya sempat mengantre
+       luring — notanya tetap sah namun tanpa jejak pemeriksaan. Di sinilah
+       sisa itu muncul, supaya tidak hilang begitu saja. */
+    async function muatQrisPantau() {
+      const panel = document.getElementById('panelQrisPantau');
+      const body = document.getElementById('qrisPantauBody');
+      const ringkas = document.getElementById('qrisPantauRingkas');
+      if (!panel) return;
+
+      /* owner_qris_belum_konfirmasi menerima SATU tanggal, bukan rentang.
+         Untuk periode satu hari, tanggal itu dikirim. Untuk rentang panjang
+         dikirim null — daftar ini sebuah daftar kerjaan, dan menampilkan
+         seluruh nota yang belum diperiksa justru lebih benar daripada
+         memotongnya menurut rentang laporan yang sedang dibaca. */
+      const pr = PERIODE[selectedDateFilter] || PERIODE.TODAY;
+      const tgl = pr.tepat !== undefined ? tanggalMundur(pr.tepat) : null;
+
+      const { data, error } = await sb.rpc('owner_qris_belum_konfirmasi', { p_tanggal: tgl });
+      if (error) {
+        // Panel ini alat bantu, bukan bagian laporan utama. Kegagalannya
+        // disembunyikan daripada menakut-nakuti dengan galat yang tidak
+        // dapat ditindaklanjuti pemilik.
+        panel.hidden = true;
+        return;
+      }
+
+      const baris = data || [];
+      if (!baris.length) { panel.hidden = true; return; }
+
+      panel.hidden = false;
+      const total = baris.reduce((a, r) => a + Number(r.final_amount || 0), 0);
+      ringkas.textContent = baris.length + ' nota QRIS senilai ' + formatRupiah(total)
+        + ' tersimpan tanpa penanda pemeriksaan. Ini belum tentu berarti dananya tidak masuk —'
+        + ' cocokkan dengan mutasi di aplikasi merchant.';
+
+      body.innerHTML = baris.map(r => '<tr>'
+        + '<td>' + new Date(r.created_at).toLocaleString('id-ID',
+            { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jakarta' }) + '</td>'
+        + '<td style="font-family:var(--mono);">' + escapeHtml(r.invoice_no || '-') + '</td>'
+        + '<td>' + escapeHtml(r.capster_name || '-') + '</td>'
+        + '<td>' + escapeHtml(r.member_name || 'Umum') + '</td>'
+        + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(r.payment_ref || '-') + '</td>'
+        + '<td style="text-align:right; font-family:var(--mono);">' + formatRupiah(r.final_amount) + '</td>'
+        + '<td><button class="btn-hapus" data-hapus="' + escapeHtml(r.id) + '"'
+        + ' data-nota="' + escapeHtml(r.invoice_no || '') + '"'
+        + ' title="Hapus nota ini — dananya memang tidak masuk">&#215;</button></td>'
+        + '</tr>').join('');
     }
 
     function renderDashboard() {
@@ -3021,9 +3302,17 @@
 
         daftarItem.forEach(it => {
           const capName = it.capster_name || tx.capster_name || 'Tidak Ditentukan';
-          if (!capsterBreakdown[capName]) capsterBreakdown[capName] = { omzet: 0, heads: 0 };
+          if (!capsterBreakdown[capName]) capsterBreakdown[capName] = { omzet: 0, heads: 0, layanan: {} };
           capsterBreakdown[capName].omzet += Number(it.price) || 0;
           capsterBreakdown[capName].heads += 1;
+          /* Nama layanannya ikut dihitung. "4 pangkas & layanan" tidak memberi
+             tahu apa yang dikerjakan: dua potong dan dua cuci terbaca sama
+             dengan empat potong. Kapster yang menerima daftar itu di grup
+             membantahnya sendiri — "aku potong 2 aja tadi" — dan yang
+             sebenarnya keliru adalah kalimatnya, bukan angkanya. */
+          const namaLayanan = it.name || 'Layanan';
+          capsterBreakdown[capName].layanan[namaLayanan] =
+            (capsterBreakdown[capName].layanan[namaLayanan] || 0) + 1;
         });
       });
 
@@ -3051,32 +3340,12 @@
         });
 
       // Update Capster Performance DOM
-      const capContainer = document.getElementById('capsterPerfContainer');
-      const sortedCapsters = Object.entries(capsterBreakdown).sort((a, b) => b[1].omzet - a[1].omzet);
+      performaKapster = Object.entries(capsterBreakdown).sort((a, b) => b[1].omzet - a[1].omzet);
+      renderPerformaKapster();
 
-      if (sortedCapsters.length === 0) {
-        capContainer.innerHTML = `<div style="text-align:center; padding:16px; color:var(--fg-dim); font-size:13px;">Belum ada data capster pada periode ini</div>`;
-      } else {
-        capContainer.innerHTML = sortedCapsters.map(([name, stat]) => `
-          <div class="capster-perf-row">
-            <div class="capster-info">
-              <div class="capster-avatar-sm">${(() => {
-                const foto = { "cena": "assets/cena", "lukman": "assets/lukman", "wanda": "assets/wanda" }[(name || "").toLowerCase().trim()];
-                return foto
-                  ? `<picture><source srcset="${foto}.webp?v=4" type="image/webp" /><img src="${foto}.png?v=4" alt="${name}" loading="lazy" /></picture>`
-                  : name.charAt(0).toUpperCase();
-              })()}</div>
-              <div>
-                <div class="capster-perf-name">${name}</div>
-                <div class="capster-heads">${stat.heads} pangkas & layanan</div>
-              </div>
-            </div>
-            <div class="capster-stat">
-              <div class="capster-omzet">${formatRupiah(stat.omzet)}</div>
-            </div>
-          </div>
-        `).join('');
-      }
+      // Panel pantau berdiri di luar txList: ia bertanya langsung ke server,
+      // sebab yang dicari justru nota yang penandaannya tidak sampai.
+      muatQrisPantau();
 
       // Update Transactions Table DOM
       const tbody = document.getElementById('txTableBody');
@@ -3101,7 +3370,7 @@
               <td>
                 <button class="capster-ubah" data-ubah-capster="${tx.id}"
                         data-nota="${escapeHtml(tx.invoice_no || '')}"
-                        title="Pindahkan pekerjaan ini ke capster lain">${escapeHtml(ringkasCapster(tx))}</button>
+                        title="Pindahkan pekerjaan ini ke kapster lain">${escapeHtml(ringkasCapster(tx))}</button>
               </td>
               <td>${srvNames}</td>
               <td><span class="pill-pay ${methodClass}">${tx.payment_method || 'Tunai'}</span></td>
@@ -3152,18 +3421,18 @@
       if (!tx) return;
 
       const aktif = (capstersData || []).filter(c => c.is_active);
-      if (!aktif.length) return alert('Belum ada capster aktif.');
+      if (!aktif.length) return alert('Belum ada kapster aktif.');
 
       const daftar = aktif.map((c, i) => (i + 1) + '. ' + c.name).join('\n');
       const pilih = prompt('Pindahkan SELURUH nota ' + btn.dataset.nota
-        + ' ke capster mana?\n\n' + daftar + '\n\nKetik nomornya:');
+        + ' ke kapster mana?\n\n' + daftar + '\n\nKetik nomornya:');
       if (pilih === null) return;
 
       const idx = parseInt(pilih, 10) - 1;
       if (!(idx >= 0 && idx < aktif.length)) return alert('Nomor tidak dikenali.');
 
       const alasan = prompt('Alasan pemindahan (tersimpan di arsip):',
-                            'Kasir salah pilih capster');
+                            'Kasir salah pilih kapster');
       if (alasan === null) return;
       if (!alasan.trim()) return alert('Alasan wajib diisi.');
 
@@ -3189,16 +3458,19 @@
        member, dan klaim reward; menghapus barisnya saja meninggalkan poin
        yang tidak pernah dibelanjakan dan saldo yang tidak cocok riwayatnya.
        ═══════════════════════════════════════════════════════════════════════ */
-    document.getElementById('txTableBody').addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-hapus]');
-      if (!btn) return;
-
+    /* Dipakai dua tempat: tabel log dan daftar pantau QRIS. Aturannya sengaja
+       satu, supaya panel yang lebih baru tidak diam-diam mewarisi versi yang
+       lebih longgar — yang dihapus di sini menarik poin member dan mengurangi
+       kunjungannya, dan itu tidak boleh bergantung pada tombol mana yang
+       kebetulan ditekan. Mengembalikan true hanya bila notanya benar-benar
+       terhapus, supaya pemanggilnya tahu perlu menyegarkan atau tidak. */
+    async function hapusTransaksi(btn, alasanBawaan) {
       const nota = btn.dataset.nota || '(tanpa nomor)';
       // Dua langkah: konfirmasi, lalu alasan. Alasannya masuk arsip, sehingga
       // pertanyaan "kenapa angka kemarin berubah" masih bisa dijawab nanti.
-      if (!confirm('Hapus transaksi ' + nota + '?\n\nPoin member yang berasal dari transaksi ini akan ditarik kembali, dan kunjungannya dikurangi. Tindakan ini tidak bisa dibatalkan.')) return;
-      const alasan = prompt('Alasan penghapusan (tersimpan di arsip):', 'Data testing');
-      if (alasan === null) return;
+      if (!confirm('Hapus transaksi ' + nota + '?\n\nPoin member yang berasal dari transaksi ini akan ditarik kembali, dan kunjungannya dikurangi. Tindakan ini tidak bisa dibatalkan.')) return false;
+      const alasan = prompt('Alasan penghapusan (tersimpan di arsip):', alasanBawaan || 'Data testing');
+      if (alasan === null) return false;
 
       btn.disabled = true;
       const { data, error } = await sb.rpc('delete_transaction', {
@@ -3207,13 +3479,32 @@
       });
       btn.disabled = false;
 
-      if (error) { alert('Gagal menghapus: ' + error.message); return; }
+      if (error) { alert('Gagal menghapus: ' + error.message); return false; }
       const r = Array.isArray(data) ? data[0] : data;
       alert('Transaksi ' + (r ? r.invoice_no : nota) + ' dihapus.'
             + (r && r.poin_ditarik ? '\n\n' + r.poin_ditarik + ' poin ditarik dari member ' + (r.member_phone || '') + '.' : ''));
+      return true;
+    }
 
-      await loadData();
-      await muatArsip();
+    document.getElementById('txTableBody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-hapus]');
+      if (!btn) return;
+      if (await hapusTransaksi(btn)) {
+        await loadData();
+        await muatArsip();
+      }
+    });
+
+    /* Alasan bawaannya berbeda di sini. Yang dihapus dari daftar pantau adalah
+       nota yang dananya tidak pernah terlihat masuk — menawarkan "Data testing"
+       akan membuat arsipnya berbohong tentang apa yang sebenarnya terjadi. */
+    document.getElementById('qrisPantauBody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-hapus]');
+      if (!btn) return;
+      if (await hapusTransaksi(btn, 'Dana QRIS tidak masuk')) {
+        await loadData();
+        await muatArsip();
+      }
     });
 
     async function muatArsip() {
@@ -3663,7 +3954,7 @@
       ]);
 
       if (staf.error) {
-        gc.innerHTML = '<div class="kelola-pesan bad">Gagal memuat capster: ' + escapeHtml(staf.error.message) + '</div>';
+        gc.innerHTML = '<div class="kelola-pesan bad">Gagal memuat kapster: ' + escapeHtml(staf.error.message) + '</div>';
       } else {
         gc.innerHTML = (staf.data || []).map(function (c) {
           const bisa = c.punya_akun;
@@ -3686,7 +3977,7 @@
               : '<div class="kelola-pesan bad">Belum punya akun — buatkan dulu lewat Dardev.</div>')
             + '<div class="kelola-pesan" data-sandi-pesan="' + c.capster_id + '"></div>'
             + '</div>';
-        }).join('') || '<div class="kelola-pesan">Belum ada capster.</div>';
+        }).join('') || '<div class="kelola-pesan">Belum ada kapster.</div>';
       }
 
       if (kasir.error) {
@@ -3733,7 +4024,7 @@
         inp.value = (r && r.telepon) || '';
         kelolaPesan(msg, r && r.telepon
           ? 'Tersimpan sebagai ' + r.telepon + '.'
-          : 'Nomor dikosongkan. Capster ini tidak akan dapat notifikasi.', true);
+          : 'Nomor dikosongkan. Kapster ini tidak akan dapat notifikasi.', true);
       }
 
       if (bSandi) {
@@ -3785,7 +4076,7 @@
       // merusak seluruh struktur kolomnya.
       unduhCsv(
         'Transaksi_' + selectedDateFilter + '_' + sbJakartaToday() + '.csv',
-        ['Waktu', 'No Invoice', 'Nama Pelanggan', 'No WhatsApp', 'Capster',
+        ['Waktu', 'No Invoice', 'Nama Pelanggan', 'No WhatsApp', 'Kapster',
          'Layanan', 'Metode Bayar', 'Kode Ref/Approval', 'Subtotal (Rp)',
          'Diskon Poin (Rp)', 'Diskon Kasir (Rp)', 'Nama Diskon', 'Total (Rp)'],
         txList.map(function (tx) {
@@ -3804,13 +4095,74 @@
     });
 
     // Date Filters
-    document.querySelectorAll('.btn-filter-date').forEach(btn => {
+    /* Pilihan periode dibuat dari tabel PERIODE, bukan ditulis di HTML.
+       Menuliskannya dua kali membuat label layar dan rentang kueri dapat
+       menyimpang tanpa ada yang menyadarinya. */
+    function isiPilihanPeriode() {
+      const sel = document.getElementById('selPeriode');
+      if (!sel) return;
+      sel.innerHTML = Object.keys(PERIODE).map(function (k) {
+        return '<option value="' + k + '">' + escapeHtml(PERIODE[k].label) + '</option>';
+      }).join('');
+      sel.value = selectedDateFilter;
+    }
+    isiPilihanPeriode();
+
+    /* Berganti periode kini MEMUAT ULANG dari server, bukan sekadar menyaring
+       yang sudah ada. Pemuatan hanya membawa rentang yang sedang dipilih, jadi
+       memilih rentang yang lebih panjang tanpa mengambil ulang akan
+       menampilkan layar kosong dan terbaca sebagai "tidak ada transaksi".
+
+       Pemilihnya dikunci selama pengambilan: rentang setahun bisa memakan
+       beberapa detik, dan permintaan yang menumpuk hanya membuat angkanya
+       berkedip di antara dua periode. */
+    document.getElementById('selPeriode').addEventListener('change', async function () {
+      const sel = this;
+      selectedDateFilter = sel.value;
+      const stamp = document.getElementById('syncStamp');
+      const stampLama = stamp ? stamp.textContent : '';
+      sel.disabled = true;
+      if (stamp) stamp.textContent = 'Memuat ' + labelPeriode().toLowerCase() + '…';
+      try {
+        await loadData();
+      } catch (err) {
+        if (stamp) stamp.textContent = stampLama;
+        alert('Gagal memuat periode itu: ' + (err.message || err));
+      } finally {
+        sel.disabled = false;
+      }
+    });
+
+    // Pemilih mode performa kapster. Hanya menggambar ulang panelnya —
+    // datanya sudah ada, tidak perlu memanggil ulang server.
+    document.querySelectorAll('[data-perf]').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.btn-filter-date').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedDateFilter = btn.dataset.range;
-        renderDashboard();
+        modePerforma = btn.dataset.perf;
+        renderPerformaKapster();
       });
+    });
+
+    document.getElementById('btnMuatQrisPantau').addEventListener('click', function () {
+      muatQrisPantau();
+    });
+
+    document.getElementById('btnSalinPerforma').addEventListener('click', async () => {
+      const teks = performaSebagaiTeks();
+      if (!teks) { alert('Belum ada data kapster untuk disalin.'); return; }
+      const btn = document.getElementById('btnSalinPerforma');
+      const label = btn.textContent;
+      try {
+        await navigator.clipboard.writeText(teks);
+        btn.textContent = '✓ Tersalin';
+      } catch {
+        // Clipboard API menolak di konteks tak aman atau tanpa izin. Teksnya
+        // tetap harus sampai ke tangan pemilik, jadi ditawarkan untuk disalin
+        // sendiri alih-alih gagal diam-diam.
+        window.prompt('Salin teks berikut:', teks);
+        btn.textContent = label;
+        return;
+      }
+      setTimeout(() => { btn.textContent = label; }, 1600);
     });
 
     // Search Input

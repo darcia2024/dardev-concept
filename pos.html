@@ -486,6 +486,20 @@
       font-family: var(--mono);
       font-weight: 600;
     }
+    /* Tombol hapus per baris. Sejak klik pada katalog selalu menambah, inilah
+       satu-satunya jalan membatalkan — dan ia harus menghapus baris ITU saja,
+       bukan seluruh layanan sejenis. Dibuat tenang supaya tidak menarik jari
+       kasir yang sedang buru-buru, tetapi tetap 32px agar tidak meleset. */
+    .cart-row .item-hapus {
+      flex: none; width: 32px; height: 32px; margin-left: 4px;
+      background: transparent; border: 1px solid transparent; border-radius: 7px;
+      color: var(--fg-dim); font-size: 15px; line-height: 1; padding: 0;
+      cursor: pointer;
+      transition: color .15s ease, background .15s ease, border-color .15s ease;
+    }
+    .cart-row .item-hapus:hover {
+      color: var(--clay); background: var(--clay-wash); border-color: var(--clay);
+    }
 
     /* Payment Method Selector */
     .pay-methods {
@@ -1673,6 +1687,46 @@
       border-bottom: 1px solid var(--border-soft);
     }
 
+    /* Kartu QRIS di layar bayar. Logo berdiri DI ATAS kode, bukan ditumpuk di
+       tengahnya: menempelkan gambar ke tengah QR memakan cadangan koreksi
+       kesalahan, dan yang gagal memindai bukan kasir melainkan pelanggan yang
+       sudah berdiri di depan meja. Latarnya dipaksa putih pekat — kontras QR
+       tidak boleh bergantung pada tema. */
+    #qrisDinBox { text-align: center; padding: 6px 0 4px; }
+    .qris-kartu {
+      display: inline-block; background: #FFFFFF;
+      padding: 12px 12px 10px; border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .qris-logo { display: block; width: 132px; height: auto; margin: 0 auto 10px; }
+    #qrisKode { line-height: 0; }
+    #qrisNominal {
+      font-family: var(--mono); font-size: 15px; font-weight: 600; margin-top: 8px;
+    }
+    .qris-ket { font-size: 11.5px; color: var(--fg-dim); margin-top: 2px; }
+
+    /* Gerbang konfirmasi QRIS. Nada netral saat menunggu, hijau saat sudah
+       diperiksa — kasir harus dapat membedakan keduanya dengan sekali lihat,
+       tanpa membaca. */
+    #qrisKonfirmBox {
+      margin-top: 8px; padding: 10px 12px;
+      border: 1px solid var(--line); border-radius: var(--r-sm);
+      background: var(--ink-inset);
+    }
+    #btnQrisKonfirm {
+      width: 100%; min-height: 44px; padding: 10px 12px;
+      border: 1px solid var(--brass); border-radius: var(--r-sm);
+      background: var(--brass); color: var(--ink);
+      font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    }
+    #btnQrisKonfirm:hover { filter: brightness(1.06); }
+    #qrisKonfirmBox.is-verified { border-color: var(--sage); background: var(--sage-wash); }
+    #qrisKonfirmBox.is-verified #btnQrisKonfirm {
+      background: transparent; color: var(--sage); border-color: var(--sage);
+    }
+    #qrisKonfirmKet { font-size: 11.5px; color: var(--fg-dim); margin-top: 7px; line-height: 1.5; }
+    #qrisKonfirmBox.is-verified #qrisKonfirmKet { color: var(--sage); }
+
     /* ── Capster per layanan ────────────────────────────────────────────────
        Biasanya seluruh layanan dikerjakan orang yang sama, jadi pemilih ini
        tampil setenang mungkin: tanpa kotak, seukuran teks keterangan di
@@ -1727,7 +1781,7 @@
         Booking <span class="booking-count" id="bookingCount" hidden>0</span>
       </button>
       <button class="btn-hdr" id="btnOpenClosing" title="Setor hitungan uang tunai akhir shift">Tutup Kas</button>
-      <button class="btn-hdr" id="btnOpenSettings" title="Kelola Layanan & Capster" hidden>Pengaturan</button>
+      <button class="btn-hdr" id="btnOpenSettings" title="Kelola Layanan & Kapster" hidden>Pengaturan</button>
       <a href="/rekap" class="btn-hdr" id="lnkRekap" title="Buka Dashboard Owner" hidden>Rekap Omzet</a>
       <button class="btn-hdr" id="btnSignOut" title="Melepas pendaftaran perangkat ini. Untuk ganti kasir, tekan nama kasir di kiri.">Lepas Perangkat</button>
     </div>
@@ -1742,7 +1796,7 @@
       <!-- Capster Selection -->
       <section class="section-box">
         <div class="section-title-bar">
-          <h2><span class="step-badge">01</span> Pilih Capster Bertugas</h2>
+          <h2><span class="step-badge">01</span> Pilih Kapster Bertugas</h2>
           <span style="font-size: 12px; color: var(--fg-dim);" id="lblSelectedCapster">Belum dipilih</span>
         </div>
         <div class="capster-grid" id="capsterContainer">
@@ -1798,7 +1852,7 @@
         <div class="form-group">
           <label class="form-label">Item Terpilih</label>
           <div class="cart-items-wrap" id="cartItemsContainer">
-            <div class="cart-empty-state">Belum ada layanan & capster dipilih</div>
+            <div class="cart-empty-state">Belum ada layanan & kapster dipilih</div>
           </div>
         </div>
 
@@ -1832,7 +1886,28 @@
 
           <!-- QRIS specifics -->
           <div id="qrisPayBox" style="display: none;">
-            <p style="font-size: 12px; color: var(--fg-dim);">Silakan arahkan pelanggan scan QRIS Statis di meja kasir.</p>
+            <!-- Bila payload statis sudah diisi di Pengaturan, QR-nya digambar
+                 di sini dengan nominal terkunci. Bila belum, kasir tetap
+                 memakai stiker di meja seperti sebelumnya. -->
+            <div id="qrisDinBox" hidden>
+              <div class="qris-kartu">
+                <img class="qris-logo" src="assets/logo.png" alt="Underrated Barbershop" />
+                <div id="qrisKode"></div>
+              </div>
+              <div id="qrisNominal"></div>
+              <div class="qris-ket">Nominal sudah terkunci &mdash; pelanggan tinggal scan</div>
+            </div>
+            <div id="qrisGagal" hidden class="svc-err" style="margin-bottom:6px;"></div>
+            <p id="qrisPesanStatis" style="font-size: 12px; color: var(--fg-dim);">Silakan arahkan pelanggan scan QRIS Statis di meja kasir.</p>
+
+            <!-- Gerbang manual. Sistem tidak punya jalur untuk mendengar dana
+                 QRIS masuk, jadi yang menutup celah itu mata kasir — dan nota
+                 tidak boleh tersimpan sebelum ia menyatakannya. -->
+            <div id="qrisKonfirmBox">
+              <button type="button" id="btnQrisKonfirm">Konfirmasi Dana Masuk</button>
+              <div id="qrisKonfirmKet">Cek notifikasi di aplikasi merchant lebih dulu.</div>
+            </div>
+
             <input type="text" id="inpQrisRef" class="input-field" style="margin-top: 4px;" placeholder="No. Referensi / RRN (Opsional)" />
           </div>
 
@@ -1933,7 +2008,7 @@
         <div>
           <div class="receipt-line"><span>Pelanggan:</span><strong id="rcptCustName">Mas Budi</strong></div>
           <div class="receipt-line" id="rcptRowPhone"><span>WhatsApp:</span><span id="rcptCustPhone">08123456789</span></div>
-          <div class="receipt-line"><span>Capster:</span><span id="rcptCapster">Alex</span></div>
+          <div class="receipt-line"><span>Kapster:</span><span id="rcptCapster">Alex</span></div>
           <div class="receipt-line" id="rcptRowTier"><span>Tier Member:</span><span id="rcptMemberTier">Silver</span></div>
         </div>
         <!-- Tiap layanan mendapat barisnya sendiri. Sebelumnya semuanya
@@ -2130,12 +2205,12 @@
       <!-- Edit Capsters -->
       <div>
         <div class="section-title-bar" style="margin-bottom: 8px;">
-          <h4 style="font-size: 13px; color: var(--brass); margin: 0;">Master Capster</h4>
-          <button id="btnAddCapster" class="btn-hdr" style="font-size: 11.5px; padding: 5px 10px;">+ Tambah Capster</button>
+          <h4 style="font-size: 13px; color: var(--brass); margin: 0;">Master Kapster</h4>
+          <button id="btnAddCapster" class="btn-hdr" style="font-size: 11.5px; padding: 5px 10px;">+ Tambah Kapster</button>
         </div>
 
         <div class="svc-form" id="capsterFormWrap" hidden>
-          <input type="text" id="inpCapName" class="input-field" placeholder="Nama capster — cth: Alex" autocomplete="off" />
+          <input type="text" id="inpCapName" class="input-field" placeholder="Nama kapster — cth: Alex" autocomplete="off" />
           <input type="tel" id="inpCapPhone" class="input-field" placeholder="No. WhatsApp — 0812xxxx (opsional)" autocomplete="off" />
           <div class="svc-err" id="capFormError" hidden></div>
           <div class="svc-form-actions">
@@ -2147,7 +2222,7 @@
         <div class="settings-table-wrap">
           <table class="sm-table" id="tableCapstersSetting">
             <thead>
-              <tr><th>Nama Capster</th><th>WhatsApp</th><th style="width: 148px; text-align: right;">Aksi</th></tr>
+              <tr><th>Nama Kapster</th><th>WhatsApp</th><th style="width: 148px; text-align: right;">Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -2226,6 +2301,30 @@
         <div class="svc-meta" id="csrSummary"></div>
       </div>
 
+      <!-- QRIS dinamis. Payload statis outlet disimpan apa adanya, lalu tiap
+           nota disuntik nominalnya sendiri sebelum digambar jadi QR. -->
+      <div id="qrisSection">
+        <div class="section-title-bar" style="margin-bottom: 8px;">
+          <h4 style="font-size: 13px; color: var(--brass); margin: 0;">QRIS Dinamis</h4>
+          <span style="font-size: 11px; color: var(--fg-dim);">berlaku semua perangkat</span>
+        </div>
+        <p style="font-size: 12px; color: var(--fg-dim); line-height: 1.6; margin-bottom: 8px;">
+          Tempel <strong style="color:var(--fg-mid);">isi</strong> QRIS statis outlet &mdash;
+          hasil scan stikernya, bukan fotonya. Diawali <code>000201</code> dan diakhiri
+          <code>6304</code> plus empat karakter. Kasir akan melihat QR bernominal terkunci
+          tiap transaksi. Kosongkan untuk kembali memakai stiker di meja.
+        </p>
+        <textarea id="inpQrisStatis" class="input-field" rows="3" autocomplete="off" spellcheck="false"
+                  style="font-family:var(--mono); font-size:11.5px; resize:vertical;"
+                  placeholder="00020101021126...6304ABCD"></textarea>
+        <div class="svc-err" id="qrisFormError" hidden></div>
+        <div class="svc-meta" id="qrisSummary"></div>
+        <div class="svc-form-actions">
+          <button id="btnHapusQris" class="btn-hdr" style="font-size: 12px;">Kosongkan</button>
+          <button id="btnSaveQris" class="btn-hdr btn-primary" style="font-size: 12px;">Simpan</button>
+        </div>
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--fg-dim);">
         <span>Tersimpan di server — tampil sama di semua perangkat.</span>
         <button id="btnReloadMaster" class="btn-hdr" style="font-size: 11px;">↻ Muat Ulang</button>
@@ -2292,6 +2391,9 @@
        bila jaringan luar terganggu di hari pembukaan. -->
   <script src="vendor/supabase.js"></script>
   <script src="vendor/jsqr.js"></script>
+  <!-- jsqr membaca QR, qrcode menggambarnya. Yang digambar di sini adalah
+       QRIS dinamis: payload statis milik outlet, disuntik nominal per nota. -->
+  <script src="vendor/qrcode.js"></script>
   <script src="sb-app.js"></script>
 
   <script>
@@ -2355,6 +2457,18 @@
         products = prod || [];
         localStorage.setItem('barber_products_v1', JSON.stringify(products));
       } catch { products = []; }
+
+      /* Payload QRIS ikut pola yang sama: server sumber kebenarannya,
+         localStorage sekadar salinan supaya QR tetap dapat digambar saat
+         sinyal putus. Kegagalan di sini tidak menjatuhkan pemuatan — kasir
+         tinggal memakai stiker di meja. */
+      try {
+        const { data: qr } = await sb.rpc('pos_qris_config');
+        const baris = Array.isArray(qr) ? qr[0] : qr;
+        const payload = (baris && baris.payload_statis) || '';
+        if (payload) localStorage.setItem(QRIS_KUNCI, payload);
+        else localStorage.removeItem(QRIS_KUNCI);
+      } catch { /* salinan lama tetap dipakai */ }
 
       localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(services));
       localStorage.setItem(STORAGE_KEY_CAPSTERS, JSON.stringify(capsters));
@@ -2439,8 +2553,8 @@
         empty.className = 'svc-empty';
         empty.style.gridColumn = '1 / -1';
         empty.textContent = capsters.length === 0
-          ? 'Belum ada capster. Buka ⚙️ Pengaturan untuk menambahkan.'
-          : 'Tidak ada capster aktif. Aktifkan lewat ⚙️ Pengaturan.';
+          ? 'Belum ada kapster. Buka ⚙️ Pengaturan untuk menambahkan.'
+          : 'Tidak ada kapster aktif. Aktifkan lewat ⚙️ Pengaturan.';
         container.appendChild(empty);
         return;
       }
@@ -2459,8 +2573,8 @@
         /* WebP dulu, PNG sebagai cadangan: Safari baru mengenal WebP sejak
            iOS 14, dan iPad kasir yang lebih tua harus tetap melihat wajahnya. */
         const avatarHtml = foto
-          ? `<picture><source srcset="${foto}.webp?v=4" type="image/webp" />`
-            + `<img src="${foto}.png?v=4" alt="${escapeHtml(c.name)}" loading="lazy" /></picture>`
+          ? `<picture><source srcset="${foto}.webp?v=8" type="image/webp" />`
+            + `<img src="${foto}.png?v=8" alt="${escapeHtml(c.name)}" loading="lazy" /></picture>`
           : escapeHtml(initial);
         const card = document.createElement('div');
         card.className = `capster-card ${isSel ? 'is-selected' : ''}`;
@@ -2509,11 +2623,14 @@
       }
 
       filtered.forEach(s => {
-        const isSel = selectedServices.some(item => item.id === s.id);
+        // Jumlahnya ditampilkan, bukan sekadar tanda centang: dua potong
+        // rambut dalam satu nota harus terlihat sebagai dua, kalau tidak kasir
+        // tidak punya cara mengetahui ia sudah menekan sekali atau dua kali.
+        const jml = selectedServices.filter(item => item.id === s.id).length;
         const card = document.createElement('div');
-        card.className = `service-card ${isSel ? 'is-selected' : ''}`;
+        card.className = `service-card ${jml > 0 ? 'is-selected' : ''}`;
         card.innerHTML = `
-          <div class="check-indicator">✓</div>
+          <div class="check-indicator">${jml > 1 ? jml : '✓'}</div>
           <div class="service-head">
             <span class="service-name">${escapeHtml(s.name)}</span>
             <span class="service-dur">${s.item_type === 'produk' ? 'produk' : s.duration + ' mnt'}</span>
@@ -2521,22 +2638,36 @@
           <div class="service-price">${formatRupiah(s.price)}</div>
         `;
         card.onclick = () => {
-          toggleServiceSelection(s);
+          tambahLayanan(s);
         };
         container.appendChild(card);
       });
     }
 
-    function toggleServiceSelection(service) {
-      const index = selectedServices.findIndex(item => item.id === service.id);
-      if (index > -1) {
-        selectedServices.splice(index, 1);
-      } else {
-        // Salinan, bukan referensi. selectedServices menyimpan capster per item,
-        // dan menempelkannya ke objek katalog akan membuat pilihan satu
-        // transaksi ikut terbawa ke transaksi berikutnya.
-        selectedServices.push({ ...service, capsterId: null });
-      }
+    /* Menambah, bukan menyalakan-mematikan. Dulu klik kedua pada layanan yang
+       sama justru menghapusnya, sehingga satu nota tidak pernah bisa memuat dua
+       potong rambut — padahal ayah dan anak yang mencukur lalu membayar sekali
+       adalah kejadian sehari-hari di barbershop.
+
+       Tiap klik menghasilkan BARIS tersendiri, bukan menaikkan jumlah pada satu
+       baris. Alasannya bukan selera: tiap baris membawa kapsternya sendiri, dan
+       ayah bisa saja dicukur Cena sementara anaknya oleh Lukman. Jumlah pada
+       satu baris tidak punya tempat untuk menyimpan dua nama itu.
+
+       Membatalkan kini lewat tombol pada barisnya di keranjang, yang menghapus
+       baris ITU saja — bukan seluruh layanan sejenis. */
+    function tambahLayanan(service) {
+      // Salinan, bukan referensi. selectedServices menyimpan capster per item,
+      // dan menempelkannya ke objek katalog akan membuat pilihan satu
+      // transaksi ikut terbawa ke transaksi berikutnya.
+      selectedServices.push({ ...service, capsterId: null });
+      renderServices(currentFilterCat);
+      updateCartView();
+    }
+
+    function hapusBarisLayanan(indeks) {
+      if (indeks < 0 || indeks >= selectedServices.length) return;
+      selectedServices.splice(indeks, 1);
       renderServices(currentFilterCat);
       updateCartView();
     }
@@ -2678,20 +2809,26 @@
       let subtotal = 0;
       let html = '';
 
-      selectedServices.forEach(s => {
+      /* Dikunci pakai INDEKS baris, bukan id layanan. Sejak satu nota dapat
+         memuat dua potong rambut, id layanannya sama pada dua baris — dan
+         mencarinya dengan find() akan selalu menemukan yang pertama, sehingga
+         mengubah kapster baris kedua diam-diam mengubah baris pertama. */
+      selectedServices.forEach((s, i) => {
         subtotal += s.price;
         html += `
           <div class="cart-row">
             <div class="item-info">
               <span><strong>${escapeHtml(s.name)}</strong></span>
               ${selectedCapster ? `
-              <select class="item-capster-pilih" data-item="${escapeHtml(String(s.id))}" title="Siapa yang mengerjakan layanan ini">
+              <select class="item-capster-pilih" data-idx="${i}" title="Siapa yang mengerjakan layanan ini">
                 ${capsters.filter(c => c.is_active !== false).map(c => `
                   <option value="${escapeHtml(String(c.id))}"${(s.capsterId || selectedCapster.id) === c.id ? ' selected' : ''}>${escapeHtml(c.name)}</option>
                 `).join('')}
-              </select>` : '<span class="item-capster"><em>Pilih capster dulu</em></span>'}
+              </select>` : '<span class="item-capster"><em>Pilih kapster dulu</em></span>'}
             </div>
             <span class="item-price">${formatRupiah(s.price)}</span>
+            <button type="button" class="item-hapus" data-idx="${i}"
+                    title="Hapus baris ini" aria-label="Hapus ${escapeHtml(s.name)}">&#215;</button>
           </div>
         `;
       });
@@ -2704,19 +2841,29 @@
       // Validate submit button readiness
       const hasCapster = !!selectedCapster;
       const hasServices = selectedServices.length > 0;
-      submitBtn.disabled = !(hasCapster && hasServices);
+      // Pembayaran QRIS ikut menahan tombol sampai kasir menyatakan dananya
+      // sudah terlihat masuk. Tombol yang mati di depan mata lebih jelas
+      // daripada nota yang ditolak sesudah ditekan.
+      submitBtn.disabled = !(hasCapster && hasServices && qrisSudahKonfirm());
 
       tandaiCapsterBeda();
       renderQuickCashChips(finalAmount);
       calculateCashChange();
+      renderQrisDinamis();
     }
 
     /* Pilihan capster per layanan disimpan pada item, lalu ditandai bila
        berbeda dari capster transaksinya. */
+    document.getElementById('cartItemsContainer').addEventListener('click', (e) => {
+      const btn = e.target.closest('.item-hapus');
+      if (!btn) return;
+      hapusBarisLayanan(Number(btn.dataset.idx));
+    });
+
     document.getElementById('cartItemsContainer').addEventListener('change', (e) => {
       const sel = e.target.closest('.item-capster-pilih');
       if (!sel) return;
-      const item = selectedServices.find(x => String(x.id) === sel.dataset.item);
+      const item = selectedServices[Number(sel.dataset.idx)];
       if (!item) return;
       item.capsterId = sel.value;
       tandaiCapsterBeda();
@@ -3346,6 +3493,202 @@
       hitungDiskon();
     });
 
+    /* ── QRIS statis → dinamis ────────────────────────────────────────────
+       QRIS adalah TLV EMVCo: tiap ruas berbentuk <tag 2><panjang 2><nilai>.
+       Yang membedakan statis dari dinamis hanya dua ruas — tag 01 (metode
+       inisiasi, "11" statis / "12" dinamis) dan tag 54 (nominal, tidak ada
+       pada statis). Sisanya milik acquirer dan tidak disentuh.
+
+       Yang TIDAK dilakukan di sini: mengabarkan pembayaran. Uangnya tetap
+       mengalir ke rekening merchant lewat acquirer yang sama, dan sistem ini
+       tidak punya jalur untuk mendengarnya. Nominal terkunci menghapus salah
+       ketik, bukan menggantikan pemeriksaan kasir. */
+    const QRIS_KUNCI = 'barber_qris_statis_v1';
+
+    function qrisCrc16(s) {
+      // Dihitung atas byte UTF-8, bukan unit UTF-16. Payload QRIS Indonesia
+      // seluruhnya ASCII sehingga keduanya kebetulan sama, tetapi menuliskannya
+      // atas byte membuat rumus ini benar juga untuk payload beraksara lain.
+      const b = new TextEncoder().encode(s);
+      let crc = 0xFFFF;
+      for (let i = 0; i < b.length; i++) {
+        crc ^= b[i] << 8;
+        for (let j = 0; j < 8; j++) {
+          crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+        }
+      }
+      return crc.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    function qrisUrai(s) {
+      const out = [];
+      let i = 0;
+      while (i < s.length) {
+        if (i + 4 > s.length) throw new Error('Struktur QRIS terpotong.');
+        const tag = s.slice(i, i + 2);
+        const lenTeks = s.slice(i + 2, i + 4);
+        if (!/^\d{2}$/.test(tag) || !/^\d{2}$/.test(lenTeks)) {
+          throw new Error('Tag atau panjang bukan angka — payload tidak utuh.');
+        }
+        const len = parseInt(lenTeks, 10);
+        const val = s.slice(i + 4, i + 4 + len);
+        if (val.length !== len) throw new Error('Nilai tag ' + tag + ' lebih pendek dari panjangnya.');
+        out.push({ tag: tag, val: val });
+        i += 4 + len;
+      }
+      return out;
+    }
+
+    function qrisRakit(items) {
+      return items.map(function (x) {
+        if (x.val.length > 99) throw new Error('Nilai tag ' + x.tag + ' melebihi 99 karakter.');
+        return x.tag + String(x.val.length).padStart(2, '0') + x.val;
+      }).join('');
+    }
+
+    function qrisDinamis(statis, nominal) {
+      // Hanya baris baru dan tab yang dibuang — itu sampah dari salin-tempel.
+      // Spasi TIDAK boleh ikut dibuang: nama merchant sah mengandungnya
+      // ("UNDERRATED BARBERSHOP"), dan membuangnya merusak payload sekaligus
+      // panjang tag yang sudah tertulis di dalamnya.
+      const bersih = String(statis || '').replace(/[\r\n\t]+/g, '').trim();
+      if (!bersih) throw new Error('Payload QRIS statis belum diisi.');
+
+      // Checksum diperiksa lebih dulu. Payload yang salah salin menghasilkan QR
+      // yang terlihat wajar tetapi ditolak, dan itu baru ketahuan di depan
+      // pelanggan — jauh lebih mahal daripada ditolak di sini.
+      if (bersih.length < 8 || bersih.slice(-8, -4) !== '6304') {
+        throw new Error('Payload tidak diakhiri checksum (tag 63). Pastikan disalin utuh.');
+      }
+      if (qrisCrc16(bersih.slice(0, -4)) !== bersih.slice(-4).toUpperCase()) {
+        throw new Error('Checksum QRIS tidak cocok — payload salah salin atau tidak lengkap.');
+      }
+
+      const item = qrisUrai(bersih.slice(0, -8));
+      const cari = function (t) { return item.find(function (x) { return x.tag === t; }); };
+      if (!cari('00')) throw new Error('Bukan payload QRIS (tag 00 tidak ada).');
+
+      const negara = cari('58');
+      if (negara && negara.val.toUpperCase() !== 'ID') {
+        throw new Error('QRIS ini bukan terbitan Indonesia (tag 58 = ' + negara.val + ').');
+      }
+      const mata = cari('53');
+      if (mata && mata.val !== '360') {
+        throw new Error('Mata uang bukan Rupiah (tag 53 = ' + mata.val + ').');
+      }
+
+      const nom = String(Math.round(Number(nominal)));
+      if (!/^\d{1,13}$/.test(nom) || Number(nom) <= 0) {
+        throw new Error('Nominal tidak sah.');
+      }
+
+      const init = cari('01');
+      if (init) init.val = '12';
+      else item.splice(1, 0, { tag: '01', val: '12' });
+
+      // Diganti bila tag 54 sudah ada, disisipkan menurut urutan menaik bila
+      // belum. Urutan ruas lain tidak diacak supaya payload sedekat mungkin
+      // dengan terbitan acquirer-nya.
+      const lama = item.findIndex(function (x) { return x.tag === '54'; });
+      if (lama !== -1) item[lama].val = nom;
+      else {
+        let sisip = item.findIndex(function (x) { return parseInt(x.tag, 10) > 54; });
+        if (sisip === -1) sisip = item.length;
+        item.splice(sisip, 0, { tag: '54', val: nom });
+      }
+
+      const badan = qrisRakit(item) + '6304';
+      return badan + qrisCrc16(badan);
+    }
+    /* ── akhir QRIS statis → dinamis ─────────────────────────────────────── */
+
+    function qrisStatisTersimpan() {
+      try { return localStorage.getItem(QRIS_KUNCI) || ''; } catch { return ''; }
+    }
+
+    /* ── Gerbang konfirmasi QRIS ──────────────────────────────────────────
+       Yang disimpan bukan "sudah dikonfirmasi" melainkan NOMINAL YANG
+       dikonfirmasi. Sebuah boolean akan tetap menyala ketika kasir menambah
+       satu layanan lagi sesudah memeriksa notifikasi, dan nota tersimpan atas
+       pemeriksaan yang sebenarnya menyangkut jumlah lain. Mengikatnya pada
+       nominal membuat konfirmasi gugur sendiri begitu tagihannya bergeser. */
+    let qrisKonfirmNominal = null;
+
+    function qrisPerluKonfirmasi() {
+      return selectedPaymentMethod === 'QRIS' && totalTagihan() > 0;
+    }
+
+    function qrisSudahKonfirm() {
+      if (!qrisPerluKonfirmasi()) return true;
+      return qrisKonfirmNominal !== null && qrisKonfirmNominal === totalTagihan();
+    }
+
+    function renderQrisKonfirm() {
+      const box = document.getElementById('qrisKonfirmBox');
+      if (!box) return;
+      const btn = document.getElementById('btnQrisKonfirm');
+      const ket = document.getElementById('qrisKonfirmKet');
+      const perlu = qrisPerluKonfirmasi();
+
+      box.hidden = !perlu;
+      if (!perlu) return;
+
+      if (qrisSudahKonfirm()) {
+        box.classList.add('is-verified');
+        btn.textContent = '✓ Dana ' + formatRupiah(totalTagihan()) + ' terverifikasi';
+        ket.textContent = 'Tekan lagi untuk membatalkan bila keliru.';
+      } else {
+        box.classList.remove('is-verified');
+        btn.textContent = 'Konfirmasi Dana Masuk';
+        ket.textContent = qrisKonfirmNominal === null
+          ? 'Cek notifikasi di aplikasi merchant lebih dulu. Nota belum dapat disimpan.'
+          : 'Tagihan berubah sejak dikonfirmasi — periksa ulang notifikasinya.';
+      }
+    }
+
+    /* Digambar ulang tiap kali nominalnya berubah — pindah metode bayar,
+       keranjang berubah, diskon dipilih. QR bernominal basi lebih berbahaya
+       daripada tidak ada QR sama sekali. */
+    function renderQrisDinamis() {
+      const box = document.getElementById('qrisDinBox');
+      const gagal = document.getElementById('qrisGagal');
+      const pesan = document.getElementById('qrisPesanStatis');
+      if (!box) return;
+
+      renderQrisKonfirm();
+
+      const statis = qrisStatisTersimpan();
+      const nominal = totalTagihan();
+
+      if (!statis || selectedPaymentMethod !== 'QRIS' || !(nominal > 0)) {
+        box.hidden = true;
+        gagal.hidden = true;
+        pesan.hidden = false;
+        return;
+      }
+
+      try {
+        const payload = qrisDinamis(statis, nominal);
+        const qr = qrcode(0, 'M');
+        qr.addData(payload);
+        qr.make();
+        document.getElementById('qrisKode').innerHTML = qr.createImgTag(5, 0);
+        const img = document.getElementById('qrisKode').querySelector('img');
+        if (img) { img.alt = 'QRIS ' + formatRupiah(nominal); img.style.width = '190px'; img.style.height = '190px'; }
+        document.getElementById('qrisNominal').textContent = formatRupiah(nominal);
+        box.hidden = false;
+        gagal.hidden = true;
+        pesan.hidden = true;
+      } catch (err) {
+        // Jatuh kembali ke stiker meja, bukan layar kosong: kasir tetap bisa
+        // menerima pembayaran walau payload tersimpan bermasalah.
+        box.hidden = true;
+        gagal.textContent = 'QRIS dinamis gagal dibuat: ' + err.message + ' Gunakan stiker di meja.';
+        gagal.hidden = false;
+        pesan.hidden = false;
+      }
+    }
+
     // Payment Method Switching
     document.querySelectorAll('.pay-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -3361,17 +3704,35 @@
         document.getElementById('qrisPayBox').style.display = selectedPaymentMethod === 'QRIS' ? 'block' : 'none';
         document.getElementById('edcPayBox').style.display = selectedPaymentMethod === 'EDC' ? 'block' : 'none';
         document.getElementById('transferPayBox').style.display = selectedPaymentMethod === 'Transfer' ? 'block' : 'none';
+        // Berpindah metode membatalkan konfirmasi. Memaksa periksa ulang lebih
+        // murah daripada nota tersimpan atas pemeriksaan yang sudah basi.
+        qrisKonfirmNominal = null;
+        renderQrisDinamis();
+        updateCartView();
       });
+    });
+
+    document.getElementById('btnQrisKonfirm').addEventListener('click', () => {
+      qrisKonfirmNominal = qrisSudahKonfirm() ? null : totalTagihan();
+      renderQrisKonfirm();
+      updateCartView();
     });
 
     // Process Transaction & Submit
     document.getElementById('btnSubmitTransaction').addEventListener('click', async () => {
       if (!selectedCapster) {
-        showToast('Pilih capster terlebih dahulu!');
+        showToast('Pilih kapster terlebih dahulu!');
         return;
       }
       if (selectedServices.length === 0) {
         showToast('Pilih layanan cukur!');
+        return;
+      }
+      // Penjaga kedua. Tombolnya sudah dimatikan, tetapi keadaan bisa berubah
+      // antara penggambaran terakhir dan penekanan — dan yang dijaga di sini
+      // adalah uang yang mungkin tidak pernah masuk.
+      if (!qrisSudahKonfirm()) {
+        showToast('Konfirmasi dulu dana QRIS sudah masuk.');
         return;
       }
       // Tanpa kasir teridentifikasi, transaksi tidak punya penanggung jawab
@@ -3491,6 +3852,21 @@
         } catch { /* tautan kartu dilewati, struk tetap terkirim */ }
       }
 
+      /* Konfirmasi kasir dicatat SESUDAH notanya tersimpan, lewat RPC
+         tersendiri. create_transaction sengaja tidak disentuh: 306 baris dan
+         16 parameter, menyalinnya ulang demi satu penanda menaruh seluruh
+         jalur penjualan pada risiko.
+
+         Gagalnya penandaan tidak boleh menjatuhkan apa pun — notanya sudah
+         tersimpan dan uangnya sudah masuk. Yang hilang hanya jejak
+         pemeriksaan, dan itu muncul di dasbor pemilik sebagai
+         "belum terkonfirmasi", bukan sebagai transaksi yang lenyap. */
+      if (res.tx && selectedPaymentMethod === 'QRIS') {
+        try {
+          await sb.rpc('tandai_qris_konfirmasi', { p_client_uuid: payload.p_client_uuid });
+        } catch { /* nota tetap sah; penandaannya saja yang tertinggal */ }
+      }
+
       transactions.unshift(tx);
       updateConnPill();
 
@@ -3598,7 +3974,7 @@
           '',
           'Nota: ' + tx.invoice_no,
           waktuStruk + ' WIB',
-          'Capster: ' + tx.capster_name,
+          'Kapster: ' + tx.capster_name,
           '',
           '*Layanan*'
         ];
@@ -3698,6 +4074,8 @@
       document.getElementById('inpEdcApproval').value = '';
       document.getElementById('inpQrisRef').value = '';
       document.getElementById('inpTransferBank').value = '';
+      // Konfirmasi tidak boleh menetes ke nota berikutnya.
+      qrisKonfirmNominal = null;
       document.getElementById('memberStatusBadge').className = 'member-status-badge';
       
       renderServices(currentFilterCat);
@@ -3823,7 +4201,7 @@
         baris(strukRata('WhatsApp', formatWa(tx.member_phone)));
         baris(strukRata('Tier', tx.member_tier || ''));
       }
-      baris(strukRata('Capster', tx.capster_name || ''));
+      baris(strukRata('Kapster', tx.capster_name || ''));
       baris('-'.repeat(LEBAR_STRUK));
 
       (tx.services || []).forEach(function (l) {
@@ -4154,9 +4532,90 @@
     document.getElementById('btnOpenSettings').addEventListener('click', () => {
       settingsPreviousFocus = document.activeElement;
       renderSettingsTables();
+      renderQrisSetting();
       settingsModal.classList.add('is-open');
       settingsModal.setAttribute('aria-hidden', 'false');
       document.getElementById('btnCloseSettings').focus();
+    });
+
+    /* ── Pengaturan QRIS dinamis ─────────────────────────────────────────── */
+    function qrisPesanSetting(teks, buruk) {
+      const err = document.getElementById('qrisFormError');
+      const ringkas = document.getElementById('qrisSummary');
+      err.hidden = !(buruk && teks);
+      if (buruk) err.textContent = teks;
+      ringkas.textContent = buruk ? '' : (teks || '');
+    }
+
+    function renderQrisSetting() {
+      const simpanan = qrisStatisTersimpan();
+      document.getElementById('inpQrisStatis').value = simpanan;
+      if (!simpanan) {
+        qrisPesanSetting('Belum diisi — kasir memakai stiker QRIS di meja.', false);
+        return;
+      }
+      // Diperiksa ulang tiap panel dibuka: payload yang tersimpan bisa saja
+      // sudah tidak sah karena merchant menerbitkan QRIS baru.
+      try {
+        qrisDinamis(simpanan, 10000);
+        const nama = qrisUrai(simpanan.replace(/[\r\n\t]+/g, '').trim().slice(0, -8))
+          .find(function (x) { return x.tag === '59'; });
+        qrisPesanSetting('Aktif' + (nama ? ' — ' + nama.val : '') + '. QR bernominal dibuat tiap transaksi.', false);
+      } catch (err) {
+        qrisPesanSetting('Payload tersimpan bermasalah: ' + err.message, true);
+      }
+    }
+
+    document.getElementById('btnSaveQris').addEventListener('click', async () => {
+      const nilai = document.getElementById('inpQrisStatis').value.replace(/[\r\n\t]+/g, '').trim();
+      if (!nilai) {
+        qrisPesanSetting('Isi dulu payload QRIS statisnya, atau tekan Kosongkan.', true);
+        return;
+      }
+      // Diuji dengan nominal contoh sebelum disimpan. Payload yang cacat lebih
+      // baik ditolak sekarang daripada menjadi QR yang ditolak di depan
+      // pelanggan.
+      try {
+        qrisDinamis(nilai, 10000);
+      } catch (err) {
+        qrisPesanSetting(err.message, true);
+        return;
+      }
+      // Disimpan di server supaya satu kali isi berlaku untuk semua perangkat
+      // kasir. Salinan lokal baru ditulis sesudah server menerimanya, sehingga
+      // perangkat ini tidak pernah memakai payload yang gagal tersimpan.
+      const btn = document.getElementById('btnSaveQris');
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Menyimpan…';
+      try {
+        const { error } = await sb.rpc('owner_set_qris', { p_payload: nilai });
+        if (error) throw error;
+        localStorage.setItem(QRIS_KUNCI, nilai);
+      } catch (err) {
+        qrisPesanSetting('Gagal menyimpan: ' + (err.message || err), true);
+        return;
+      } finally {
+        btn.disabled = false; btn.textContent = label;
+      }
+      renderQrisSetting();
+      renderQrisDinamis();
+      showToast('QRIS dinamis aktif di semua perangkat.');
+    });
+
+    document.getElementById('btnHapusQris').addEventListener('click', async () => {
+      if (!confirm('Kosongkan QRIS dinamis?\n\nBerlaku untuk SEMUA perangkat kasir. Semuanya kembali memakai stiker QRIS di meja.')) return;
+      try {
+        const { error } = await sb.rpc('owner_set_qris', { p_payload: null });
+        if (error) throw error;
+        localStorage.removeItem(QRIS_KUNCI);
+      } catch (err) {
+        qrisPesanSetting('Gagal mengosongkan: ' + (err.message || err), true);
+        return;
+      }
+      document.getElementById('inpQrisStatis').value = '';
+      renderQrisSetting();
+      renderQrisDinamis();
+      showToast('QRIS dinamis dimatikan.');
     });
     function closeSettingsModal() {
       settingsModal.classList.remove('is-open');
@@ -4173,7 +4632,7 @@
         return;
       }
       if (event.key !== 'Tab') return;
-      const focusable = Array.from(settingsModal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled])'))
+      const focusable = Array.from(settingsModal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
         .filter(element => element.offsetParent !== null);
       if (!focusable.length) return;
       const first = focusable[0];
@@ -4257,7 +4716,7 @@
       const capTbody = document.querySelector('#tableCapstersSetting tbody');
 
       if (capsters.length === 0) {
-        capTbody.innerHTML = '<tr><td colspan="3" class="svc-empty">Belum ada capster. Tekan “+ Tambah Capster”.</td></tr>';
+        capTbody.innerHTML = '<tr><td colspan="3" class="svc-empty">Belum ada kapster. Tekan “+ Tambah Kapster”.</td></tr>';
       } else {
         capTbody.innerHTML = capsters.map(c => `
           <tr class="${c.is_active === false ? 'is-off' : ''}">
@@ -4279,7 +4738,7 @@
 
       const activeCap = capsters.filter(c => c.is_active !== false).length;
       document.getElementById('capSummary').textContent =
-        `${capsters.length} capster · ${activeCap} bertugas hari ini`;
+        `${capsters.length} kapster · ${activeCap} bertugas hari ini`;
     }
 
     /* =========================================================================
@@ -4868,13 +5327,13 @@
       const name = document.getElementById('inpCapName').value.trim();
       const phone = normalizePhone(document.getElementById('inpCapPhone').value);
 
-      if (!name) return showCapError('Nama capster wajib diisi.');
+      if (!name) return showCapError('Nama kapster wajib diisi.');
       if (phone && phone.length < 10) return showCapError('Nomor WhatsApp terlalu pendek. Kosongkan bila belum ada.');
 
       const clash = capsters.some(c =>
         c.id !== editingCapsterId && c.name.trim().toLowerCase() === name.toLowerCase()
       );
-      if (clash) return showCapError('Sudah ada capster dengan nama yang sama.');
+      if (clash) return showCapError('Sudah ada kapster dengan nama yang sama.');
 
       if (!requireOnline(showCapError)) return;
 
@@ -4896,17 +5355,17 @@
             selectedCapster = cap || data;
             document.getElementById('lblSelectedCapster').textContent = name;
           }
-          showToast('Capster "' + name + '" diperbarui.');
+          showToast('Kapster "' + name + '" diperbarui.');
         } else {
           const { data, error } = await sb.from('capsters')
             .insert({ name, phone, is_active: true }).select().single();
           if (error) throw error;
           capsters.push(data);
-          showToast('Capster "' + name + '" ditambahkan.');
+          showToast('Kapster "' + name + '" ditambahkan.');
         }
       } catch (err) {
         return showCapError(err.code === '23505'
-          ? 'Sudah ada capster dengan nama yang sama.'
+          ? 'Sudah ada kapster dengan nama yang sama.'
           : 'Gagal menyimpan: ' + (err.message || err));
       } finally {
         btn.disabled = false; btn.textContent = label;
@@ -4936,14 +5395,14 @@
 
         cap.is_active = !turningOff;
         if (turningOff) clearCapsterSelectionIf(c => c.id === cap.id);
-        showToast('Capster "' + cap.name + '" ' + (turningOff ? 'ditandai tidak bertugas.' : 'ditandai bertugas.'));
+        showToast('Kapster "' + cap.name + '" ' + (turningOff ? 'ditandai tidak bertugas.' : 'ditandai bertugas.'));
         refreshAfterCapsterChange();
         return;
       }
 
       if (btn.dataset.act === 'del') {
         if (!SBConn.online) return showToast('Sedang offline. Perubahan master data butuh koneksi.');
-        if (!confirm('Hapus capster "' + cap.name + '"?\n\nTransaksi lama tetap menyimpan namanya. Untuk capster yang sekadar libur, pakai tombol ● (tidak bertugas).')) return;
+        if (!confirm('Hapus kapster "' + cap.name + '"?\n\nTransaksi lama tetap menyimpan namanya. Untuk kapster yang sekadar libur, pakai tombol ● (tidak bertugas).')) return;
 
         const { error } = await sb.from('capsters').delete().eq('id', cap.id);
         if (error) return showToast('Gagal menghapus: ' + error.message);
@@ -4951,7 +5410,7 @@
         if (editingCapsterId === cap.id) closeCapsterForm();
         clearCapsterSelectionIf(c => c.id === cap.id);
         capsters = capsters.filter(c => c.id !== cap.id);
-        showToast('Capster dihapus.');
+        showToast('Kapster dihapus.');
         refreshAfterCapsterChange();
       }
     });

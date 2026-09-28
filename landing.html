@@ -29,6 +29,42 @@
   <link rel="stylesheet" href="theme.css" />
   <noscript><style>.muncul { opacity: 1 !important; transform: none !important; }</style></noscript>
 
+  <!-- ══ META PIXEL ════════════════════════════════════════════════════════
+       Pengukur iklan Instagram/Facebook milik pemilik. SENGAJA hanya di
+       halaman ini.
+
+       Tidak dipasang di pos, rekap, capster, kartu, maupun masuk. Pixel
+       mengirim URL halaman apa adanya ke Meta, dan di halaman-halaman itu
+       URL serta isinya memuat nomor telepon pelanggan, kode kartu member,
+       omzet, dan absensi karyawan. Halaman depan tidak memuat satu pun dari
+       itu: yang dilihat pengunjung di sini hanya daftar layanan dan formulir
+       booking miliknya sendiri.
+
+       POS punya alasan tambahan yang sudah tertulis di berkasnya: seluruh
+       pustaka di-host sendiri supaya kasir tidak ikut mati ketika jaringan
+       luar terganggu. Script dari CDN luar tidak boleh masuk ke sana.
+
+       Catatan untuk pemilik: matikan Automatic Advanced Matching di Events
+       Manager bila tidak diperlukan — fitur itu menyapu isi formulir di
+       halaman lalu mengirimkannya, dan formulir booking di bawah memuat nama
+       serta nomor WhatsApp pengunjung. -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '2154833071732943');
+    fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=2154833071732943&ev=PageView&noscript=1"
+    alt="" /></noscript>
+  <!-- ══ akhir Meta Pixel ═════════════════════════════════════════════════ -->
+
   <style>
     /* ══ HALAMAN DEPAN ═══════════════════════════════════════════════════════
        Memakai token yang sama dengan tujuh halaman lain di proyek ini
@@ -186,49 +222,62 @@
     .panel .catatan-kecil, .medan .catatan-kecil { text-align: left; margin-inline: 0; }
 
     /* ── Layanan ───────────────────────────────────────────────────────
-       Enam layanan dalam tiga kolom menghasilkan dua baris penuh. Empat kolom
-       akan menyisakan satu baris berisi dua sel dan dua lubang, dan lubang itu
-       terbaca sebagai kesalahan tata letak, bukan sebagai ruang. */
-    .layanan { display: grid; gap: 14px; grid-template-columns: repeat(3, 1fr); }
-    .layanan-baris {
-      position: relative; overflow: hidden;
-      display: flex; flex-direction: column; gap: 9px; align-items: flex-start;
-      min-height: 132px; padding: 18px 18px 17px;
-      border: 1px solid rgba(22, 24, 28, .10); border-radius: var(--r-md);
-      background:
-        linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(248, 249, 250, .92)),
-        radial-gradient(circle at 100% 0%, rgba(var(--hero-red-rgb), .08), transparent 42%);
-      text-align: left;
-      box-shadow: 0 12px 32px rgba(22, 24, 28, .055);
+       Kartu bergambar, tiga kolom — enam layanan mengisi dua baris penuh.
+       Kotak gambar sekarang menampilkan logo sebagai penampung sementara;
+       begitu ada foto per layanan, gambarnya tinggal masuk ke kotak yang
+       sama tanpa tata letaknya bergeser. */
+    .layanan { display: grid; gap: 18px; grid-template-columns: repeat(3, 1fr); }
+    .layanan-kartu {
+      display: flex; flex-direction: column; overflow: hidden;
+      border: 1px solid var(--border); border-radius: var(--r-lg);
+      background: var(--surface); box-shadow: var(--shadow-md);
       transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
     }
-    .layanan-baris::before {
-      content: ""; position: absolute; inset: 0 0 auto; height: 3px;
-      background: linear-gradient(90deg, rgba(var(--hero-red-rgb), .72), rgba(var(--hero-ink-rgb), .42));
+    .layanan-kartu:hover {
+      border-color: var(--brand-line);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-3px);
     }
-    .layanan-baris:hover {
-      border-color: rgba(var(--hero-red-rgb), .28);
-      box-shadow: 0 18px 42px rgba(22, 24, 28, .085);
-      transform: translateY(-2px);
+    .layanan-gambar {
+      position: relative; aspect-ratio: 3 / 2;
+      display: grid; place-items: center;
+      border-bottom: 1px solid var(--border-soft);
+      background:
+        radial-gradient(circle at 18% 16%, rgba(var(--hero-red-rgb), .10), transparent 55%),
+        linear-gradient(150deg, #FFFFFF, var(--surface-tint) 58%, var(--surface-sunk));
+    }
+    .layanan-kartu:nth-child(2n) .layanan-gambar {
+      background:
+        radial-gradient(circle at 82% 84%, rgba(var(--hero-ink-rgb), .10), transparent 55%),
+        linear-gradient(150deg, var(--surface-sunk), var(--surface-tint) 42%, #FFFFFF);
+    }
+    .layanan-gambar img {
+      width: 56%; max-width: 188px; height: auto; opacity: .92;
     }
     .layanan-no {
+      position: absolute; top: 12px; right: 12px;
+      min-width: 30px; height: 24px; padding: 0 9px;
       display: inline-flex; align-items: center; justify-content: center;
-      width: 34px; height: 26px; border-radius: var(--r-sm);
-      background: rgba(var(--hero-ink-rgb), .08); color: var(--text-mid);
-      font-size: 11.5px; font-variant-numeric: tabular-nums;
+      border-radius: 999px; border: 1px solid var(--border);
+      background: rgba(255, 255, 255, .85); backdrop-filter: blur(4px);
+      color: var(--text-mid); font-size: 11px; font-variant-numeric: tabular-nums;
     }
-    .layanan-baris .nama { font-size: 17px; line-height: 1.25; }
-    .layanan-baris .rincian {
-      margin-top: auto; color: var(--brand-deep);
-      font-variant-numeric: tabular-nums; font-size: 14.5px;
+    .layanan-isi { padding: 15px 16px 16px; display: flex; flex-direction: column; gap: 5px; }
+    .layanan-harga {
+      font-size: 20px; font-weight: var(--w-semi); letter-spacing: -.01em;
+      font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap;
     }
-    .layanan-baris:nth-child(2n) {
-      background:
-        linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(248, 249, 250, .94)),
-        radial-gradient(circle at 0% 100%, rgba(var(--hero-ink-rgb), .07), transparent 46%);
+    .layanan-kartu .nama { font-size: 16px; font-weight: var(--w-med); line-height: 1.3; }
+    .layanan-meta {
+      margin-top: 9px; padding-top: 11px; border-top: 1px solid var(--border-soft);
+      display: flex; flex-wrap: wrap; gap: 6px 14px;
+      color: var(--text-mid); font-size: 12.5px;
     }
-    .layanan-baris:nth-child(3n) .layanan-no {
-      background: rgba(var(--hero-red-rgb), .09); color: var(--brand-deep);
+    .layanan-meta span { display: inline-flex; align-items: center; gap: 5px; }
+    .layanan-meta svg {
+      width: 14px; height: 14px; flex: none;
+      fill: none; stroke: currentColor; stroke-width: 1.6;
+      stroke-linecap: round; stroke-linejoin: round; opacity: .8;
     }
 
     /* ── Kapster ───────────────────────────────────────────────────────── */
@@ -258,7 +307,7 @@
        sehingga gambarnya kembali menjadi butir grid seperti sebelumnya. */
     .avatar picture { display: contents; }
     .avatar img {
-      width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; border-radius: 14px;
+      width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; border-radius: inherit;
     }
     .kapster-nama { font-size: 16px; font-weight: var(--w-med); }
     .kapster-peran { font-size: 12.5px; color: var(--text-mid); margin-top: -6px; }
@@ -469,16 +518,21 @@
       .medan-dua { grid-template-columns: 1fr; }
       .hero-aksi { gap: 8px; }
       .hero-aksi .pil { min-width: 138px; }
-      .layanan { grid-template-columns: repeat(2, 1fr); gap: 9px; }
-      .layanan-baris { min-height: 124px; padding: 14px 14px; }
-      .layanan-no { width: 31px; height: 24px; font-size: 11px; }
-      .layanan-baris .nama { font-size: 14.5px; }
-      .layanan-baris .rincian { font-size: 12.5px; }
+      .layanan { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .layanan-isi { padding: 13px 13px 14px; }
+      .layanan-harga { font-size: 17px; }
+      .layanan-kartu .nama { font-size: 14.5px; }
+      .layanan-meta { font-size: 11.5px; gap: 5px 10px; }
+      .layanan-gambar { aspect-ratio: 4 / 3; }
+      .layanan-gambar img { width: 60%; }
       .picker { grid-template-columns: 1fr; }
       .slot-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
       .slot { font-size: 13px; padding: 10px 2px; }
-      .kapster { grid-template-columns: repeat(3, 1fr); gap: 10px; }
-      .avatar { max-width: 100%; border-radius: 10px; font-size: 26px; }
+      /* Tiga kapster, tiga kolom: satu baris utuh tanpa sel yatim. Kotak
+         sedikit lebih pendek dari rasio fotonya, jadi object-fit memangkas
+         tepi bawah — bagian kaus hitam — sementara wajah tetap di atas. */
+      .kapster { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .avatar { max-width: 100%; aspect-ratio: 1 / 1.16; border-radius: 10px; font-size: 26px; }
       .kapster-nama { font-size: 14px; }
       .kapster-peran { font-size: 11.5px; }
       .kapster .pil { padding: 9px 8px; font-size: 12.5px; width: 100%; }
@@ -493,7 +547,7 @@
       <a href="/" aria-label="Underrated Barbershop"><img src="assets/logo.png" alt="Underrated Barbershop" /></a>
       <div class="nav-kanan">
         <a href="#layanan">Layanan</a>
-        <a href="#tim">Capster</a>
+        <a href="#tim">Kapster</a>
         <a href="#lokasi">Lokasi</a>
         <a class="pil pil-isi" href="#booking">Booking</a>
       </div>
@@ -528,24 +582,24 @@
 
   <section class="bagian" id="tim">
     <div class="bungkus">
-      <h2 class="muncul">Our Capster</h2>
+      <h2 class="muncul">Our Kapster</h2>
       <div class="kapster" id="kapsterDaftar">
         <div class="kapster-orang muncul">
-          <div class="avatar" aria-hidden="true"><picture><source srcset="assets/cena.webp?v=4" type="image/webp" /><img src="assets/cena.png?v=4" alt="Cena" loading="lazy" /></picture></div>
+          <div class="avatar" aria-hidden="true"><picture><source srcset="assets/cena.webp?v=8" type="image/webp" /><img src="assets/cena.png?v=8" alt="Cena" loading="lazy" /></picture></div>
           <div class="kapster-nama">Cena</div>
-          <div class="kapster-peran">Capster</div>
+          <div class="kapster-peran">Kapster</div>
           <button type="button" class="pil pil-garis" data-kapster="Cena">Pilih Cena</button>
         </div>
         <div class="kapster-orang muncul">
-          <div class="avatar" aria-hidden="true"><picture><source srcset="assets/lukman.webp?v=4" type="image/webp" /><img src="assets/lukman.png?v=4" alt="Lukman" loading="lazy" /></picture></div>
+          <div class="avatar" aria-hidden="true"><picture><source srcset="assets/lukman.webp?v=8" type="image/webp" /><img src="assets/lukman.png?v=8" alt="Lukman" loading="lazy" /></picture></div>
           <div class="kapster-nama">Lukman</div>
-          <div class="kapster-peran">Capster</div>
+          <div class="kapster-peran">Kapster</div>
           <button type="button" class="pil pil-garis" data-kapster="Lukman">Pilih Lukman</button>
         </div>
         <div class="kapster-orang muncul">
-          <div class="avatar" aria-hidden="true"><picture><source srcset="assets/wanda.webp?v=4" type="image/webp" /><img src="assets/wanda.png?v=4" alt="Wanda" loading="lazy" /></picture></div>
+          <div class="avatar" aria-hidden="true"><picture><source srcset="assets/wanda.webp?v=8" type="image/webp" /><img src="assets/wanda.png?v=8" alt="Wanda" loading="lazy" /></picture></div>
           <div class="kapster-nama">Wanda</div>
-          <div class="kapster-peran">Capster</div>
+          <div class="kapster-peran">Kapster</div>
           <button type="button" class="pil pil-garis" data-kapster="Wanda">Pilih Wanda</button>
         </div>
       </div>
@@ -761,14 +815,31 @@
       }
     }
 
+    /* Kotak gambar memakai logo sebagai penampung sementara: tiap layanan
+       belum punya fotonya sendiri. SVG ikon disisipkan sebaris supaya tidak
+       menambah satu permintaan jaringan per kartu. */
+    const IKON_JAM = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>';
+    const IKON_TAG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5V5.5A1.5 1.5 0 0 1 5.5 4h7L20 11.5 12.5 19z"/><circle cx="8.4" cy="8.4" r="1.4"/></svg>';
+
     function isiLayanan() {
       const daftar = ISI.layanan || [];
       if (!daftar.length) { $('layananMuat').textContent = 'Daftar layanan belum tersedia.'; return; }
       $('layananDaftar').innerHTML = daftar.map(function (s, i) {
-        return '<div class="layanan-baris muncul"><span class="layanan-no">'
-             + String(i + 1).padStart(2, '0') + '</span><span class="nama">' + esc(s.nama) + '</span>'
-             + '<span class="rincian">' + (s.menit ? s.menit + ' menit &middot; ' : '')
-             + rupiah(s.harga) + '</span></div>';
+        const menit = s.menit ? esc(s.menit + ' menit') : 'Sesuai kebutuhan';
+        return '<article class="layanan-kartu muncul">'
+             +   '<div class="layanan-gambar">'
+             +     '<img src="assets/logo.png" alt="Underrated Barbershop" loading="lazy" />'
+             +     '<span class="layanan-no">' + String(i + 1).padStart(2, '0') + '</span>'
+             +   '</div>'
+             +   '<div class="layanan-isi">'
+             +     '<div class="layanan-harga">' + rupiah(s.harga) + '</div>'
+             +     '<div class="nama">' + esc(s.nama) + '</div>'
+             +     '<div class="layanan-meta">'
+             +       '<span>' + IKON_JAM + menit + '</span>'
+             +       (s.kategori ? '<span>' + IKON_TAG + esc(s.kategori) + '</span>' : '')
+             +     '</div>'
+             +   '</div>'
+             + '</article>';
       }).join('');
     }
 
@@ -785,8 +856,8 @@
 
     function gambarKapster(batang, nama) {
       return '<picture>'
-           + '<source srcset="' + batang + '.webp?v=4" type="image/webp" />'
-           + '<img src="' + batang + '.png?v=4" alt="' + esc(nama) + '" loading="lazy" />'
+           + '<source srcset="' + batang + '.webp?v=8" type="image/webp" />'
+           + '<img src="' + batang + '.png?v=8" alt="' + esc(nama) + '" loading="lazy" />'
            + '</picture>';
     }
 
@@ -819,7 +890,7 @@
         return '<div class="kapster-orang muncul">'
              + '<div class="avatar" aria-hidden="true">' + avatarKonten + '</div>'
              + '<div class="kapster-nama">' + esc(nama) + '</div>'
-             + '<div class="kapster-peran">Capster</div>'
+             + '<div class="kapster-peran">Kapster</div>'
              + '<button type="button" class="pil pil-garis" data-kapster="' + esc(nama) + '"'
              + (k.id ? ' data-kapster-id="' + esc(k.id) + '"' : '') + '>'
              + 'Pilih ' + esc(nama) + '</button></div>';
@@ -1158,6 +1229,23 @@
         el.innerHTML = 'Permintaan tercatat. Kami hubungi lewat WhatsApp untuk memastikan jamnya.'
           + '<span class="kode">' + esc(b.kode) + '</span>';
         el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+        /* Lapor ke Meta bahwa booking benar-benar jadi. PageView saja tidak
+           menjawab pertanyaan pemilik — "iklan mana yang menghasilkan
+           booking" — sebab tiap orang yang sekadar lewat pun ikut terhitung.
+           Schedule adalah peristiwa baku Meta untuk janji temu.
+
+           Dikirim SESUDAH kode booking tampil, dan dibungkus penjaga: pixel
+           yang gagal atau diblokir pemblokir iklan tidak boleh menyentuh apa
+           yang sudah dilihat pengunjung.
+
+           Tidak ada data pribadi yang ikut. Nama dan nomor WhatsApp tetap
+           tinggal di sini; yang dikirim hanyalah bahwa sebuah booking
+           terjadi. */
+        try {
+          if (typeof fbq === 'function') fbq('track', 'Schedule');
+        } catch (e) { /* pengukuran iklan tidak pernah lebih penting dari booking */ }
+
         $('bkNama').value = ''; $('bkTelepon').value = ''; $('bkCatatan').value = '';
         jamPilih = null;
         kapsterPilih = null;

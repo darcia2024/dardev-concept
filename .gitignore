@@ -6,3 +6,12 @@ pin_kasir.txt
 
 # Kredensial tidak masuk repositori
 KREDENSIAL.md
+
+node_modules
+dist
+logo_base64.txt
+
+assign-prod-dardevkonsep.js
+check-projects.js
+deploy-vercel.js
+inspect-dardevkonsep.js

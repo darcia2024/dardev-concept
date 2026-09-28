@@ -189,4 +189,49 @@ assert.match(norm, /regexp_replace\(COALESCE\(p_nomor, ''\), '\[\^0-9\]', '', 'g
 assert.match(norm, /IF left\(v, 1\) = '0' THEN\s+v := '62' \|\| substr\(v, 2\);/);
 assert.match(norm, /IF v !~ '\^62\[0-9\]\{8,15\}\$' THEN RETURN NULL; END IF;/);
 
+// ── 8 · Skema otorisasi mengikuti provider ─────────────────────────────────
+// Meta memakai 'Authorization: Bearer <token>'. Fonnte dan gateway sejenis
+// menolaknya — tokennya dikirim mentah. Awalan yang keliru gagal sebagai galat
+// otorisasi yang tidak menyebut sebabnya: pemilik hanya melihat "Gagal".
+const m46 = fs.readFileSync(path.join(root, 'supabase_migration_46_wa_auth_provider.sql'), 'utf8');
+assert.equal((m46.match(/\$function\$/g) || []).length % 2, 0, 'penanda $function$ harus genap');
+
+const AWAL_FN = 'CREATE OR REPLACE FUNCTION kirim_wa_capster(p_booking_id UUID)';
+const AKHIR_FN = 'END $function$;';
+const potong = (t) => t.slice(t.indexOf(AWAL_FN), t.indexOf(AKHIR_FN, t.indexOf(AWAL_FN)) + AKHIR_FN.length);
+
+const fnLama = potong(m40);
+const fnBaru = potong(m46);
+assert.ok(fnBaru.length > 0, 'migrasi 46 harus memuat kirim_wa_capster utuh');
+
+// Bearer hanya untuk meta, mentah untuk selainnya.
+assert.match(fnBaru, /CASE WHEN v_cfg\.provider = 'meta'\s+THEN 'Bearer ' \|\| v_token\s+ELSE v_token END/,
+  'skema otorisasi harus bercabang menurut provider');
+assert.doesNotMatch(fnBaru, /'Authorization', 'Bearer ' \|\| v_token/,
+  'awalan Bearer tidak boleh lagi dipaksakan ke semua provider');
+
+/* Yang dijaga paling keras: SELAIN blok otorisasi, fungsinya harus sama persis
+   dengan aslinya. Fungsi ini 94 baris dan menyentuh Vault, pg_net, serta status
+   booking; menulis ulang dari ingatan demi satu baris adalah cara paling mudah
+   menghilangkan penanganan galat tanpa ada yang menyadarinya. */
+const tanpaAuth = (t) => t.replace(/'Authorization'[\s\S]*?\)\);/, '@AUTH@');
+assert.equal(tanpaAuth(fnBaru), tanpaAuth(fnLama),
+  'di luar blok otorisasi, fungsinya harus identik dengan migrasi 40');
+
+// Penjaga yang tidak boleh ikut hilang saat fungsinya ditulis ulang.
+for (const wajib of ['tanpa_capster', 'nomor_tidak_sah', 'vault.decrypted_secrets',
+                     'EXCEPTION WHEN OTHERS THEN', 'notif_wa_status']) {
+  assert.ok(fnBaru.includes(wajib), 'bagian "' + wajib + '" hilang dari fungsi');
+}
+
+// Nomor pelanggan tetap tidak boleh ikut terkirim ke ponsel kapster.
+assert.doesNotMatch(fnBaru, /v_b\.telepon/, 'nomor pelanggan tidak boleh masuk pesan');
+
+// Tanda tangannya tidak berubah, jadi CREATE OR REPLACE cukup dan haknya tidak
+// hilang — tetapi penegasan REVOKE tetap harus ada.
+assert.doesNotMatch(m46, /DROP FUNCTION[^\n]*kirim_wa_capster/,
+  'tidak perlu DROP: tanda tangannya tidak berubah');
+assert.match(m46, /REVOKE EXECUTE ON FUNCTION kirim_wa_capster\(UUID\) FROM PUBLIC, anon, authenticated;/,
+  'fungsi ini hanya boleh dipanggil dari dalam create_booking');
+
 console.log('Notifikasi WA capster tests: OK');
