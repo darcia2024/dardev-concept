@@ -17,7 +17,21 @@
   
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    
+
+    /* [hidden] hanya diatur stylesheet bawaan peramban, dan aturan author
+       apa pun mengalahkannya. Setiap kelas di berkas ini yang menetapkan
+       display — .table-panel yang flex, misalnya — diam-diam membatalkan
+       atribut hidden pada elemen yang memakainya.
+
+       Akibatnya tidak pernah berupa galat, hanya sesuatu yang mestinya
+       sembunyi tetapi tetap terlihat. Panel "QRIS Belum Terkonfirmasi"
+       berada dalam keadaan itu: ia menyetel hidden saat tidak ada nota yang
+       perlu diperiksa, tetapi tetap tampil sebagai panel kosong.
+
+       Satu baris ini menutup seluruh golongan kekeliruan itu sekaligus,
+       bukan satu per satu setiap kali ketahuan. */
+    [hidden] { display: none !important; }
+
     body {
       background-color: var(--ink);
       color: var(--fg);
@@ -753,6 +767,58 @@
     .kelola-pesan.ok  { color: var(--sage, #0F7355); }
     .kelola-pesan.bad { color: var(--brand, #BE0000); }
 
+    /* ── Bilah kategori ──────────────────────────────────────────────────
+       Dua puluh lima panel dalam satu aliran menuntut gulir yang sangat
+       panjang untuk mencapai yang di bawah. Dikelompokkan jadi tujuh.
+
+       Lengket di atas: bilahnya harus tetap terjangkau saat owner sedang di
+       tengah tabel panjang, kalau tidak berpindah kategori menuntut gulir
+       balik ke puncak — persis keluhan yang hendak diselesaikan. Angka 62px
+       mengikuti tinggi header yang juga lengket di atasnya. */
+    .tab-bar {
+      position: sticky; top: 62px; z-index: 9;
+      display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+      background: var(--ink); padding: 10px 0 11px;
+      border-bottom: 1px solid var(--line);
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      position: relative;
+      background: var(--ink-inset);
+      border: 1px solid var(--line);
+      color: var(--fg-mid);
+      padding: 7px 14px;
+      border-radius: var(--r-sm);
+      font-size: 12.5px; font-weight: 600; font-family: inherit;
+      cursor: pointer; white-space: nowrap; flex: none;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover { border-color: var(--fg-dim); }
+    .tab-btn.is-on {
+      background: var(--fg); color: var(--ink); border-color: var(--fg);
+    }
+
+    /* Penanda "ada yang perlu diperiksa". Panel QRIS memunculkan dirinya
+       sendiri saat ada nota yang belum dikonfirmasi kasir; sebelum ada tab,
+       ia sekadar muncul di alur dan terlihat. Di balik tab ia tidak akan
+       pernah dilihat, jadi tabnya yang memberi tahu. */
+    .tab-dot {
+      position: absolute; top: 4px; right: 5px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--brand, #BE0000);
+      box-shadow: 0 0 0 2px var(--ink-inset);
+    }
+    .tab-btn.is-on .tab-dot { box-shadow: 0 0 0 2px var(--fg); }
+    .tab-dot[hidden] { display: none; }
+
+    .tab-pane { display: none; flex-direction: column; gap: 18px; }
+    .tab-pane.is-on { display: flex; }
+
+    @media (max-width: 720px) {
+      .tab-bar { top: 0; margin: 0 -16px; padding: 10px 16px 11px; }
+    }
+
     /* Penanda jabatan dan status pada kartu karyawan. Dibedakan warnanya
        supaya "tidak mencukur" terbaca sekilas tanpa perlu dieja — itu satu
        satunya hal di kartu ini yang mengubah apa yang dilihat pelanggan. */
@@ -830,6 +896,20 @@
       </div>
     </div>
 
+    <!-- Bilah kategori. Penyaring periode sengaja DI LUAR tab:
+         ia mempengaruhi hampir semua panel, jadi menyembunyikannya di satu
+         tab akan membuat owner mengira filternya tidak berlaku di tab lain. -->
+    <nav class="tab-bar" id="tabBar" aria-label="Kategori laporan">
+      <button class="tab-btn is-on" data-pane="ringkasan" type="button">Ringkasan<span class="tab-dot" data-dot="ringkasan" hidden></span></button>
+      <button class="tab-btn" data-pane="keuangan" type="button">Keuangan<span class="tab-dot" data-dot="keuangan" hidden></span></button>
+      <button class="tab-btn" data-pane="karyawan" type="button">Karyawan<span class="tab-dot" data-dot="karyawan" hidden></span></button>
+      <button class="tab-btn" data-pane="member" type="button">Member<span class="tab-dot" data-dot="member" hidden></span></button>
+      <button class="tab-btn" data-pane="booking" type="button">Booking<span class="tab-dot" data-dot="booking" hidden></span></button>
+      <button class="tab-btn" data-pane="pengaturan" type="button">Pengaturan<span class="tab-dot" data-dot="pengaturan" hidden></span></button>
+      <button class="tab-btn" data-pane="arsip" type="button">Arsip<span class="tab-dot" data-dot="arsip" hidden></span></button>
+    </nav>
+
+    <section class="tab-pane is-on" data-pane="ringkasan" aria-label="Ringkasan">
     <!-- Hero KPIs -->
     <div class="kpi-grid">
       <div class="kpi-card is-featured">
@@ -922,6 +1002,130 @@
 
     </div>
 
+    </section>
+
+    <section class="tab-pane" data-pane="keuangan" aria-label="Keuangan">
+    <!-- Rekonsiliasi Setoran Tunai Kasir -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Setoran Tunai Kasir</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Kasir menghitung tanpa melihat angka sistem &mdash; selisih di bawah adalah selisih sesungguhnya
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="closingTable">
+          <thead>
+            <tr>
+              <th>Kasir</th>
+              <th>Trx Tunai</th>
+              <th>Seharusnya</th>
+              <th>Dihitung Kasir</th>
+              <th>Selisih</th>
+              <th>Penyesuaian</th>
+              <th>Catatan</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="closingTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Nota QRIS yang belum diperiksa kasir. Panelnya sengaja hanya memuat
+         yang BELUM terkonfirmasi: daftar yang memuat semuanya akan dibaca
+         sekali lalu diabaikan selamanya. Kosong berarti tidak ada yang perlu
+         dikerjakan, dan itulah keadaan yang diharapkan. -->
+    <div class="table-panel" id="panelQrisPantau" hidden>
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">QRIS Belum Terkonfirmasi</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Nota QRIS yang tersimpan tanpa kasir menandai dananya sudah masuk &mdash;
+            cocokkan dengan mutasi di aplikasi merchant
+          </p>
+        </div>
+        <button class="btn-filter-date" id="btnMuatQrisPantau">Muat Ulang</button>
+      </div>
+      <div id="qrisPantauRingkas" style="padding: 0 4px 12px; font-size: 13px; color: var(--fg-mid); line-height: 1.7;"></div>
+      <div class="table-scroll">
+        <table class="tx-table" id="qrisPantauTable">
+          <thead>
+            <tr><th>Waktu</th><th>No. Invoice</th><th>Kapster</th><th>Pelanggan</th>
+                <th>Referensi</th><th style="text-align:right;">Total</th>
+                <th style="width:52px;"></th></tr>
+          </thead>
+          <tbody id="qrisPantauBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Kalkulator HPP & Laba Produk -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">HPP &amp; Laba Produk</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Laba penjualan lampau memakai HPP saat transaksi terjadi &mdash; revisi harga beli tidak mengubahnya
+          </p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-filter-date" id="btnTambahProduk">+ Produk</button>
+          <button class="btn-filter-date" id="btnSimulasiHpp" style="border-color:var(--brass); color:var(--brass);">
+            Simulasi Harga
+          </button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="hppTable">
+          <thead>
+            <tr>
+              <th>Produk</th><th>HPP</th><th>Harga Jual</th><th>Margin</th>
+              <th>Diskon Aman</th><th>Saran Harga</th><th>Terjual</th><th>Laba Kotor</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="hppTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Log Transaksi Detail</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">Data tersimpan otomatis & real-time</p>
+        </div>
+        <input type="text" id="inpSearchTx" class="search-input" placeholder="🔍 Cari nama, invoice, kapster..." />
+      </div>
+
+      <div class="table-scroll">
+        <table class="tx-table" id="txTable">
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>No. Invoice</th>
+              <th>Pelanggan</th>
+              <th>WhatsApp</th>
+              <th>Kapster</th>
+              <th>Layanan</th>
+              <th>Metode</th>
+              <th>Ref / Approval</th>
+              <th style="text-align: right;">Total</th>
+              <th style="width:44px;"></th>
+            </tr>
+          </thead>
+          <tbody id="txTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    </section>
+
+    <section class="tab-pane" data-pane="karyawan" aria-label="Karyawan">
     <!-- Absensi & Izin Karyawan -->
     <div class="table-panel">
       <div class="table-controls">
@@ -978,29 +1182,151 @@
       </p>
     </div>
 
-    <!-- Ringkasan booking -->
+    <!-- Catatan absensi satu per satu, supaya bisa dihapus per baris -->
     <div class="table-panel">
       <div class="table-controls">
         <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Booking Bulan Ini</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Dari yang sudah dipastikan ke pelanggan, berapa persen yang benar-benar
-            datang dan menjadi penjualan.
+          <h2 style="font-size: 15px; font-weight: 600;">Catatan Absensi Harian</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);" id="absenRowSub">
+            Menghapus catatan tidak menghapus fotonya &mdash; foto tetap tersimpan.
           </p>
+        </div>
+        <div class="bulan-pilih">
+          <input type="month" class="inp-bulan" aria-label="Pilih bulan catatan absensi" />
+          <button class="btn-nav" id="btnUnduhCatatanAbsen">Unduh Catatan</button>
         </div>
       </div>
       <div class="table-scroll">
-        <table class="tx-table">
+        <table class="tx-table" id="absenRowTable">
           <thead>
-            <tr><th>Diminta</th><th>Dikonfirmasi</th><th>Selesai</th>
-                <th>Ditolak</th><th>Batal</th><th>Benar-benar Datang</th>
-                <th style="text-align:right;">Nilai Penjualan</th></tr>
+            <tr>
+              <th>Tanggal</th><th>Karyawan</th><th>Masuk</th><th>Pulang</th>
+              <th>Status</th><th>Terlambat</th><th>Jarak</th><th>Foto</th><th style="width:44px;"></th>
+            </tr>
           </thead>
-          <tbody id="bookingRingkasBody"></tbody>
+          <tbody id="absenRowBody"></tbody>
         </table>
       </div>
     </div>
 
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Pengajuan Izin &amp; Libur</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Yang menunggu keputusan tampil paling atas
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="cutiTable">
+          <thead>
+            <tr>
+              <th>Karyawan</th><th>Jenis</th><th>Tanggal</th><th>Hari</th>
+              <th>Alasan</th><th>Status</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="cutiTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Live Transaction Logs Table -->
+    <!-- Foto selfie absensi -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Foto Absensi Karyawan</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);" id="fotoSub">
+            Tautan foto berumur pendek dan dibuat ulang tiap halaman dibuka.
+          </p>
+        </div>
+        <div class="bulan-pilih">
+          <input type="month" class="inp-bulan" aria-label="Pilih bulan foto absensi" />
+          <button class="btn-hdr" id="btnMuatFoto">Muat Foto</button>
+        </div>
+      </div>
+      <div style="padding: 4px 2px 2px;">
+        <div class="foto-grid" id="fotoGrid"></div>
+        <p id="fotoPesan" style="font-size:12.5px; color:var(--fg-dim); padding:14px 2px;">
+          Tekan &ldquo;Muat Foto&rdquo; untuk menampilkan. Foto tidak dimuat otomatis karena tiap
+          gambar membutuhkan tautan bertanda tersendiri.
+        </p>
+      </div>
+    </div>
+
+    <!-- Kelola karyawan (tambah, nomor & sandi) dan PIN kasir -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Data Karyawan &amp; PIN Kasir</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Tambah karyawan, nomor WhatsApp untuk notifikasi booking, sandi yang terlupa, dan PIN kasir
+          </p>
+        </div>
+        <button class="btn-filter-date" id="btnTambahKaryawan">+ Karyawan</button>
+      </div>
+      <div style="padding: 4px 2px 8px; display:flex; flex-direction:column; gap:18px;">
+        <div>
+          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Karyawan</div>
+
+          <!-- Formulir tambah/ubah. Satu formulir dipakai bergantian: dua
+               formulir yang mirip akan lambat laun berbeda isinya. -->
+          <div class="kelola-form" id="formKaryawan" hidden>
+            <div class="kelola-nama" id="formKaryawanJudul">Karyawan baru</div>
+            <div>
+              <div class="kelola-label">Nama</div>
+              <input type="text" id="inpKarNama" maxlength="150" autocomplete="off"
+                     placeholder="Nama lengkap karyawan" />
+            </div>
+            <div class="kelola-form-dua">
+              <div>
+                <div class="kelola-label">Jabatan</div>
+                <input type="text" id="inpKarJabatan" maxlength="40" autocomplete="off"
+                       list="daftarJabatan" placeholder="Kapster" />
+                <datalist id="daftarJabatan">
+                  <option value="Kapster"></option>
+                  <option value="Kasir"></option>
+                  <option value="Admin"></option>
+                  <option value="Kebersihan"></option>
+                </datalist>
+              </div>
+              <div>
+                <div class="kelola-label">Nomor WhatsApp</div>
+                <input type="text" id="inpKarTelepon" inputmode="tel" autocomplete="off"
+                       placeholder="081297754581" />
+              </div>
+            </div>
+            <label class="kelola-cek">
+              <input type="checkbox" id="chkKarIkutPos" checked />
+              <span>Ikut jadi pilihan pencukur di kasir dan halaman booking.
+                    Lepas centangnya untuk karyawan yang tidak mencukur &mdash;
+                    ia tetap bisa absen.</span>
+            </label>
+            <label class="kelola-cek">
+              <input type="checkbox" id="chkKarAktif" checked />
+              <span>Aktif. Karyawan nonaktif hilang dari pilihan kasir tetapi
+                    riwayat absen dan transaksinya tetap utuh.</span>
+            </label>
+            <div class="kelola-pesan" id="pesanKaryawan"></div>
+            <div class="kelola-aksi">
+              <button class="btn-hdr" id="btnSimpanKaryawan">Simpan</button>
+              <button class="btn-hdr" id="btnBatalKaryawan">Batal</button>
+            </div>
+          </div>
+
+          <div class="kelola-grid" id="gridCapster"></div>
+        </div>
+        <div>
+          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">PIN kasir</div>
+          <div class="kelola-grid" id="gridKasir"></div>
+        </div>
+      </div>
+    </div>
+
+    </section>
+
+    <section class="tab-pane" data-pane="member" aria-label="Member">
     <!-- L-04 / L-06 / L-07 -->
     <div class="table-panel">
       <div class="table-controls">
@@ -1081,266 +1407,49 @@
       </div>
     </div>
 
-    <!-- Arsip member terhapus -->
+    <!-- Audit Mutasi Poin -->
     <div class="table-panel">
       <div class="table-controls">
         <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Member yang Dihapus</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Transaksinya tetap ada di laporan, hanya keanggotaannya yang dilepas
-          </p>
-        </div>
-      </div>
-      <div class="table-scroll">
-        <table class="tx-table" id="arsipMemberTable">
-          <thead>
-            <tr><th>Dihapus</th><th>Nama</th><th>WhatsApp</th><th>Poin Saat Dihapus</th>
-                <th>Transaksi Dilepas</th><th>Alasan</th></tr>
-          </thead>
-          <tbody id="arsipMemberBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Catatan absensi satu per satu, supaya bisa dihapus per baris -->
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Catatan Absensi Harian</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);" id="absenRowSub">
-            Menghapus catatan tidak menghapus fotonya &mdash; foto tetap tersimpan.
+          <h2 style="font-size: 15px; font-weight: 600;">Audit Mutasi Poin</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);" id="poinSub">
+            Setiap penambahan dan pengurangan poin, beserta kasir yang mencatatnya
           </p>
         </div>
         <div class="bulan-pilih">
-          <input type="month" class="inp-bulan" aria-label="Pilih bulan catatan absensi" />
-          <button class="btn-nav" id="btnUnduhCatatanAbsen">Unduh Catatan</button>
+          <input type="month" class="inp-bulan-poin" aria-label="Pilih bulan audit poin" />
+          <select id="poinTipe" aria-label="Saring jenis mutasi"
+                  style="font:inherit; font-size:13px; padding:7px 10px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm);">
+            <option value="">Semua jenis</option>
+            <option value="EARN">EARN &mdash; poin masuk</option>
+            <option value="REDEEM">REDEEM &mdash; poin dipakai</option>
+            <option value="BONUS">BONUS &mdash; poin retroaktif</option>
+          </select>
+          <input type="search" id="poinCari" placeholder="Nama, nota, atau kasir"
+                 aria-label="Cari mutasi poin"
+                 style="font:inherit; font-size:13px; padding:7px 10px; min-width:170px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm);" />
+          <button class="btn-nav" id="btnUnduhPoin">Unduh</button>
         </div>
       </div>
+
+      <div class="poin-stat" id="poinStat"></div>
+
       <div class="table-scroll">
-        <table class="tx-table" id="absenRowTable">
+        <table class="tx-table" id="poinTable">
           <thead>
             <tr>
-              <th>Tanggal</th><th>Karyawan</th><th>Masuk</th><th>Pulang</th>
-              <th>Status</th><th>Terlambat</th><th>Jarak</th><th>Foto</th><th style="width:44px;"></th>
+              <th>Waktu</th><th>Member</th><th>Jenis</th><th style="text-align:right;">Poin</th>
+              <th style="text-align:right;">Saldo</th><th>Nota</th><th>Kasir</th><th>Keterangan</th>
             </tr>
           </thead>
-          <tbody id="absenRowBody"></tbody>
+          <tbody id="poinTableBody"></tbody>
         </table>
       </div>
-    </div>
-
-    <!-- Arsip absensi terhapus -->
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Absensi yang Dihapus</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Fotonya tetap ada di penyimpanan &mdash; yang hilang catatannya, bukan buktinya
-          </p>
-        </div>
-      </div>
-      <div class="table-scroll">
-        <table class="tx-table" id="arsipAbsenTable">
-          <thead>
-            <tr><th>Dihapus</th><th>Karyawan</th><th>Tanggal</th><th>Status</th>
-                <th>Foto</th><th>Alasan</th></tr>
-          </thead>
-          <tbody id="arsipAbsenBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Pengajuan Izin &amp; Libur</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Yang menunggu keputusan tampil paling atas
-          </p>
-        </div>
-      </div>
-      <div class="table-scroll">
-        <table class="tx-table" id="cutiTable">
-          <thead>
-            <tr>
-              <th>Karyawan</th><th>Jenis</th><th>Tanggal</th><th>Hari</th>
-              <th>Alasan</th><th>Status</th><th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="cutiTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Kalkulator HPP & Laba Produk -->
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">HPP &amp; Laba Produk</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Laba penjualan lampau memakai HPP saat transaksi terjadi &mdash; revisi harga beli tidak mengubahnya
-          </p>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn-filter-date" id="btnTambahProduk">+ Produk</button>
-          <button class="btn-filter-date" id="btnSimulasiHpp" style="border-color:var(--brass); color:var(--brass);">
-            Simulasi Harga
-          </button>
-        </div>
-      </div>
-      <div class="table-scroll">
-        <table class="tx-table" id="hppTable">
-          <thead>
-            <tr>
-              <th>Produk</th><th>HPP</th><th>Harga Jual</th><th>Margin</th>
-              <th>Diskon Aman</th><th>Saran Harga</th><th>Terjual</th><th>Laba Kotor</th><th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="hppTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Rekonsiliasi Setoran Tunai Kasir -->
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Setoran Tunai Kasir</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Kasir menghitung tanpa melihat angka sistem &mdash; selisih di bawah adalah selisih sesungguhnya
-          </p>
-        </div>
-      </div>
-      <div class="table-scroll">
-        <table class="tx-table" id="closingTable">
-          <thead>
-            <tr>
-              <th>Kasir</th>
-              <th>Trx Tunai</th>
-              <th>Seharusnya</th>
-              <th>Dihitung Kasir</th>
-              <th>Selisih</th>
-              <th>Penyesuaian</th>
-              <th>Catatan</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="closingTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Live Transaction Logs Table -->
-    <!-- Foto selfie absensi -->
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Foto Absensi Karyawan</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);" id="fotoSub">
-            Tautan foto berumur pendek dan dibuat ulang tiap halaman dibuka.
-          </p>
-        </div>
-        <div class="bulan-pilih">
-          <input type="month" class="inp-bulan" aria-label="Pilih bulan foto absensi" />
-          <button class="btn-hdr" id="btnMuatFoto">Muat Foto</button>
-        </div>
-      </div>
-      <div style="padding: 4px 2px 2px;">
-        <div class="foto-grid" id="fotoGrid"></div>
-        <p id="fotoPesan" style="font-size:12.5px; color:var(--fg-dim); padding:14px 2px;">
-          Tekan &ldquo;Muat Foto&rdquo; untuk menampilkan. Foto tidak dimuat otomatis karena tiap
-          gambar membutuhkan tautan bertanda tersendiri.
-        </p>
-      </div>
-    </div>
-
-    <!-- Arsip foto terhapus -->
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Foto yang Dihapus</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Gambarnya hilang, catatan bahwa gambar itu pernah ada tetap tinggal
-          </p>
-        </div>
-      </div>
-      <div class="table-scroll">
-        <table class="tx-table" id="arsipFotoTable">
-          <thead>
-            <tr><th>Dihapus</th><th>Karyawan</th><th>Tanggal</th><th>Jenis</th><th>Alasan</th></tr>
-          </thead>
-          <tbody id="arsipFotoBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Kelola karyawan (tambah, nomor & sandi) dan PIN kasir -->
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Data Karyawan &amp; PIN Kasir</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Tambah karyawan, nomor WhatsApp untuk notifikasi booking, sandi yang terlupa, dan PIN kasir
-          </p>
-        </div>
-        <button class="btn-filter-date" id="btnTambahKaryawan">+ Karyawan</button>
-      </div>
-      <div style="padding: 4px 2px 8px; display:flex; flex-direction:column; gap:18px;">
-        <div>
-          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">Karyawan</div>
-
-          <!-- Formulir tambah/ubah. Satu formulir dipakai bergantian: dua
-               formulir yang mirip akan lambat laun berbeda isinya. -->
-          <div class="kelola-form" id="formKaryawan" hidden>
-            <div class="kelola-nama" id="formKaryawanJudul">Karyawan baru</div>
-            <div>
-              <div class="kelola-label">Nama</div>
-              <input type="text" id="inpKarNama" maxlength="150" autocomplete="off"
-                     placeholder="Nama lengkap karyawan" />
-            </div>
-            <div class="kelola-form-dua">
-              <div>
-                <div class="kelola-label">Jabatan</div>
-                <input type="text" id="inpKarJabatan" maxlength="40" autocomplete="off"
-                       list="daftarJabatan" placeholder="Kapster" />
-                <datalist id="daftarJabatan">
-                  <option value="Kapster"></option>
-                  <option value="Kasir"></option>
-                  <option value="Admin"></option>
-                  <option value="Kebersihan"></option>
-                </datalist>
-              </div>
-              <div>
-                <div class="kelola-label">Nomor WhatsApp</div>
-                <input type="text" id="inpKarTelepon" inputmode="tel" autocomplete="off"
-                       placeholder="081297754581" />
-              </div>
-            </div>
-            <label class="kelola-cek">
-              <input type="checkbox" id="chkKarIkutPos" checked />
-              <span>Ikut jadi pilihan pencukur di kasir dan halaman booking.
-                    Lepas centangnya untuk karyawan yang tidak mencukur &mdash;
-                    ia tetap bisa absen.</span>
-            </label>
-            <label class="kelola-cek">
-              <input type="checkbox" id="chkKarAktif" checked />
-              <span>Aktif. Karyawan nonaktif hilang dari pilihan kasir tetapi
-                    riwayat absen dan transaksinya tetap utuh.</span>
-            </label>
-            <div class="kelola-pesan" id="pesanKaryawan"></div>
-            <div class="kelola-aksi">
-              <button class="btn-hdr" id="btnSimpanKaryawan">Simpan</button>
-              <button class="btn-hdr" id="btnBatalKaryawan">Batal</button>
-            </div>
-          </div>
-
-          <div class="kelola-grid" id="gridCapster"></div>
-        </div>
-        <div>
-          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:9px;">PIN kasir</div>
-          <div class="kelola-grid" id="gridKasir"></div>
-        </div>
-      </div>
+      <p style="font-size:11.5px; color:var(--fg-dim); padding:12px 4px 2px; line-height:1.55;">
+        Transaksi yang dihapus ikut membawa baris poinnya keluar dari daftar ini &mdash; poin yang
+        pernah terbit lalu ditarik kembali tidak muncul di sini. Jejaknya ada di panel
+        <strong>Transaksi yang Dihapus</strong> beserta alasan penghapusannya.
+      </p>
     </div>
 
     <!-- Perpanjangan masa berlaku level -->
@@ -1370,30 +1479,28 @@
       </div>
     </div>
 
-    <!-- Nota QRIS yang belum diperiksa kasir. Panelnya sengaja hanya memuat
-         yang BELUM terkonfirmasi: daftar yang memuat semuanya akan dibaca
-         sekali lalu diabaikan selamanya. Kosong berarti tidak ada yang perlu
-         dikerjakan, dan itulah keadaan yang diharapkan. -->
-    <div class="table-panel" id="panelQrisPantau" hidden>
+    </section>
+
+    <section class="tab-pane" data-pane="booking" aria-label="Booking">
+    <!-- Ringkasan booking -->
+    <div class="table-panel">
       <div class="table-controls">
         <div>
-          <h2 style="font-size: 15px; font-weight: 600;">QRIS Belum Terkonfirmasi</h2>
+          <h2 style="font-size: 15px; font-weight: 600;">Booking Bulan Ini</h2>
           <p style="font-size: 12px; color: var(--fg-dim);">
-            Nota QRIS yang tersimpan tanpa kasir menandai dananya sudah masuk &mdash;
-            cocokkan dengan mutasi di aplikasi merchant
+            Dari yang sudah dipastikan ke pelanggan, berapa persen yang benar-benar
+            datang dan menjadi penjualan.
           </p>
         </div>
-        <button class="btn-filter-date" id="btnMuatQrisPantau">Muat Ulang</button>
       </div>
-      <div id="qrisPantauRingkas" style="padding: 0 4px 12px; font-size: 13px; color: var(--fg-mid); line-height: 1.7;"></div>
       <div class="table-scroll">
-        <table class="tx-table" id="qrisPantauTable">
+        <table class="tx-table">
           <thead>
-            <tr><th>Waktu</th><th>No. Invoice</th><th>Kapster</th><th>Pelanggan</th>
-                <th>Referensi</th><th style="text-align:right;">Total</th>
-                <th style="width:52px;"></th></tr>
+            <tr><th>Diminta</th><th>Dikonfirmasi</th><th>Selesai</th>
+                <th>Ditolak</th><th>Batal</th><th>Benar-benar Datang</th>
+                <th style="text-align:right;">Nilai Penjualan</th></tr>
           </thead>
-          <tbody id="qrisPantauBody"></tbody>
+          <tbody id="bookingRingkasBody"></tbody>
         </table>
       </div>
     </div>
@@ -1421,59 +1528,9 @@
       </div>
     </div>
 
-    <!-- Arsip transaksi terhapus -->
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Transaksi yang Dihapus</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Setiap penghapusan tersimpan di sini beserta alasannya &mdash; termasuk yang Anda lakukan sendiri
-          </p>
-        </div>
-      </div>
-      <div class="table-scroll">
-        <table class="tx-table" id="arsipTable">
-          <thead>
-            <tr><th>Dihapus</th><th>No. Invoice</th><th>Tanggal</th><th>Kapster</th><th>Kasir</th>
-                <th>Alasan</th><th style="text-align:right;">Total</th></tr>
-          </thead>
-          <tbody id="arsipTableBody"></tbody>
-        </table>
-      </div>
-    </div>
+    </section>
 
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Log Transaksi Detail</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">Data tersimpan otomatis & real-time</p>
-        </div>
-        <input type="text" id="inpSearchTx" class="search-input" placeholder="🔍 Cari nama, invoice, kapster..." />
-      </div>
-
-      <div class="table-scroll">
-        <table class="tx-table" id="txTable">
-          <thead>
-            <tr>
-              <th>Waktu</th>
-              <th>No. Invoice</th>
-              <th>Pelanggan</th>
-              <th>WhatsApp</th>
-              <th>Kapster</th>
-              <th>Layanan</th>
-              <th>Metode</th>
-              <th>Ref / Approval</th>
-              <th style="text-align: right;">Total</th>
-              <th style="width:44px;"></th>
-            </tr>
-          </thead>
-          <tbody id="txTableBody">
-            <!-- Populated by JS -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-
+    <section class="tab-pane" data-pane="pengaturan" aria-label="Pengaturan">
     <!-- Katalog Reward -->
     <div class="table-panel">
       <div class="table-controls">
@@ -1520,51 +1577,6 @@
       </div>
     </div>
 
-    <!-- Audit Mutasi Poin -->
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Audit Mutasi Poin</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);" id="poinSub">
-            Setiap penambahan dan pengurangan poin, beserta kasir yang mencatatnya
-          </p>
-        </div>
-        <div class="bulan-pilih">
-          <input type="month" class="inp-bulan-poin" aria-label="Pilih bulan audit poin" />
-          <select id="poinTipe" aria-label="Saring jenis mutasi"
-                  style="font:inherit; font-size:13px; padding:7px 10px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm);">
-            <option value="">Semua jenis</option>
-            <option value="EARN">EARN &mdash; poin masuk</option>
-            <option value="REDEEM">REDEEM &mdash; poin dipakai</option>
-            <option value="BONUS">BONUS &mdash; poin retroaktif</option>
-          </select>
-          <input type="search" id="poinCari" placeholder="Nama, nota, atau kasir"
-                 aria-label="Cari mutasi poin"
-                 style="font:inherit; font-size:13px; padding:7px 10px; min-width:170px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm);" />
-          <button class="btn-nav" id="btnUnduhPoin">Unduh</button>
-        </div>
-      </div>
-
-      <div class="poin-stat" id="poinStat"></div>
-
-      <div class="table-scroll">
-        <table class="tx-table" id="poinTable">
-          <thead>
-            <tr>
-              <th>Waktu</th><th>Member</th><th>Jenis</th><th style="text-align:right;">Poin</th>
-              <th style="text-align:right;">Saldo</th><th>Nota</th><th>Kasir</th><th>Keterangan</th>
-            </tr>
-          </thead>
-          <tbody id="poinTableBody"></tbody>
-        </table>
-      </div>
-      <p style="font-size:11.5px; color:var(--fg-dim); padding:12px 4px 2px; line-height:1.55;">
-        Transaksi yang dihapus ikut membawa baris poinnya keluar dari daftar ini &mdash; poin yang
-        pernah terbit lalu ditarik kembali tidak muncul di sini. Jejaknya ada di panel
-        <strong>Transaksi yang Dihapus</strong> beserta alasan penghapusannya.
-      </p>
-    </div>
-
     <!-- Outlet -->
     <div class="table-panel">
       <div class="table-controls">
@@ -1585,6 +1597,94 @@
         </table>
       </div>
     </div>
+
+    </section>
+
+    <section class="tab-pane" data-pane="arsip" aria-label="Arsip">
+    <!-- Arsip member terhapus -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Member yang Dihapus</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Transaksinya tetap ada di laporan, hanya keanggotaannya yang dilepas
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="arsipMemberTable">
+          <thead>
+            <tr><th>Dihapus</th><th>Nama</th><th>WhatsApp</th><th>Poin Saat Dihapus</th>
+                <th>Transaksi Dilepas</th><th>Alasan</th></tr>
+          </thead>
+          <tbody id="arsipMemberBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Arsip absensi terhapus -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Absensi yang Dihapus</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Fotonya tetap ada di penyimpanan &mdash; yang hilang catatannya, bukan buktinya
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="arsipAbsenTable">
+          <thead>
+            <tr><th>Dihapus</th><th>Karyawan</th><th>Tanggal</th><th>Status</th>
+                <th>Foto</th><th>Alasan</th></tr>
+          </thead>
+          <tbody id="arsipAbsenBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Arsip foto terhapus -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Foto yang Dihapus</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Gambarnya hilang, catatan bahwa gambar itu pernah ada tetap tinggal
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="arsipFotoTable">
+          <thead>
+            <tr><th>Dihapus</th><th>Karyawan</th><th>Tanggal</th><th>Jenis</th><th>Alasan</th></tr>
+          </thead>
+          <tbody id="arsipFotoBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Arsip transaksi terhapus -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Transaksi yang Dihapus</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Setiap penghapusan tersimpan di sini beserta alasannya &mdash; termasuk yang Anda lakukan sendiri
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tx-table" id="arsipTable">
+          <thead>
+            <tr><th>Dihapus</th><th>No. Invoice</th><th>Tanggal</th><th>Kapster</th><th>Kasir</th>
+                <th>Alasan</th><th style="text-align:right;">Total</th></tr>
+          </thead>
+          <tbody id="arsipTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    </section>
 
   </main>
 
@@ -1623,6 +1723,77 @@
     let capstersData = [];
     let selectedDateFilter = 'TODAY';
     let searchQuery = '';
+
+    /* ── Kategori laporan ─────────────────────────────────────────────────
+       Yang berpindah hanyalah apa yang TAMPAK. Seluruh data tetap dimuat
+       sekali saat halaman dibuka, persis seperti sebelumnya: memuat per tab
+       akan mengubah kapan setiap panggilan terjadi, dan panel-panel di sini
+       saling mengisi lewat pemuat bersama. Menyentuh itu demi menghemat
+       sesuatu yang tidak dikeluhkan siapa pun adalah risiko tanpa imbalan.
+
+       Yang ditoggle adalah <section> pembungkusnya, BUKAN atribut hidden
+       milik tiap panel. Panel QRIS mengatur hidden-nya sendiri menurut ada
+       atau tidaknya nota yang belum diperiksa; menimpanya dari sini akan
+       memaksanya tampil justru ketika tidak ada yang perlu dikerjakan. */
+    const TAB_INGATAN = 'rekap_tab_v1';
+
+    function gantiTab(nama, simpan) {
+      const panes = document.querySelectorAll('.tab-pane');
+      const ada = [...panes].some(p => p.dataset.pane === nama);
+      if (!ada) nama = 'ringkasan';
+
+      panes.forEach(p => p.classList.toggle('is-on', p.dataset.pane === nama));
+      document.querySelectorAll('.tab-btn').forEach(b =>
+        b.classList.toggle('is-on', b.dataset.pane === nama));
+
+      /* Di layar sempit bilahnya menggulir mendatar, dan tab yang sedang
+         terbuka bisa berada di luar layar — terutama saat halaman baru dibuka
+         dan memulihkan tab yang diingat. Owner lalu melihat isi satu kategori
+         tanpa satu pun tombol yang tampak menyala, dan tidak tahu ia sedang di
+         mana. Digulir sendiri dengan scrollLeft, bukan scrollIntoView, sebab
+         yang kedua ikut menggulir halamannya. */
+      const bar = document.getElementById('tabBar');
+      const aktif = bar && bar.querySelector('.tab-btn.is-on');
+      if (bar && aktif && bar.scrollWidth > bar.clientWidth) {
+        const kiri = aktif.offsetLeft;
+        const kanan = kiri + aktif.offsetWidth;
+        if (kiri < bar.scrollLeft) bar.scrollLeft = Math.max(0, kiri - 12);
+        else if (kanan > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = kanan - bar.clientWidth + 12;
+      }
+
+      /* Gulir dikembalikan ke puncak. Tanpa ini, berpindah dari tab panjang
+         ke tab pendek meninggalkan layar di posisi gulir lama — yang pada
+         tab pendek berarti halaman kosong, dan terbaca seperti gagal muat. */
+      window.scrollTo({ top: 0, behavior: 'instant' in document.documentElement.style ? 'instant' : 'auto' });
+
+      if (simpan !== false) {
+        try { localStorage.setItem(TAB_INGATAN, nama); } catch (_) { /* mode privat */ }
+      }
+    }
+
+    /* Penanda pada tab, untuk panel yang memunculkan dirinya sendiri karena
+       ada yang perlu dikerjakan. Sebelum ada tab, panel semacam itu sekadar
+       muncul di alur dan terlihat; di balik tab ia tidak akan pernah dilihat
+       kecuali tabnya yang memberi tahu. */
+    function tandaiTab(nama, perlu) {
+      const dot = document.querySelector('[data-dot="' + nama + '"]');
+      if (dot) dot.hidden = !perlu;
+    }
+
+    document.getElementById('tabBar').addEventListener('click', function (e) {
+      const b = e.target.closest('.tab-btn');
+      if (b) gantiTab(b.dataset.pane);
+    });
+
+    /* Urutan pemulihan: tanda pagar lebih dulu supaya tautan seperti
+       /rekap#karyawan selalu menang atas tab terakhir yang diingat. */
+    (function pulihkanTab() {
+      const dariPagar = (location.hash || '').replace('#', '');
+      if (dariPagar) return gantiTab(dariPagar, false);
+      let tersimpan = null;
+      try { tersimpan = localStorage.getItem(TAB_INGATAN); } catch (_) { /* mode privat */ }
+      if (tersimpan) gantiTab(tersimpan, false);
+    })();
 
     /* ── Periode laporan ──────────────────────────────────────────────────
        Satu tabel yang dipakai kueri, penyaring, label layar, dan nama berkas
@@ -3315,13 +3486,17 @@
         // disembunyikan daripada menakut-nakuti dengan galat yang tidak
         // dapat ditindaklanjuti pemilik.
         panel.hidden = true;
+        tandaiTab('keuangan', false);
         return;
       }
 
       const baris = data || [];
-      if (!baris.length) { panel.hidden = true; return; }
+      if (!baris.length) { panel.hidden = true; tandaiTab('keuangan', false); return; }
 
       panel.hidden = false;
+      // Tabnya ikut ditandai: panel ini tidak lagi berada di alur yang
+      // terlihat begitu saja, jadi kemunculannya harus diumumkan.
+      tandaiTab('keuangan', true);
       const total = baris.reduce((a, r) => a + Number(r.final_amount || 0), 0);
       ringkas.textContent = baris.length + ' nota QRIS senilai ' + formatRupiah(total)
         + ' tersimpan tanpa penanda pemeriksaan. Ini belum tentu berarti dananya tidak masuk —'

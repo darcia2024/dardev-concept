@@ -154,7 +154,12 @@ const rekap = fs.readFileSync(path.join(root, 'rekap.html'), 'utf8');
 assert.match(rekap, /sb\.rpc\('owner_qris_belum_konfirmasi'/);
 const pantau = rekap.slice(rekap.indexOf('async function muatQrisPantau'),
                            rekap.indexOf('function renderDashboard()'));
-assert.match(pantau, /if \(!baris\.length\) \{ panel\.hidden = true; return; \}/,
+// Dicocokkan ke perilakunya, bukan ke susunan hurufnya: cabang ini harus
+// menyembunyikan panel lalu berhenti. Boleh ada pernyataan lain di antaranya
+// — sejak rekap.html berkategori, di sini juga dipadamkan penanda pada tab
+// Keuangan. Asersi yang mengunci barisnya kata per kata akan gagal setiap
+// kali ada yang ditambahkan, padahal yang dijaganya tidak berubah.
+assert.match(pantau, /if \(!baris\.length\) \{ panel\.hidden = true;[^}]*return; \}/,
   'panel harus sembunyi saat tidak ada yang perlu dikerjakan');
 assert.match(pantau, /escapeHtml\(r\.invoice_no/, 'isi dari basis data harus disaring');
 // Kalimatnya tidak boleh menuduh: penanda yang hilang bukan bukti dana tidak masuk.
