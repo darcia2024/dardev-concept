@@ -1315,6 +1315,23 @@
                        placeholder="081297754581" />
               </div>
             </div>
+            <!-- Kosong = ikut jam buka toko hari itu, seperti kapster. Diisi =
+                 berlaku setiap hari, termasuk Jumat saat toko buka lebih siang.
+                 Keterlambatan saat absen masuk diukur dari jam masuk ini. -->
+            <div class="kelola-form-dua">
+              <div>
+                <div class="kelola-label">Jam masuk</div>
+                <input type="time" id="inpKarJamMasuk" />
+              </div>
+              <div>
+                <div class="kelola-label">Jam pulang</div>
+                <input type="time" id="inpKarJamPulang" />
+              </div>
+            </div>
+            <div class="kelola-pesan" style="margin-top:-4px;">
+              Kosongkan keduanya agar ikut jam buka toko. Isi untuk karyawan dengan
+              jam sendiri, misalnya 09.00&ndash;17.00 &mdash; terlambat dihitung dari jam masuk ini.
+            </div>
             <label class="kelola-cek">
               <input type="checkbox" id="chkKarIkutPos" checked />
               <span>Ikut jadi pilihan pencukur di kasir dan halaman booking.
@@ -4309,6 +4326,11 @@
       document.getElementById('inpKarNama').value    = kar ? (kar.name || '') : '';
       document.getElementById('inpKarJabatan').value = kar ? (kar.jabatan || 'Kapster') : '';
       document.getElementById('inpKarTelepon').value = kar ? (kar.telepon || '') : '';
+      // TIME dari Postgres datang sebagai 'HH:MM:SS'; <input type=time> menerima
+      // 'HH:MM'. Tanpa dipotong, beberapa peramban menampilkan kolomnya kosong
+      // dan simpan berikutnya diam-diam menghapus jam kerja orang itu.
+      document.getElementById('inpKarJamMasuk').value  = kar && kar.jam_masuk  ? String(kar.jam_masuk).slice(0, 5)  : '';
+      document.getElementById('inpKarJamPulang').value = kar && kar.jam_pulang ? String(kar.jam_pulang).slice(0, 5) : '';
       document.getElementById('chkKarIkutPos').checked = kar ? (kar.ikut_pos !== false) : true;
       document.getElementById('chkKarAktif').checked   = kar ? (kar.is_active !== false) : true;
       document.getElementById('pesanKaryawan').textContent = '';
@@ -4361,6 +4383,13 @@
             +   (mencukur
                   ? '<span class="kelola-tag cukur">Mencukur</span>'
                   : '<span class="kelola-tag">Tidak mencukur</span>')
+            // Jam kerjanya sendiri, bila ada. Yang ikut jam toko tidak diberi
+            // penanda: itu keadaan biasa, dan penanda di setiap kartu hanya
+            // membuat yang istimewa tenggelam di antara yang biasa.
+            +   (c.jam_masuk && c.jam_pulang
+                  ? '<span class="kelola-tag">' + String(c.jam_masuk).slice(0, 5).replace(':', '.')
+                    + '&ndash;' + String(c.jam_pulang).slice(0, 5).replace(':', '.') + '</span>'
+                  : '')
             +   (c.is_active ? '' : '<span class="kelola-tag mati">Nonaktif</span>')
             + '</div></div>'
             + '<div class="kelola-aksi">'
@@ -4446,6 +4475,17 @@
         kelolaPesan(msg, 'Nomor terlalu pendek. Contoh: 081297754581.', false); return;
       }
 
+      // Keduanya atau tidak sama sekali. Server menolaknya juga, tetapi owner
+      // tidak perlu menunggu jaringan untuk tahu ia lupa mengisi satu kolom.
+      const jamMasuk  = document.getElementById('inpKarJamMasuk').value;
+      const jamPulang = document.getElementById('inpKarJamPulang').value;
+      if (!!jamMasuk !== !!jamPulang) {
+        kelolaPesan(msg, 'Isi jam masuk dan jam pulang sekaligus, atau kosongkan keduanya.', false); return;
+      }
+      if (jamMasuk && jamPulang <= jamMasuk) {
+        kelolaPesan(msg, 'Jam pulang harus setelah jam masuk.', false); return;
+      }
+
       const btn = this;
       btn.disabled = true;
       const label = btn.textContent;
@@ -4457,7 +4497,9 @@
           p_telepon:  telp || null,
           p_jabatan:  document.getElementById('inpKarJabatan').value.trim() || 'Kapster',
           p_ikut_pos: document.getElementById('chkKarIkutPos').checked,
-          p_aktif:    document.getElementById('chkKarAktif').checked
+          p_aktif:    document.getElementById('chkKarAktif').checked,
+          p_jam_masuk:  jamMasuk  || null,
+          p_jam_pulang: jamPulang || null
         });
         if (error) throw error;
         tutupFormKaryawan();
