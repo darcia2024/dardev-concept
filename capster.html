@@ -290,7 +290,7 @@
   </header>
 
   <main id="mainArea" hidden>
-    <div class="kpi-row">
+    <div class="kpi-row" data-khusus-cukur>
       <div class="kpi is-lead">
         <div class="kpi-label">Pelanggan Hari Ini</div>
         <div class="kpi-val" id="kpiHeads">0</div>
@@ -380,7 +380,7 @@
       <div class="rows" id="cutiList"></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-khusus-cukur>
       <div class="card-head">
         <h2>Layanan Hari Ini</h2>
         <span id="lblServiceCount"></span>
@@ -388,7 +388,7 @@
       <div class="rows" id="serviceRows"></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-khusus-cukur>
       <div class="card-head">
         <h2>30 Hari Terakhir</h2>
         <span id="lblMonthTotal"></span>
@@ -1016,14 +1016,32 @@
         renderHarian(harian);
       }
 
-      await muat();
+      /* Karyawan yang tidak mencukur — admin, tim sosial media — tidak punya
+         pelanggan, layanan, maupun omzet. Kotak-kotak itu akan selalu nol
+         baginya, dan angka nol yang tampil setiap hari terbaca seperti
+         teguran, bukan seperti keterangan.
+
+         !== false, bukan === true: sebelum migrasi 48 me_capster belum
+         membawa ikut_pos, dan tanpa kolom itu semua orang memang kapster.
+
+         Datanya juga tidak diminta sama sekali, termasuk penyegaran tiap
+         menit. Menyembunyikan tampilan sambil tetap menanyakan server setiap
+         60 detik adalah pekerjaan yang tidak dibaca siapa pun. */
+      const mencukur = me.ikut_pos !== false;
+      if (!mencukur) {
+        document.querySelectorAll('[data-khusus-cukur]').forEach(function (el) { el.hidden = true; });
+      }
+
+      if (mencukur) await muat();
       await muatAbsenDanCuti().catch(function () {});
 
       // Transaksi masuk dari perangkat kasir, bukan dari halaman ini
-      setInterval(() => { if (SBConn.online) muat(); }, 60000);
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && SBConn.online) muat();
-      });
+      if (mencukur) {
+        setInterval(() => { if (SBConn.online) muat(); }, 60000);
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && SBConn.online) muat();
+        });
+      }
     })();
   </script>
 </body>

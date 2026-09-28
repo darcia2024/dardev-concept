@@ -193,4 +193,32 @@ assert.match(
   'me_capster harus mengembalikan jabatan'
 );
 
+/* ── 8 · Karyawan yang tidak mencukur tidak melihat kotak kapster ─────────
+   Pelanggan, layanan, dan omzet akan selalu nol bagi admin atau tim sosial
+   media, dan nol yang tampil setiap hari terbaca seperti teguran.
+
+   Yang lebih penting dijaga adalah arah sebaliknya: bagian absensi, izin,
+   dan ganti sandi TIDAK BOLEH ikut tersembunyi. Karyawan non-cukur justru
+   ada di sistem ini untuk absen. */
+for (const judul of ['Pelanggan Hari Ini', '<h2>Layanan Hari Ini</h2>', '<h2>30 Hari Terakhir</h2>']) {
+  const i = kapster.indexOf(judul);
+  const pembungkus = kapster.slice(0, i).match(/<div class="(kpi-row|card)"[^>]*>(?![\s\S]*<div class="(kpi-row|card)")/);
+  assert.ok(pembungkus && /data-khusus-cukur/.test(pembungkus[0]),
+    `bagian "${judul.replace(/<[^>]+>/g, '')}" harus ditandai khusus kapster`);
+}
+for (const judul of ['<h2>Absensi Hari Ini</h2>', '<h2>Izin &amp; Libur</h2>', '<h2>Ganti Sandi</h2>']) {
+  const i = kapster.indexOf(judul);
+  assert.ok(i > 0, judul + ' harus ada');
+  const pembungkus = kapster.slice(0, i).match(/<div class="(absen-card|card)"[^>]*>(?![\s\S]*<div class="(absen-card|card)")/);
+  assert.ok(pembungkus && !/data-khusus-cukur/.test(pembungkus[0]),
+    `bagian "${judul.replace(/<[^>]+>/g, '')}" tidak boleh disembunyikan dari karyawan non-cukur`);
+}
+assert.equal((kapster.match(/data-khusus-cukur>/g) || []).length, 3,
+  'tepat tiga bagian yang khusus kapster — penanda di tempat lain ikut menyembunyikannya');
+
+assert.match(kapster, /const mencukur = me\.ikut_pos !== false;/,
+  'ikut_pos dibaca dengan !== false: tanpa kolom itu semua orang memang kapster');
+assert.match(kapster, /if \(mencukur\) await muat\(\);/, 'data kapster tidak diminta untuk yang tidak mencukur');
+assert.match(kapster, /if \(mencukur\) \{\s*\n\s*setInterval/, 'penyegaran tiap menit juga tidak dijalankan');
+
 console.log('karyawan-panel: semua pemeriksaan lolos');
