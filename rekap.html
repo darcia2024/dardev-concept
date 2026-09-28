@@ -3945,6 +3945,16 @@
     }
 
     async function muatKelolaAkun() {
+    /* Email kapster tidak pernah menjadi kotak surat sungguhan — ia hanya
+       nama pengguna. Disarankan dari namanya supaya pemilik tidak perlu
+       memikirkan pola penamaan, dan tetap dapat diubah sebelum ditekan. */
+    function saranEmail(nama) {
+      const bersih = String(nama || '').toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '');
+      return (bersih || 'kapster') + '@underrated.com';
+    }
+
       const gc = document.getElementById('gridCapster');
       const gk = document.getElementById('gridKasir');
 
@@ -3968,13 +3978,28 @@
             + '<button class="btn-hdr" data-telp-simpan="' + c.capster_id + '">Simpan</button>'
             + '</div>'
             + '<div class="kelola-pesan" data-telp-pesan="' + c.capster_id + '"></div>'
-            + '<div class="kelola-label">Sandi</div>'
+            /* Kapster yang sudah punya akun cukup diganti sandinya. Yang belum
+               dibuatkan akunnya di sini juga — dulu bagian ini hanya berbunyi
+               "buatkan dulu lewat Dardev", dan tiap kapster baru berhenti
+               menunggu orang lain. Emailnya disarankan dari namanya supaya
+               pemilik tidak perlu memikirkan pola penamaan. */
             + (bisa
-              ? '<div class="kelola-baris">'
+              ? '<div class="kelola-label">Sandi</div>'
+                + '<div class="kelola-baris">'
                 + '<input type="text" placeholder="Sandi baru, min. 8 karakter" data-sandi-input="' + c.capster_id + '" autocomplete="off" />'
                 + '<button class="btn-hdr" data-sandi-simpan="' + c.capster_id + '">Simpan</button>'
                 + '</div>'
-              : '<div class="kelola-pesan bad">Belum punya akun — buatkan dulu lewat Dardev.</div>')
+              : '<div class="kelola-label">Buatkan Akun</div>'
+                + '<div class="kelola-baris">'
+                + '<input type="text" placeholder="email" value="' + escapeHtml(saranEmail(c.name)) + '"'
+                + ' data-akun-email="' + c.capster_id + '" autocomplete="off" spellcheck="false" />'
+                + '</div>'
+                + '<div class="kelola-baris">'
+                + '<input type="text" placeholder="Sandi awal, min. 8 karakter"'
+                + ' data-akun-sandi="' + c.capster_id + '" autocomplete="off" />'
+                + '<button class="btn-hdr" data-akun-buat="' + c.capster_id + '">Buat</button>'
+                + '</div>'
+                + '<div class="kelola-pesan">Sesudah dibuat, kapster dapat mengganti sendiri sandinya dari halamannya.</div>')
             + '<div class="kelola-pesan" data-sandi-pesan="' + c.capster_id + '"></div>'
             + '</div>';
         }).join('') || '<div class="kelola-pesan">Belum ada kapster.</div>';
@@ -4001,6 +4026,40 @@
       const bSandi = e.target.closest('[data-sandi-simpan]');
       const bPin   = e.target.closest('[data-pin-simpan]');
       const bTelp  = e.target.closest('[data-telp-simpan]');
+      const bAkun  = e.target.closest('[data-akun-buat]');
+
+      /* Membuat akun kapster. Server yang menegakkan seluruh aturannya —
+         peran dipaku 'capster', kapster yang sudah punya akun ditolak, email
+         ganda ditolak. Yang disaring di sini hanya yang jelas keliru, supaya
+         pemilik tidak menunggu jaringan untuk mengetahuinya. */
+      if (bAkun) {
+        const id    = bAkun.dataset.akunBuat;
+        const mail  = (document.querySelector('[data-akun-email="' + id + '"]').value || '').trim();
+        const sandi = (document.querySelector('[data-akun-sandi="' + id + '"]').value || '').trim();
+        const msg   = document.querySelector('[data-sandi-pesan="' + id + '"]');
+
+        if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(mail)) {
+          kelolaPesan(msg, 'Alamat email belum benar.', false); return;
+        }
+        if (sandi.length < 8) {
+          kelolaPesan(msg, 'Sandi minimal 8 karakter.', false); return;
+        }
+        // Akun tidak dapat dibatalkan dari layar ini, jadi ditanya sekali.
+        if (!confirm('Buatkan akun untuk kapster ini?\n\nEmail: ' + mail
+                     + '\n\nCatat sandinya sekarang — layar ini tidak menampilkannya lagi.')) return;
+
+        bAkun.disabled = true;
+        kelolaPesan(msg, 'Membuat akun…', true);
+        const { data, error } = await sb.rpc('owner_buat_akun_capster',
+          { p_capster_id: id, p_email: mail, p_password: sandi });
+        bAkun.disabled = false;
+
+        if (error) { kelolaPesan(msg, 'Gagal: ' + error.message, false); return; }
+        const r = Array.isArray(data) ? data[0] : data;
+        kelolaPesan(msg, 'Akun ' + (r ? r.email : mail) + ' dibuat. Kapster sudah bisa masuk dan absen.', true);
+        await muatKelola();
+        return;
+      }
 
       if (bTelp) {
         const id = bTelp.dataset.telpSimpan;
