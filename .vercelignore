@@ -32,3 +32,16 @@ supabase/
 # Penjaga regresi. Dijalankan di mesin pengembang dengan `node`, tidak ada
 # hubungannya dengan situs yang dilayani.
 tests/
+
+# Dokumentasi internal: serah terima, README, tutorial kasir. Tidak memuat
+# kredensial, tetapi SERAH-TERIMA.md memuat prosedur operasional, perintah
+# deploy, dan potongan SQL — tidak ada alasan menyiarkannya di
+# /SERAH-TERIMA.md untuk siapa pun yang menebak namanya.
+#
+# Polanya glob, bukan tiga nama: dokumen berikutnya akan bernama apa pun, dan
+# daftar nama tidak akan ikut bertambah sendiri.
+*.md
+
+# Daftar id elemen pos.html, dipakai saat pengembangan. Tidak berbahaya,
+# tetapi juga tidak ada gunanya berada di server.
+.pos_hooks.txt

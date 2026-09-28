@@ -46,6 +46,10 @@ const WAJIB_TERTUTUP = [
   'tests/akun-karyawan.test.js',
   'supabase/functions/buat-akun-karyawan/index.ts',
   'perencanaan.html',
+  'SERAH-TERIMA.md',
+  'README.md',
+  'TUTORIAL-DISKON-KASIR.md',
+  '.pos_hooks.txt',
 ];
 for (const f of WAJIB_TERTUTUP) {
   assert.ok(tertutup(f), `${f} harus dikecualikan dari unggahan Vercel`);
@@ -77,13 +81,14 @@ for (const p of pola) {
   );
 }
 
-/* ── 4 · Tidak ada .sql yang lolos ───────────────────────────────────────
+/* ── 4 · Tidak ada .sql atau .md yang lolos ──────────────────────────────
    Diperiksa terhadap isi direktori yang sebenarnya, bukan terhadap daftar
-   yang ditulis tangan di atas: migrasi berikutnya akan bernama apa pun, dan
-   daftar tangan tidak akan ikut bertambah. */
+   yang ditulis tangan di atas: migrasi dan dokumen berikutnya akan bernama
+   apa pun, dan daftar tangan tidak akan ikut bertambah sendiri. Justru
+   berkas yang ditambahkan setelah ini yang paling mungkin terlewat. */
 for (const f of fs.readdirSync(root)) {
-  if (f.endsWith('.sql')) {
-    assert.ok(tertutup(f), `${f} ikut terunggah — seluruh .sql harus tertutup`);
+  if (f.endsWith('.sql') || f.endsWith('.md')) {
+    assert.ok(tertutup(f), `${f} ikut terunggah — seluruh .sql dan .md harus tertutup`);
   }
 }
 
