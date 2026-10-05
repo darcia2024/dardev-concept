@@ -44,6 +44,7 @@ const WAJIB_TERTUTUP = [
   'koreksi_data_01b_terapkan_poin.sql',
   'tests/berkas-publik.test.js',
   'tests/akun-karyawan.test.js',
+  'supabase/functions/ai-struk/index.ts',
   'perencanaan.html',
   'SERAH-TERIMA.md',
   'README.md',
