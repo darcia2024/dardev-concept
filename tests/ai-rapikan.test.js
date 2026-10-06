@@ -26,7 +26,7 @@ assert.ok(js.length > 1000, 'kode layar Rapikan Catatan harus ditemukan');
 
 /* ── 1 · Kunci hanya di server ───────────────────────────────────────────── */
 assert.match(fn, /Deno\.env\.get\('OPENROUTER_API_KEY'\)/);
-assert.match(js, /sb\.functions\.invoke\('ai-rapikan'/, 'merapikan harus lewat Edge Function');
+assert.match(js, /panggilAi\('ai-rapikan'/, 'merapikan harus lewat Edge Function');
 assert.doesNotMatch(rekap, /openrouter\.ai\/api/, 'peramban tidak boleh memanggil OpenRouter langsung');
 
 /* ── 2 · AI hanya merapikan ──────────────────────────────────────────────── */

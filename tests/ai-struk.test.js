@@ -29,7 +29,7 @@ for (const f of ['rekap.html', 'pos.html', 'kartu.html', 'landing.html', 'capste
   assert.doesNotMatch(isi, /openrouter\.ai\/api|api\.anthropic\.com/,
     `${f} memanggil layanan AI langsung — itu hanya mungkin dengan kunci di peramban`);
 }
-assert.match(rekap, /sb\.functions\.invoke\('ai-struk'/, 'pembacaan struk harus lewat Edge Function');
+assert.match(rekap, /panggilAi\('ai-struk'/, 'pembacaan struk harus lewat Edge Function');
 
 /* ── 2 · AI hanya membaca ────────────────────────────────────────────────
    Edge Function tidak boleh menulis ke pembukuan. Satu-satunya tulisannya
