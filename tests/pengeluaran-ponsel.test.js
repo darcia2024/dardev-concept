@@ -18,7 +18,7 @@ const inp = rekap.match(/<input type="file" id="inpFotoStruk"[^>]*>/);
 assert.ok(inp, 'masukan foto struk harus ada');
 assert.doesNotMatch(inp[0], /\bcapture\b/,
   'capture memaksa HP langsung membuka kamera; owner harus bisa memilih galeri atau berkas');
-assert.match(inp[0], /accept="image\/\*"/, 'tetap hanya gambar — ai-struk hanya membaca gambar');
+assert.match(inp[0], /accept="image\/\*,application\/pdf,\.pdf"/, 'foto dan PDF (invoice belanja online) diterima');
 
 /* ── 2 · Baris barang menjadi kartu di layar sempit ──────────────────────── */
 assert.match(rekap, /<table class="tx-table peng-items">/, 'tabel barang harus bisa ditata khusus untuk ponsel');
