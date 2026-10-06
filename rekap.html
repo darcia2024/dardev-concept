@@ -908,6 +908,61 @@
     }
     .kelola-cek input { width: auto; margin-top: 2px; flex: none; }
     .kelola-aksi { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── Rapikan Catatan (Add-on AI, fitur 2) ──────────────────────────── */
+    .kelola-form textarea {
+      background: var(--ink-inset); border: 1px solid var(--line); border-radius: var(--r-sm);
+      color: var(--fg); padding: 9px 11px; font-size: 14px; font-family: inherit;
+      outline: none; width: 100%; resize: vertical; line-height: 1.5;
+    }
+    .kelola-form textarea:focus { border-color: var(--brand, #BE0000); }
+    .rapi-rekam { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .rapi-rekam audio { height: 36px; max-width: 100%; flex: 1 1 200px; }
+    .rapi-rekam .btn-hdr.merekam { border-color: var(--brand, #BE0000); color: var(--brand, #BE0000); }
+    .rapi-waktu { font-family: var(--mono); font-size: 12.5px; color: var(--fg-dim); }
+    .rapi-bagian { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+    .rapi-baris { display: grid; grid-template-columns: 1fr 130px 130px 36px; gap: 6px; align-items: center; }
+    .rapi-baris.langkah { grid-template-columns: 26px 1fr 36px; }
+    .rapi-no { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); text-align: right; }
+    /* table.tx-table memasang min-width:700px dengan selektor yang lebih kuat
+       dari .rapi-tabel saja; tabel catatan biasanya dua-tiga kolom, dan di
+       ponsel lebar itu menyembunyikan semua kolom selain yang pertama. */
+    table.tx-table.rapi-tabel { min-width: 0; }
+    #rapiTodo, #rapiLangkah { display: flex; flex-direction: column; gap: 8px; }
+    #rapiTodo:empty, #rapiLangkah:empty { display: none; }
+    .rapi-tabel td, .rapi-tabel th { padding: 6px; }
+    .rapi-tabel input { min-width: 110px; }
+    .rapi-transkrip summary { cursor: pointer; font-size: 12.5px; color: var(--fg-dim); }
+    .rapi-transkrip textarea { margin-top: 8px; }
+    @media (max-width: 600px) {
+      /* Di ponsel tugas selebar penuh, "untuk" dan "kapan" berdampingan di
+         bawahnya. Tiga kolom sejajar di layar 390px menyisakan tempat untuk
+         dua-tiga kata saja dari tugasnya. */
+      .rapi-baris { grid-template-columns: 1fr 1fr 36px; }
+      .rapi-baris > [data-f="tugas"] { grid-column: 1 / -1; }
+      .rapi-baris.langkah { grid-template-columns: 22px 1fr 36px; }
+      /* Tugas sudah dua baris di ponsel; tanpa pemisah, tugas berikutnya
+         terbaca sebagai lanjutan yang sebelumnya. */
+      #rapiTodo { gap: 0; }
+      #rapiTodo > .rapi-baris { padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+      #rapiTodo > .rapi-baris:first-child { padding-top: 0; }
+    }
+
+    .rapi-daftar { display: flex; flex-direction: column; gap: 10px; }
+    .rapi-kartu {
+      border: 1px solid var(--line); border-radius: var(--r-md); background: var(--ink-card);
+      padding: 13px 15px; display: flex; flex-direction: column; gap: 8px; min-width: 0;
+    }
+    .rapi-kepala { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .rapi-kepala strong { font-size: 14px; overflow-wrap: anywhere; }
+    .rapi-meta { font-size: 11.5px; color: var(--fg-dim); font-family: var(--mono); white-space: nowrap; }
+    .rapi-isi { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--fg-mid); line-height: 1.5; }
+    .rapi-isi[hidden] { display: none; }
+    .rapi-isi ol { padding-left: 20px; }
+    .rapi-todo-item { display: flex; gap: 8px; align-items: flex-start; }
+    .rapi-todo-item input { margin-top: 3px; flex: none; }
+    .rapi-todo-item.selesai span { text-decoration: line-through; color: var(--fg-dim); }
+    .rapi-sub { color: var(--fg-dim); font-size: 12px; }
   </style>
 </head>
 <body>
@@ -1483,6 +1538,95 @@
           <div class="kelola-grid" id="gridKasir"></div>
         </div>
       </div>
+    </div>
+
+    <!-- Catatan acak dirapikan AI (Add-on AI, fitur 2). Coretan atau voice
+         note owner menjadi to-do list, tabel, atau langkah kerja. AI hanya
+         MERAPIKAN: hasilnya muncul di penyunting untuk diperiksa, dan baru
+         tersimpan saat owner menekan Simpan. Rekaman suara tidak disimpan. -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Rapikan Catatan</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Coretan atau voice note jadi to-do list tim, tabel, atau langkah kerja. Periksa dulu, baru simpan.
+          </p>
+        </div>
+        <button class="btn-filter-date" id="btnRapikanBaru" type="button">+ Catatan Baru</button>
+      </div>
+
+      <div class="kelola-form" id="formRapikan" hidden>
+        <div class="kelola-nama">Tulis atau rekam catatan</div>
+        <div class="kelola-label">Catatan</div>
+        <textarea id="inpRapikanTeks" maxlength="6000" rows="5"
+                  placeholder="Contoh: besok wanda beli pomade 2 lusin sama silet, lukman bersihin kaca sebelum buka, harga hair tonic naik jadi 55rb"></textarea>
+        <div class="rapi-rekam">
+          <button class="btn-hdr" id="btnRekam" type="button">&#127897; Rekam suara</button>
+          <span class="rapi-waktu" id="rekamWaktu"></span>
+          <!-- Pratinjau rekaman sebelum dikirim. Hanya di peramban ini;
+               tidak pernah diunggah ke penyimpanan mana pun. -->
+          <audio id="rekamPutar" controls hidden></audio>
+          <button class="btn-hapus" id="btnBuangRekaman" type="button" title="Buang rekaman" hidden>&#215;</button>
+        </div>
+        <div class="kelola-form-dua">
+          <div>
+            <div class="kelola-label">Jadikan</div>
+            <select id="pilRapikanBentuk">
+              <option value="otomatis">Pilihkan otomatis</option>
+              <option value="todo">To-do list</option>
+              <option value="tabel">Tabel</option>
+              <option value="langkah">Langkah kerja</option>
+            </select>
+          </div>
+        </div>
+        <div class="kelola-pesan" id="pesanRapikan"></div>
+        <div class="kelola-aksi">
+          <button class="btn-hdr" id="btnRapikan" type="button">Rapikan dengan AI</button>
+          <button class="btn-hdr" id="btnBatalRapikan" type="button">Batal</button>
+        </div>
+      </div>
+
+      <div class="kelola-form" id="editorRapi" hidden>
+        <div class="kelola-nama" id="editorRapiJudul">Periksa hasil rapian</div>
+        <div class="kelola-pesan" id="pesanRapiAi"></div>
+        <div class="kelola-label">Judul</div>
+        <input type="text" id="inpRapiJudul" maxlength="150" />
+        <div class="kelola-label">Ringkasan</div>
+        <textarea id="inpRapiRingkasan" maxlength="1000" rows="2" placeholder="Opsional"></textarea>
+
+        <div class="rapi-bagian">
+          <div class="kelola-label">To-do list</div>
+          <div id="rapiTodo"></div>
+          <div class="kelola-aksi"><button class="btn-hdr" id="btnRapiTambahTodo" type="button">+ Tugas</button></div>
+        </div>
+        <div class="rapi-bagian">
+          <div class="kelola-label">Tabel</div>
+          <div class="table-scroll" id="rapiTabelWadah"><table class="tx-table rapi-tabel" id="rapiTabel"></table></div>
+          <div class="kelola-aksi">
+            <button class="btn-hdr" id="btnRapiTambahKolom" type="button">+ Kolom</button>
+            <button class="btn-hdr" id="btnRapiTambahBaris" type="button">+ Baris</button>
+          </div>
+        </div>
+        <div class="rapi-bagian">
+          <div class="kelola-label">Langkah kerja</div>
+          <div id="rapiLangkah"></div>
+          <div class="kelola-aksi"><button class="btn-hdr" id="btnRapiTambahLangkah" type="button">+ Langkah</button></div>
+        </div>
+        <details class="rapi-transkrip" id="rapiTranskripWadah" hidden>
+          <summary>Transkrip rekaman</summary>
+          <textarea id="inpRapiTranskrip" maxlength="8000" rows="4"></textarea>
+        </details>
+
+        <div class="kelola-pesan" id="pesanRapi"></div>
+        <div class="kelola-aksi">
+          <button class="btn-hdr" id="btnSimpanRapi" type="button">Simpan</button>
+          <button class="btn-hdr" id="btnSalinRapi" type="button">Salin untuk WhatsApp</button>
+          <button class="btn-hdr" id="btnBatalRapi" type="button">Batal</button>
+        </div>
+      </div>
+
+      <div id="daftarRapi" class="rapi-daftar"></div>
+      <div class="pager" id="rapiPager"></div>
     </div>
 
     </section>
@@ -2070,6 +2214,7 @@
       await muatArsipMember();
       await muatArsipFoto();
       await loadCuti();
+      await muatCatatanRapi();
     }
 
     /* -------------------------------------------------------------------------
@@ -3295,6 +3440,522 @@
       const { error } = await sb.rpc('owner_hapus_pengeluaran', { p_id: b.dataset.hapusPeng });
       if (error) { b.disabled = false; alert('Gagal menghapus: ' + error.message); return; }
       await muatPengeluaran();
+    });
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       RAPIKAN CATATAN (Add-on AI, fitur 2)
+
+       Coretan atau voice note owner menjadi to-do list, tabel, atau langkah
+       kerja. Alurnya sama dengan struk belanja: Edge Function ai-rapikan hanya
+       MERAPIKAN, hasilnya muncul di penyunting, dan baru tersimpan saat owner
+       menekan Simpan. Voice note yang salah dengar terlihat seperti instruksi
+       yang sah begitu tersimpan dan dibagikan ke tim.
+
+       Rekaman suara tidak pernah disimpan: ia hanya hidup di halaman ini,
+       dikirim sekali ke ai-rapikan, lalu dibuang.
+       ═══════════════════════════════════════════════════════════════════════ */
+    let rapiData = [];
+    let rapiDiubah = null;      // id catatan yang sedang disunting; null = baru
+    let rapiSumber = 'teks';
+    let rapiTerbuka = {};       // kartu mana yang sedang dibuka di daftar
+    const rekam = { perekam: null, aliran: null, potongan: [], mulai: 0, detik: 0, pewaktu: null, wav: null, url: null };
+    const REKAM_MAKS_DETIK = 180;
+
+    async function muatCatatanRapi() {
+      const wadah = document.getElementById('daftarRapi');
+      const { data, error } = await sb.rpc('owner_catatan_rapi_list');
+      if (error) {
+        wadah.innerHTML = '<div class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</div>';
+        document.getElementById('rapiPager').innerHTML = '';
+        return;
+      }
+      rapiData = data || [];
+      gambarDaftarRapi();
+    }
+
+    function tglRapi(ts) {
+      return new Date(ts).toLocaleString('id-ID', {
+        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta'
+      });
+    }
+
+    function isiRapiHtml(c) {
+      const isi = c.isi || {};
+      let h = '';
+      if (isi.ringkasan) h += '<div>' + escapeHtml(isi.ringkasan) + '</div>';
+      (isi.todo || []).forEach(function (t, i) {
+        const ket = [t.untuk, t.kapan].filter(Boolean).join(' · ');
+        h += '<label class="rapi-todo-item' + (t.selesai ? ' selesai' : '') + '">'
+          + '<input type="checkbox" data-rapi-cek="' + c.id + '" data-i="' + i + '"' + (t.selesai ? ' checked' : '') + ' />'
+          + '<span>' + escapeHtml(t.tugas) + (ket ? ' <span class="rapi-sub">— ' + escapeHtml(ket) + '</span>' : '') + '</span></label>';
+      });
+      const tb = isi.tabel || {};
+      if ((tb.baris || []).length) {
+        h += '<div class="table-scroll"><table class="tx-table rapi-tabel"><thead><tr>'
+          + (tb.kolom || []).map(k => '<th>' + escapeHtml(k) + '</th>').join('') + '</tr></thead><tbody>'
+          + tb.baris.map(b => '<tr>' + b.map(v => '<td>' + escapeHtml(v) + '</td>').join('') + '</tr>').join('')
+          + '</tbody></table></div>';
+      }
+      if ((isi.langkah || []).length) {
+        h += '<ol>' + isi.langkah.map(l => '<li>' + escapeHtml(l) + '</li>').join('') + '</ol>';
+      }
+      return h || '<div class="rapi-sub">Kosong.</div>';
+    }
+
+    function gambarDaftarRapi() {
+      const wadah = document.getElementById('daftarRapi');
+      const nav = document.getElementById('rapiPager');
+      if (!rapiData.length) {
+        wadah.innerHTML = '<div class="empty-row">Belum ada catatan. Tekan + Catatan Baru, lalu ketik atau rekam suara.</div>';
+        nav.innerHTML = '';
+        return;
+      }
+      // Daftar kartu, bukan tabel, jadi pager tabel tidak dipakai. Dua puluh
+      // terbaru sudah cukup untuk catatan harian; sisanya tetap tersimpan.
+      const tampil = rapiData.slice(0, 20);
+      wadah.innerHTML = tampil.map(function (c) {
+        const todo = (c.isi && c.isi.todo) || [];
+        const selesai = todo.filter(t => t.selesai).length;
+        const buka = !!rapiTerbuka[c.id];
+        return '<div class="rapi-kartu">'
+          + '<div class="rapi-kepala"><strong>' + escapeHtml(c.judul) + '</strong>'
+          + '<span class="rapi-meta">' + tglRapi(c.created_at) + '</span></div>'
+          + '<div class="kelola-tags">'
+          + '<span class="kelola-tag">' + (c.sumber === 'suara' ? 'Voice note' : 'Diketik') + '</span>'
+          + (todo.length ? '<span class="kelola-tag' + (selesai === todo.length ? ' cukur' : '') + '">' + selesai + '/' + todo.length + ' selesai</span>' : '')
+          + '</div>'
+          + '<div class="rapi-isi"' + (buka ? '' : ' hidden') + '>' + isiRapiHtml(c) + '</div>'
+          + '<div class="kelola-aksi">'
+          + '<button class="btn-hdr" data-rapi-buka="' + c.id + '" type="button">' + (buka ? 'Tutup' : 'Buka') + '</button>'
+          + '<button class="btn-hdr" data-rapi-salin="' + c.id + '" type="button">Salin</button>'
+          + '<button class="btn-hdr" data-rapi-ubah="' + c.id + '" type="button">Ubah</button>'
+          + '<button class="btn-hapus" data-rapi-hapus="' + c.id + '" type="button" title="Hapus catatan ini">&#215;</button>'
+          + '</div></div>';
+      }).join('');
+      nav.innerHTML = rapiData.length > tampil.length
+        ? '<span class="pager-info">20 terbaru dari ' + rapiData.length + ' catatan</span>' : '';
+    }
+
+    /* ── Teks untuk dibagikan ke grup WhatsApp tim ─────────────────────── */
+    function teksRapi(judul, isi) {
+      const b = ['*' + judul + '*'];
+      if (isi.ringkasan) b.push(isi.ringkasan);
+      if ((isi.todo || []).length) {
+        b.push('');
+        isi.todo.forEach(function (t) {
+          const ket = [t.untuk, t.kapan].filter(Boolean).join(', ');
+          b.push((t.selesai ? '✅ ' : '⬜ ') + t.tugas + (ket ? ' (' + ket + ')' : ''));
+        });
+      }
+      const tb = isi.tabel || {};
+      if ((tb.baris || []).length) {
+        b.push('');
+        b.push((tb.kolom || []).join(' | '));
+        tb.baris.forEach(r => b.push(r.join(' | ')));
+      }
+      if ((isi.langkah || []).length) {
+        b.push('');
+        isi.langkah.forEach((l, i) => b.push((i + 1) + '. ' + l));
+      }
+      return b.join('\n');
+    }
+
+    async function salinTeks(teks) {
+      try {
+        await navigator.clipboard.writeText(teks);
+        return true;
+      } catch (_) {
+        // Clipboard API ditolak di sebagian peramban HP tanpa izin; cara
+        // lama lewat textarea tersembunyi masih jalan di sana.
+        const ta = document.createElement('textarea');
+        ta.value = teks; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (_) {}
+        ta.remove();
+        return ok;
+      }
+    }
+
+    /* ── Perekam suara → WAV 16 kHz mono ───────────────────────────────────
+       OpenRouter menerima wav/mp3/ogg/m4a dan sejenisnya, tetapi BUKAN webm —
+       justru yang dihasilkan MediaRecorder di Chrome. Safari menghasilkan mp4.
+       Daripada bergantung pada format perekam tiap peramban, rekamannya
+       diurai lalu ditulis ulang sebagai WAV 16 kHz mono: cukup untuk suara
+       bicara, dan satu bentuk saja yang perlu diterima server. */
+    function keWav(sampel, laju) {
+      const buf = new ArrayBuffer(44 + sampel.length * 2);
+      const v = new DataView(buf);
+      const tulis = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+      tulis(0, 'RIFF'); v.setUint32(4, 36 + sampel.length * 2, true); tulis(8, 'WAVE');
+      tulis(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, laju, true); v.setUint32(28, laju * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+      tulis(36, 'data'); v.setUint32(40, sampel.length * 2, true);
+      for (let i = 0; i < sampel.length; i++) {
+        const s = Math.max(-1, Math.min(1, sampel[i]));
+        v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      }
+      return new Uint8Array(buf);
+    }
+
+    async function rekamanKeWav(blob) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      const ctx = new AC();
+      try {
+        const asli = await ctx.decodeAudioData(await blob.arrayBuffer());
+        const LAJU = 16000;
+        const off = new OAC(1, Math.max(1, Math.ceil(asli.duration * LAJU)), LAJU);
+        const sumber = off.createBufferSource();
+        sumber.buffer = asli;
+        sumber.connect(off.destination);
+        sumber.start(0);
+        const hasil = await off.startRendering();
+        return { wav: keWav(hasil.getChannelData(0), LAJU), detik: asli.duration };
+      } finally {
+        if (ctx.close) ctx.close();
+      }
+    }
+
+    function keBase64(u8) {
+      let s = '';
+      for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+      return btoa(s);
+    }
+
+    function aturTombolRekam() {
+      const btn = document.getElementById('btnRekam');
+      const sedang = !!(rekam.perekam && rekam.perekam.state === 'recording');
+      btn.classList.toggle('merekam', sedang);
+      btn.innerHTML = sedang ? '&#9632; Berhenti' : (rekam.wav ? '&#127897; Rekam ulang' : '&#127897; Rekam suara');
+      document.getElementById('rekamPutar').hidden = sedang || !rekam.url;
+      document.getElementById('btnBuangRekaman').hidden = sedang || !rekam.wav;
+    }
+
+    function buangRekaman() {
+      if (rekam.url) URL.revokeObjectURL(rekam.url);
+      rekam.wav = null; rekam.url = null; rekam.detik = 0;
+      const putar = document.getElementById('rekamPutar');
+      putar.removeAttribute('src'); putar.load();
+      document.getElementById('rekamWaktu').textContent = '';
+      aturTombolRekam();
+    }
+
+    function hentikanAliran() {
+      if (rekam.aliran) rekam.aliran.getTracks().forEach(t => t.stop());
+      rekam.aliran = null;
+      clearInterval(rekam.pewaktu);
+    }
+
+    async function mulaiRekam() {
+      const pesan = document.getElementById('pesanRapikan');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+        kelolaPesan(pesan, 'Peramban ini tidak bisa merekam suara. Ketik catatannya saja, atau buka lewat Chrome/Safari terbaru.', false);
+        return;
+      }
+      try {
+        rekam.aliran = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        kelolaPesan(pesan, 'Izin mikrofon ditolak. Izinkan mikrofon untuk situs ini di pengaturan peramban, lalu coba lagi.', false);
+        return;
+      }
+      buangRekaman();
+      pesan.textContent = '';
+      rekam.potongan = [];
+      rekam.perekam = new MediaRecorder(rekam.aliran);
+      rekam.perekam.ondataavailable = function (e) { if (e.data && e.data.size) rekam.potongan.push(e.data); };
+      rekam.perekam.onstop = async function () {
+        hentikanAliran();
+        const blob = new Blob(rekam.potongan, { type: rekam.perekam.mimeType || 'audio/webm' });
+        rekam.perekam = null;
+        aturTombolRekam();
+        if (!blob.size) { kelolaPesan(pesan, 'Rekaman kosong. Coba lagi.', false); return; }
+        kelolaPesan(pesan, 'Menyiapkan rekaman…', true);
+        try {
+          const r = await rekamanKeWav(blob);
+          if (r.detik < 1) { kelolaPesan(pesan, 'Rekaman terlalu pendek.', false); return; }
+          rekam.wav = r.wav; rekam.detik = r.detik;
+          rekam.url = URL.createObjectURL(new Blob([r.wav], { type: 'audio/wav' }));
+          document.getElementById('rekamPutar').src = rekam.url;
+          document.getElementById('rekamWaktu').textContent = Math.round(r.detik) + ' detik';
+          pesan.textContent = ''; pesan.className = 'kelola-pesan';
+        } catch (e) {
+          kelolaPesan(pesan, 'Rekaman tidak dapat diolah di peramban ini. Ketik catatannya saja.', false);
+        }
+        aturTombolRekam();
+      };
+      rekam.perekam.start(1000);
+      rekam.mulai = Date.now();
+      const waktu = document.getElementById('rekamWaktu');
+      rekam.pewaktu = setInterval(function () {
+        const d = Math.floor((Date.now() - rekam.mulai) / 1000);
+        waktu.textContent = '● ' + Math.floor(d / 60) + ':' + String(d % 60).padStart(2, '0') + ' / 3:00';
+        // Batasnya ditegakkan di sini, bukan hanya di server: rekaman yang
+        // ditolak sesudah owner bicara tiga menit lebih menjengkelkan
+        // daripada rekaman yang berhenti sendiri.
+        if (d >= REKAM_MAKS_DETIK && rekam.perekam && rekam.perekam.state === 'recording') rekam.perekam.stop();
+      }, 500);
+      aturTombolRekam();
+    }
+
+    document.getElementById('btnRekam').addEventListener('click', function () {
+      if (rekam.perekam && rekam.perekam.state === 'recording') rekam.perekam.stop();
+      else mulaiRekam();
+    });
+    document.getElementById('btnBuangRekaman').addEventListener('click', buangRekaman);
+
+    /* ── Formulir masukan ──────────────────────────────────────────────── */
+    function tutupFormRapikan() {
+      if (rekam.perekam && rekam.perekam.state === 'recording') {
+        rekam.perekam.onstop = null;
+        rekam.perekam.stop();
+        rekam.perekam = null;
+      }
+      hentikanAliran();
+      buangRekaman();
+      document.getElementById('formRapikan').hidden = true;
+      document.getElementById('pesanRapikan').textContent = '';
+    }
+
+    document.getElementById('btnRapikanBaru').addEventListener('click', function () {
+      tutupEditorRapi();
+      document.getElementById('inpRapikanTeks').value = '';
+      document.getElementById('pilRapikanBentuk').value = 'otomatis';
+      document.getElementById('pesanRapikan').textContent = '';
+      document.getElementById('formRapikan').hidden = false;
+      aturTombolRekam();
+      document.getElementById('inpRapikanTeks').focus();
+    });
+    document.getElementById('btnBatalRapikan').addEventListener('click', tutupFormRapikan);
+
+    document.getElementById('btnRapikan').addEventListener('click', async function () {
+      const pesan = document.getElementById('pesanRapikan');
+      const teks = document.getElementById('inpRapikanTeks').value.trim();
+      if (rekam.perekam && rekam.perekam.state === 'recording') {
+        kelolaPesan(pesan, 'Hentikan rekaman dulu.', false); return;
+      }
+      if (!teks && !rekam.wav) { kelolaPesan(pesan, 'Tulis catatannya atau rekam suara dulu.', false); return; }
+
+      const btn = this;
+      btn.disabled = true;
+      kelolaPesan(pesan, rekam.wav ? 'Mendengarkan dan merapikan…' : 'Merapikan…', true);
+      try {
+        const badan = { teks: teks, bentuk: document.getElementById('pilRapikanBentuk').value };
+        if (rekam.wav) { badan.audio = keBase64(rekam.wav); badan.detik = Math.round(rekam.detik); }
+        // Lewat Edge Function: kunci API AI tidak boleh ada di halaman ini.
+        const { data, error } = await sb.functions.invoke('ai-rapikan', { body: badan });
+        if (error) {
+          let t = error.message || String(error);
+          try { const b = await error.context.json(); if (b && b.error) t = b.error; } catch (_) {}
+          throw new Error(t);
+        }
+        const hasil = data && data.hasil;
+        if (!hasil || hasil.terbaca === false) {
+          kelolaPesan(pesan, rekam.wav
+            ? 'Rekamannya tidak terdengar sebagai catatan kerja. Coba rekam ulang lebih dekat ke HP, atau ketik saja.'
+            : 'Catatan itu tidak bisa dijadikan to-do, tabel, atau langkah kerja.', false);
+          return;
+        }
+        const sumber = rekam.wav ? 'suara' : 'teks';
+        tutupFormRapikan();
+        bukaEditorRapi(null, hasil.judul, hasil, sumber);
+        const ragu = hasil.catatan ? ' Perhatikan: ' + hasil.catatan : '';
+        kelolaPesan(document.getElementById('pesanRapiAi'),
+          'Periksa setiap tugas, nama, dan angka sebelum menyimpan.' + ragu
+          + (typeof data.sisa_hari_ini === 'number' ? ' (Sisa hari ini: ' + data.sisa_hari_ini + ')' : ''), !hasil.catatan);
+      } catch (err) {
+        kelolaPesan(pesan, 'Gagal merapikan: ' + (err.message || err), false);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    /* ── Penyunting hasil ──────────────────────────────────────────────── */
+    function barisTodoRapi(t) {
+      t = t || {};
+      return '<div class="rapi-baris" data-todo data-selesai="' + (t.selesai ? '1' : '') + '">'
+        + '<input type="text" data-f="tugas" maxlength="300" placeholder="Tugas" value="' + escapeHtml(t.tugas || '') + '" />'
+        + '<input type="text" data-f="untuk" maxlength="80" placeholder="Untuk siapa" value="' + escapeHtml(t.untuk || '') + '" />'
+        + '<input type="text" data-f="kapan" maxlength="80" placeholder="Kapan" value="' + escapeHtml(t.kapan || '') + '" />'
+        + '<button class="btn-hapus" data-rapi-buang type="button" title="Buang">&#215;</button></div>';
+    }
+
+    function barisLangkahRapi(l) {
+      return '<div class="rapi-baris langkah" data-langkah>'
+        + '<span class="rapi-no"></span>'
+        + '<input type="text" data-f="langkah" maxlength="500" value="' + escapeHtml(l || '') + '" />'
+        + '<button class="btn-hapus" data-rapi-buang type="button" title="Buang">&#215;</button></div>';
+    }
+
+    function nomoriLangkah() {
+      document.querySelectorAll('#rapiLangkah .rapi-no').forEach((el, i) => { el.textContent = (i + 1) + '.'; });
+    }
+
+    function gambarTabelRapi(kolom, baris) {
+      const el = document.getElementById('rapiTabel');
+      if (!kolom.length) { el.innerHTML = ''; document.getElementById('rapiTabelWadah').hidden = true; return; }
+      document.getElementById('rapiTabelWadah').hidden = false;
+      el.innerHTML = '<thead><tr>'
+        + kolom.map(k => '<th><input type="text" data-kolom maxlength="80" value="' + escapeHtml(k) + '" /></th>').join('')
+        + '<th style="width:40px;"></th></tr></thead><tbody>'
+        + baris.map(b => '<tr>' + kolom.map((_, i) => '<td><input type="text" data-sel maxlength="300" value="' + escapeHtml(b[i] || '') + '" /></td>').join('')
+          + '<td><button class="btn-hapus" data-rapi-buang-baris type="button" title="Buang baris">&#215;</button></td></tr>').join('')
+        + '</tbody>';
+    }
+
+    function bacaTabelRapi() {
+      const kolom = [...document.querySelectorAll('#rapiTabel [data-kolom]')].map(i => i.value.trim());
+      const baris = [...document.querySelectorAll('#rapiTabel tbody tr')].map(tr =>
+        [...tr.querySelectorAll('[data-sel]')].map(i => i.value.trim()));
+      return { kolom: kolom, baris: baris };
+    }
+
+    function bukaEditorRapi(id, judul, isi, sumber) {
+      rapiDiubah = id;
+      rapiSumber = sumber || 'teks';
+      isi = isi || {};
+      document.getElementById('editorRapiJudul').textContent = id ? 'Ubah catatan' : 'Periksa hasil rapian';
+      document.getElementById('pesanRapiAi').textContent = '';
+      document.getElementById('pesanRapi').textContent = '';
+      document.getElementById('inpRapiJudul').value = judul || '';
+      document.getElementById('inpRapiRingkasan').value = isi.ringkasan || '';
+      document.getElementById('rapiTodo').innerHTML = (isi.todo || []).map(barisTodoRapi).join('');
+      document.getElementById('rapiLangkah').innerHTML = (isi.langkah || []).map(barisLangkahRapi).join('');
+      nomoriLangkah();
+      const tb = isi.tabel || {};
+      gambarTabelRapi(tb.kolom || [], tb.baris || []);
+      document.getElementById('inpRapiTranskrip').value = isi.transkrip || '';
+      document.getElementById('rapiTranskripWadah').hidden = !isi.transkrip;
+      document.getElementById('editorRapi').hidden = false;
+      document.getElementById('editorRapi').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function tutupEditorRapi() {
+      document.getElementById('editorRapi').hidden = true;
+      rapiDiubah = null;
+    }
+
+    function bacaEditorRapi() {
+      return {
+        ringkasan: document.getElementById('inpRapiRingkasan').value.trim(),
+        todo: [...document.querySelectorAll('#rapiTodo [data-todo]')].map(function (r) {
+          const v = (f) => r.querySelector('[data-f="' + f + '"]').value.trim();
+          return { tugas: v('tugas'), untuk: v('untuk'), kapan: v('kapan'), selesai: r.dataset.selesai === '1' };
+        }).filter(t => t.tugas),
+        tabel: bacaTabelRapi(),
+        langkah: [...document.querySelectorAll('#rapiLangkah [data-f="langkah"]')].map(i => i.value.trim()).filter(Boolean),
+        transkrip: document.getElementById('inpRapiTranskrip').value.trim()
+      };
+    }
+
+    document.getElementById('btnRapiTambahTodo').addEventListener('click', function () {
+      document.getElementById('rapiTodo').insertAdjacentHTML('beforeend', barisTodoRapi({}));
+    });
+    document.getElementById('btnRapiTambahLangkah').addEventListener('click', function () {
+      document.getElementById('rapiLangkah').insertAdjacentHTML('beforeend', barisLangkahRapi(''));
+      nomoriLangkah();
+    });
+    document.getElementById('btnRapiTambahKolom').addEventListener('click', function () {
+      const t = bacaTabelRapi();
+      t.kolom.push('Kolom ' + (t.kolom.length + 1));
+      if (!t.baris.length) t.baris.push([]);
+      gambarTabelRapi(t.kolom, t.baris);
+    });
+    document.getElementById('btnRapiTambahBaris').addEventListener('click', function () {
+      const t = bacaTabelRapi();
+      if (!t.kolom.length) t.kolom.push('Kolom 1');
+      t.baris.push([]);
+      gambarTabelRapi(t.kolom, t.baris);
+    });
+    document.getElementById('editorRapi').addEventListener('click', function (e) {
+      if (e.target.closest('[data-rapi-buang]')) {
+        e.target.closest('.rapi-baris').remove();
+        nomoriLangkah();
+      } else if (e.target.closest('[data-rapi-buang-baris]')) {
+        e.target.closest('tr').remove();
+        if (!document.querySelector('#rapiTabel tbody tr')) gambarTabelRapi([], []);
+      }
+    });
+    document.getElementById('btnBatalRapi').addEventListener('click', tutupEditorRapi);
+
+    document.getElementById('btnSalinRapi').addEventListener('click', async function () {
+      const ok = await salinTeks(teksRapi(document.getElementById('inpRapiJudul').value.trim() || 'Catatan', bacaEditorRapi()));
+      kelolaPesan(document.getElementById('pesanRapi'), ok ? 'Tersalin. Tempel di grup WhatsApp tim.' : 'Gagal menyalin. Salin manual dari kolom di atas.', ok);
+    });
+
+    document.getElementById('btnSimpanRapi').addEventListener('click', async function () {
+      const msg = document.getElementById('pesanRapi');
+      const judul = document.getElementById('inpRapiJudul').value.trim();
+      const isi = bacaEditorRapi();
+      if (!judul) { kelolaPesan(msg, 'Judul wajib diisi.', false); return; }
+      if (!isi.ringkasan && !isi.todo.length && !isi.langkah.length && !isi.tabel.baris.length) {
+        kelolaPesan(msg, 'Catatan masih kosong.', false); return;
+      }
+      const btn = this;
+      btn.disabled = true;
+      try {
+        const { error } = await sb.rpc('owner_simpan_catatan_rapi', {
+          p_id: rapiDiubah, p_judul: judul, p_isi: isi, p_sumber: rapiSumber
+        });
+        if (error) throw error;
+        tutupEditorRapi();
+        await muatCatatanRapi();
+      } catch (err) {
+        kelolaPesan(msg, 'Gagal menyimpan: ' + (err.message || err), false);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    /* ── Daftar: buka, centang, salin, ubah, hapus ─────────────────────── */
+    document.getElementById('daftarRapi').addEventListener('click', async function (e) {
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.dataset.rapiBuka) {
+        rapiTerbuka[b.dataset.rapiBuka] = !rapiTerbuka[b.dataset.rapiBuka];
+        gambarDaftarRapi();
+        return;
+      }
+      const id = b.dataset.rapiSalin || b.dataset.rapiUbah || b.dataset.rapiHapus;
+      const c = rapiData.find(x => x.id === id);
+      if (!c) return;
+      if (b.dataset.rapiSalin) {
+        const ok = await salinTeks(teksRapi(c.judul, c.isi || {}));
+        b.textContent = ok ? 'Tersalin ✓' : 'Gagal menyalin';
+        setTimeout(function () { b.textContent = 'Salin'; }, 1800);
+      } else if (b.dataset.rapiUbah) {
+        tutupFormRapikan();
+        bukaEditorRapi(c.id, c.judul, c.isi, c.sumber);
+      } else if (b.dataset.rapiHapus) {
+        if (!confirm('Hapus catatan "' + c.judul + '"?')) return;
+        b.disabled = true;
+        const { error } = await sb.rpc('owner_hapus_catatan_rapi', { p_id: c.id });
+        if (error) { b.disabled = false; alert('Gagal menghapus: ' + error.message); return; }
+        await muatCatatanRapi();
+      }
+    });
+
+    // Mencentang to-do langsung tersimpan. Seluruh isi dikirim ulang karena
+    // owner_simpan_catatan_rapi menyimpan isi utuh, bukan potongan.
+    document.getElementById('daftarRapi').addEventListener('change', async function (e) {
+      const cek = e.target.closest('[data-rapi-cek]');
+      if (!cek) return;
+      const c = rapiData.find(x => x.id === cek.dataset.rapiCek);
+      if (!c || !c.isi || !c.isi.todo) return;
+      const isi = JSON.parse(JSON.stringify(c.isi));
+      isi.todo[Number(cek.dataset.i)].selesai = cek.checked;
+      cek.disabled = true;
+      const { error } = await sb.rpc('owner_simpan_catatan_rapi', {
+        p_id: c.id, p_judul: c.judul, p_isi: isi, p_sumber: c.sumber
+      });
+      if (error) {
+        cek.checked = !cek.checked;
+        cek.disabled = false;
+        alert('Gagal menyimpan centang: ' + error.message);
+        return;
+      }
+      c.isi = isi;
+      gambarDaftarRapi();
     });
 
     async function loadHpp() {

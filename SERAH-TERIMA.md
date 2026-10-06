@@ -338,6 +338,31 @@ Riwayat pengiriman tampil di panel yang sama. Status yang mungkin muncul:
 pengiriman, pelanggan tetap mendapat kode bookingnya dan owner melihat
 sebabnya di riwayat.
 
+### Memasang Rapikan Catatan (Add-on AI, fitur 2)
+
+Owner mengetik coretan atau merekam voice note di `/rekap` → tab
+*Karyawan* → panel *Rapikan Catatan*. AI merapikannya jadi to-do list, tabel,
+atau langkah kerja. Owner memeriksa dan membetulkannya dulu, lalu menyimpan
+atau menyalinnya ke grup WhatsApp tim. To-do yang tersimpan bisa dicentang
+saat selesai.
+
+1. Jalankan `supabase_migration_56_catatan_rapi.sql` di SQL Editor.
+2. Deploy fungsinya: `supabase functions deploy ai-rapikan`. Fungsi ini
+   memakai secret yang sama dengan `ai-struk` (`OPENROUTER_API_KEY`,
+   `KUNCI_LAYANAN` bila dipasang), jadi tidak ada secret baru yang wajib.
+3. Opsional: `BATAS_RAPIKAN_HARIAN` (bawaan 40 kali per hari) dan
+   `MODEL_AI_RAPIKAN` (bawaan mengikuti `MODEL_AI`). Model pengganti harus
+   menerima audio, kalau tidak voice note berhenti jalan.
+
+**Rekaman suara tidak disimpan di mana pun.** Ia hanya hidup di halaman,
+dikirim sekali ke `ai-rapikan`, lalu dibuang. `ai_pemakaian` hanya mencatat
+panjangnya dalam detik. Yang tersimpan cuma hasil rapian yang owner setujui,
+plus transkripnya kalau owner membiarkannya.
+
+Rekaman diubah dulu ke WAV 16 kHz di peramban, karena OpenRouter tidak
+menerima webm, format bawaan perekam Chrome. Panjangnya dibatasi 3 menit.
+Merekam butuh izin mikrofon dan alamat HTTPS.
+
 ---
 
 ## 6. Keputusan Teknis yang Perlu Diketahui Penerus
