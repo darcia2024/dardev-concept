@@ -25,19 +25,31 @@
 import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
-/* Proyek ini memakai kunci jenis baru, dan di proyek seperti itu
-   SUPABASE_URL serta SUPABASE_SERVICE_ROLE_KEY TIDAK selalu disuntikkan ke
-   Edge Function — dashboard proyek ini hanya mencantumkan SUPABASE_DB_URL dan
-   tiga variabel runtime. Maka:
+/* Kunci layanan, dari yang paling diutamakan:
 
-   - URL proyek jatuh ke alamat yang memang sudah publik di sb-app.js.
-   - Kunci layanan dibaca dari secret KUNCI_LAYANAN yang dipasang owner
-     sendiri: sebuah secret key (sb_secret_...) dari Project Settings -> API
-     Keys. Nama tidak diawali SUPABASE_ karena awalan itu dicadangkan.
-     SUPABASE_SERVICE_ROLE_KEY tetap dicoba sebagai cadangan, untuk proyek
-     yang masih menyuntikkannya. */
+   1. KUNCI_LAYANAN — secret yang dipasang owner sendiri, bila suatu saat
+      perlu memakai kunci tertentu.
+   2. SUPABASE_SECRET_KEYS — kunci jenis baru (sb_secret_), disuntikkan
+      Supabase sebagai kamus JSON. Diambil nilai pertamanya alih-alih
+      menebak nama kuncinya di dalam kamus itu.
+   3. SUPABASE_SERVICE_ROLE_KEY — kunci jenis lama. Dashboard menandainya
+      DEPRECATED: masih disuntikkan hari ini, tetapi akan hilang begitu
+      kunci lama dimatikan. Hanya cadangan terakhir.
+
+   URL proyek jatuh ke alamat yang memang sudah publik di sb-app.js bila
+   SUPABASE_URL tidak ada. */
+function kunciRahasiaBaru(): string {
+  try {
+    const kamus = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
+    const nilai = Object.values(kamus ?? {}).find((v) => typeof v === 'string' && v.length > 0);
+    return typeof nilai === 'string' ? nilai : '';
+  } catch {
+    return '';
+  }
+}
 const URL_SB    = Deno.env.get('SUPABASE_URL') ?? 'https://grzjfnqljjzjkvmgtohe.supabase.co';
-const KUNCI_SRV = Deno.env.get('KUNCI_LAYANAN') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const KUNCI_SRV = Deno.env.get('KUNCI_LAYANAN') || kunciRahasiaBaru()
+               || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const BATAS_HARIAN = Number(Deno.env.get('BATAS_STRUK_HARIAN') ?? '60') || 60;
 
 const MODEL = 'claude-opus-5-5';

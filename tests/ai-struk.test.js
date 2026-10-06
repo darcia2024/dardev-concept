@@ -77,7 +77,10 @@ assert.equal((skema.match(/type: 'object'/g) || []).length, (skema.match(/additi
   'setiap objek dalam skema harus additionalProperties: false');
 
 /* ── 5 · Penolakan dan jawaban terpotong ditangani sebelum JSON dibaca ──── */
-const iParse = fn.indexOf('JSON.parse(');
+// Pembacaan JAWABAN Claude, bukan JSON.parse pertama di berkas — pemilah
+// SUPABASE_SECRET_KEYS di bagian atas juga memakai JSON.parse.
+const iParse = fn.indexOf('JSON.parse(teks');
+assert.ok(iParse > 0, 'pembacaan jawaban Claude harus ditemukan');
 assert.ok(fn.indexOf("stop_reason === 'refusal'") < iParse, 'refusal diperiksa sebelum JSON dibaca');
 assert.ok(fn.indexOf("stop_reason === 'max_tokens'") < iParse, 'jawaban terpotong diperiksa sebelum JSON dibaca');
 // Galat API ditangkap dari yang paling khusus, tanpa mencocokkan teks pesan.
@@ -107,11 +110,15 @@ assert.match(rekap, /const SISI = 1568;/, 'foto diperkecil sebelum dikirim — t
 assert.match(rekap, /await loadHpp\(\);\s*\n\s*await muatPengeluaran\(\);/, 'daftar pengeluaran ikut dimuat dan ikut berganti periode');
 assert.match(rekap, /gambarBerhalaman\('pengeluaran'/, 'daftar pengeluaran memakai pager yang sama');
 
-/* ── 8 · Tidak bergantung pada secret bawaan yang tidak disuntikkan ──────
-   Dashboard proyek ini hanya mencantumkan SUPABASE_DB_URL dan tiga variabel
-   runtime sebagai secret bawaan: SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY
-   tidak ada. Fungsi yang menuntut keduanya gagal di setiap panggilan. */
-assert.ok(fn.includes("Deno.env.get('KUNCI_LAYANAN')"), 'kunci layanan dibaca dari secret yang dipasang owner');
+/* ── 8 · Kunci layanan jenis baru diutamakan ─────────────────────────────
+   Dashboard proyek ini menandai SUPABASE_SERVICE_ROLE_KEY DEPRECATED. Masih
+   disuntikkan hari ini, tetapi fungsi yang bergantung padanya akan berhenti
+   begitu kunci lama dimatikan, tanpa ada yang mengubah kodenya. */
+assert.ok(fn.includes("Deno.env.get('KUNCI_LAYANAN')"), 'kunci layanan dapat dipasang owner sendiri');
+const iLama = fn.indexOf("Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')");
+assert.ok(fn.indexOf("Deno.env.get('SUPABASE_SECRET_KEYS')") > 0, 'SUPABASE_SECRET_KEYS harus dibaca');
+assert.ok(fn.indexOf('kunciRahasiaBaru()', fn.indexOf('const KUNCI_SRV')) < iLama,
+  'kunci jenis baru harus dicoba sebelum SUPABASE_SERVICE_ROLE_KEY yang deprecated');
 assert.ok(fn.includes("Deno.env.get('SUPABASE_URL') ?? 'https://grzjfnqljjzjkvmgtohe.supabase.co'"), 'URL proyek punya cadangan');
 assert.doesNotMatch(fn, /Deno\.env\.get\('SUPABASE_[A-Z_]+'\)!/, 'secret bawaan tidak boleh dianggap pasti ada');
 assert.ok(fn.indexOf('if (!KUNCI_SRV)') > 0 && fn.indexOf('if (!KUNCI_SRV)') < fn.indexOf('sbSrv.auth.getUser'),
