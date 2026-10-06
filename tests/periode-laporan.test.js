@@ -29,6 +29,7 @@ function api() {
     return {
       PERIODE,
       rentang: rentangPeriode,
+      atur: aturPeriodeKhusus,
       label: (k) => { selectedDateFilter = k; return labelPeriode(); }
     };
   `)(BEKU, Date);
@@ -37,8 +38,8 @@ const A = api();
 
 // ── 1 · Pilihan yang diminta pemilik ada semuanya ──────────────────────────
 assert.deepEqual(Object.keys(A.PERIODE),
-  ['TODAY', 'YESTERDAY', 'D7', 'D30', 'D90', 'D180', 'D365', 'ALL'],
-  'urutan pilihan harus dari yang terpendek ke terpanjang');
+  ['TODAY', 'YESTERDAY', 'D7', 'D30', 'D90', 'D180', 'D365', 'ALL', 'CUSTOM'],
+  'urutan pilihan dari yang terpendek ke terpanjang, Pilih Tanggal paling akhir');
 
 // ── 2 · Periode satu hari benar-benar satu hari ────────────────────────────
 assert.deepEqual(A.rentang('TODAY'),     { dari: '2026-09-10', sampai: '2026-09-10' });
@@ -82,12 +83,43 @@ assert.match(muat, /qTx\.lte\('business_date', r\.sampai\)/);
 
 // Berganti periode harus MEMUAT ULANG, bukan sekadar menyaring yang sudah ada:
 // data periode yang lebih panjang belum pernah diambil.
-const ganti = rekap.slice(rekap.indexOf("getElementById('selPeriode').addEventListener"));
-assert.notEqual(rekap.indexOf("getElementById('selPeriode').addEventListener"), -1,
-  'dropdown periode harus punya penangan');
-assert.match(ganti.slice(0, 900), /await loadData\(\)/, 'ganti periode harus memuat ulang');
-assert.match(ganti.slice(0, 900), /sel\.disabled = true/,
-  'pemilihnya dikunci selama memuat supaya permintaan tidak menumpuk');
+const ganti = rekap.slice(rekap.indexOf("getElementById('selPeriode').addEventListener"),
+                          rekap.indexOf("getElementById('btnPeriodeTerapkan').addEventListener"));
+assert.ok(ganti.length > 0, 'dropdown periode harus punya penangan');
+assert.match(ganti, /await muatPeriode\(\)/, 'ganti periode harus memuat ulang');
+const muatP = rekap.slice(rekap.indexOf('async function muatPeriode()'), rekap.indexOf('function segarkanLabelKhusus()'));
+assert.match(muatP, /await loadData\(\)/, 'muatPeriode harus memuat ulang dari server');
+assert.match(muatP, /sel\.disabled = true; btn\.disabled = true;/,
+  'pemilih dan tombol Terapkan dikunci selama memuat supaya permintaan tidak menumpuk');
+
+// ── 7 · Pilih Tanggal ──────────────────────────────────────────────────────
+// Sebelum diterapkan jatuh ke hari ini, bukan ke tanpa batas.
+assert.deepEqual(A.rentang('CUSTOM'), A.rentang('TODAY'));
+assert.equal(A.atur('2026-09-01', '2026-09-05'), null, 'rentang sah diterima');
+assert.deepEqual(A.rentang('CUSTOM'), { dari: '2026-09-01', sampai: '2026-09-05' });
+assert.equal(A.label('CUSTOM'), '1 Sep – 5 Sep 2026');
+assert.equal(A.atur('2026-09-07', '2026-09-07'), null, 'satu hari boleh');
+assert.equal(A.label('CUSTOM'), '7 Sep 2026');
+assert.equal(A.atur('2025-12-30', '2026-01-02'), null);
+assert.equal(A.label('CUSTOM'), '30 Des 2025 – 2 Jan 2026', 'tahun disebut di kedua sisi bila berbeda');
+// Yang ditolak tidak mengubah rentang yang sedang berlaku.
+assert.match(A.atur('2026-09-05', '2026-09-01'), /sebelum/);
+assert.match(A.atur('2026-09-01', '2026-09-11'), /hari ini/, 'besok (11 Sep) ditolak');
+assert.match(A.atur('', '2026-09-01'), /Isi tanggal/);
+assert.match(A.atur('1/9/2026', '2026-09-01'), /Isi tanggal/);
+assert.deepEqual(A.rentang('CUSTOM'), { dari: '2025-12-30', sampai: '2026-01-02' });
+assert.equal(A.atur('2026-09-10', '2026-09-10'), null, 'hari ini sendiri boleh');
+
+// Tidak memuat apa pun sampai Terapkan: setiap ketukan kalender tidak boleh
+// menarik data untuk tanggal yang belum selesai dipilih.
+const cabangKhusus = ganti.slice(ganti.indexOf("if (sel.value === 'CUSTOM')"), ganti.indexOf('kotak.hidden = true;'));
+assert.ok(cabangKhusus.length > 0);
+assert.doesNotMatch(cabangKhusus, /muatPeriode|loadData/, 'memilih Pilih Tanggal belum boleh memuat');
+const terapkan = rekap.slice(rekap.indexOf("getElementById('btnPeriodeTerapkan').addEventListener"));
+assert.match(terapkan.slice(0, 600), /if \(galat\) \{ alert\(galat\); return; \}[\s\S]*await muatPeriode\(\)/,
+  'Terapkan memeriksa dulu, baru memuat');
+// Nota QRIS mengikuti rentang yang sama: satu hari = tanggal itu.
+assert.match(rekap, /const tgl = rq\.dari && rq\.dari === rq\.sampai \? rq\.dari : null;/);
 
 // Setoran kas ikut rentang yang sama, tidak lagi terpaku satu hari.
 const kas = rekap.slice(rekap.indexOf('async function loadClosings()'),
