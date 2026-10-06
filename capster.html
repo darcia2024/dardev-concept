@@ -931,7 +931,10 @@
     });
 
     $('btnSignOut').addEventListener('click', async () => {
-      await sb.auth.signOut();
+      // Hanya perangkat ini. Bawaan 'global' mengeluarkan akun yang sama di
+      // semua perangkat (lihat sbSignOut di sb-app.js).
+      sbKeluarSendiri = true;
+      await sb.auth.signOut({ scope: 'local' });
       location.replace('/masuk');
     });
 
