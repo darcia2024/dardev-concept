@@ -682,7 +682,7 @@
 
     @media print {
       body { background: #fff; color: #000; }
-      header.rekap-header, .control-strip, .btn-nav, .search-input { display: none !important; }
+      header.rekap-header, .control-strip, .btn-nav, .search-input, .ai-fab, .ai-sheet { display: none !important; }
       .rekap-container { max-width: 100%; padding: 0; }
       .kpi-card, .panel-box, .table-panel { border-color: #ccc; background: #fff; color: #000; }
       .kpi-value, .pay-amount, .capster-omzet { color: #000 !important; }
@@ -1003,6 +1003,92 @@
     }
     .asisten-form input:focus { border-color: var(--brand, #BE0000); }
 
+    /* ── Asisten AI melayang ─────────────────────────────────────────────────
+       z-index 60/70: di atas header (50) dan bilah kategori (9), di bawah
+       editor master data (200) dan gerbang masuk (9999), sehingga modal dan
+       layar login tetap menutupinya. */
+    .ai-fab {
+      position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 60;
+      display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 20px;
+      border: none; border-radius: 26px; background: var(--brand, #BE0000); color: #fff;
+      font: 600 14px/1 inherit; font-family: inherit; cursor: pointer;
+      box-shadow: 0 8px 24px rgba(190, 0, 0, .35);
+    }
+    .ai-fab:hover { filter: brightness(1.08); }
+    .ai-fab:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+    .ai-fab[aria-expanded="true"] { display: none; }
+    .ai-sheet {
+      position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 70;
+      width: 400px; max-width: calc(100vw - 32px);
+      height: min(640px, calc(100vh - 96px)); height: min(640px, calc(100dvh - 96px));
+      display: flex; flex-direction: column; gap: 10px; padding: 14px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+    }
+    .ai-sheet[hidden] { display: none; }
+    /* Bila isinya lebih tinggi dari lembarnya (papan ketik terbuka, layar
+       pendek), lembarnya menggulir — bukan membiarkan kolom ketik meluber
+       keluar dari bawah. */
+    .ai-sheet { overflow-y: auto; }
+    .ai-sheet.ai-papan .ai-intro, .ai-sheet.ai-papan .asisten-saran { display: none; }
+    .ai-kepala { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .ai-kepala strong { font-size: 15px; }
+    .ai-kepala-aksi { display: flex; gap: 8px; align-items: center; }
+    /* flex:none — wadah yang menggulir mendatar kehilangan tinggi minimum
+       bawaannya, dan tanpa ini ikut mengecil sampai tombolnya terpotong. */
+    .ai-pintasan { display: flex; gap: 6px; flex-wrap: wrap; flex: none; }
+    .ai-pintasan .btn-hdr { font-size: 12px; padding: 7px 10px; }
+    .ai-intro { font-size: 12.5px; color: var(--fg-dim); line-height: 1.5; }
+    .ai-intro[hidden] { display: none; }
+    .ai-sheet .asisten-log { flex: 1 1 auto; min-height: 90px; max-height: none; }
+    .ai-sheet .asisten-log:empty { display: block; }
+    .ai-sheet .asisten-saran { flex: none; }
+    .ai-kepala .btn-filter-date { white-space: nowrap; }
+    .ai-kepala .btn-hapus { min-width: 44px; min-height: 44px; font-size: 22px; }
+    .ai-sheet, .ai-sheet .asisten-log { overscroll-behavior: contain; }
+    /* Layar pendek (ponsel miring, atau papan ketik terbuka): seluruh lembar
+       menggulir, supaya tidak ada bagian yang terpotong tanpa jalan ke sana. */
+    @media (max-height: 700px) {
+      /* Pengantar hanya untuk layar yang lega; chip saran sudah cukup jelas. */
+      .ai-intro { display: none; }
+    }
+    @media (max-height: 560px) {
+      .ai-pintasan, .ai-sheet .asisten-saran { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+      .ai-pintasan::-webkit-scrollbar, .ai-sheet .asisten-saran::-webkit-scrollbar { display: none; }
+      .ai-pintasan .btn-hdr, .ai-sheet .asisten-saran .btn-hdr { white-space: nowrap; flex: none; }
+      .ai-sheet .asisten-log { min-height: 70px; }
+    }
+    @media (max-width: 600px) {
+      /* Di ponsel menjadi lembar dari bawah selebar layar. dvh mengikuti
+         papan ketik yang naik, vh tidak. */
+      /* --ai-naik dan --ai-tinggi diisi dari visualViewport saat jendela
+         terbuka (lihat selarasPapanKetik): papan ketik HP menutupi bagian
+         bawah layar tanpa mengubah tinggi halaman, sehingga lembar yang
+         menempel ke bawah ikut tertutup — termasuk kolom ketiknya. */
+      .ai-sheet {
+        left: 0; right: 0; bottom: var(--ai-naik, 0px); width: auto; max-width: none;
+        height: min(88vh, 760px); height: min(calc(var(--ai-tinggi, 100dvh) * .92), 760px);
+        border-radius: 16px 16px 0 0; border-bottom: none;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
+      }
+      .ai-fab { min-height: 48px; padding: 0 18px; }
+    }
+    /* iOS Safari memperbesar halaman sendiri begitu kolom isian yang diketuk
+       berfontnya di bawah 16px, dan tidak mengembalikannya. Berlaku di semua
+       perangkat sentuh, bukan hanya layar sempit: tablet pun sama. */
+    @media (pointer: coarse) {
+      /* Sasaran sentuh: 44px untuk yang ditekan terus-menerus, 40px untuk
+         deretan pintasan yang berdempetan. */
+      .asisten-form input, .asisten-form .btn-hdr { min-height: 44px; }
+      .ai-pintasan .btn-hdr, .ai-sheet .asisten-saran .btn-hdr { min-height: 40px; }
+      .asisten-form input, .kelola-form input, .kelola-form select, .kelola-form textarea,
+      .periode-khusus input, .sel-periode, .ed-field input, .ed-field select, .ed-field textarea,
+      .stok-list input[data-stok-min], .search-input { font-size: 16px; }
+    }
+
+    /* Tombol melayang tidak boleh menutupi baris terakhir halaman. */
+    main.rekap-container { margin-bottom: 76px; }
+
     /* ── Stok Produk (Add-on AI, fitur 3) ──────────────────────────────── */
     .stok-pill {
       font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600;
@@ -1204,34 +1290,6 @@
         </div>
       </div>
 
-    </div>
-
-    <!-- Tanya data toko (Add-on AI, fitur 5 "Internal Helper"). Dijawab Edge
-         Function ai-asisten dari ringkasan_asisten() (migrasi 58): model hanya
-         membaca ringkasan yang dihitung basis data, tidak pernah menulis query.
-         Percakapan hanya hidup di halaman ini dan tidak disimpan. -->
-    <div class="table-panel">
-      <div class="table-controls">
-        <div>
-          <h2 style="font-size: 15px; font-weight: 600;">Tanya Data Toko</h2>
-          <p style="font-size: 12px; color: var(--fg-dim);">
-            Tanya omzet, kapster, layanan, stok, pengeluaran, atau absensi dengan bahasa sehari-hari.
-          </p>
-        </div>
-        <button class="btn-filter-date" id="btnAsistenBaru" type="button" hidden>Mulai ulang</button>
-      </div>
-      <div class="asisten-log" id="asistenLog" aria-live="polite"></div>
-      <div class="asisten-saran" id="asistenSaran">
-        <button class="btn-hdr" type="button" data-saran>Omzet minggu ini berapa?</button>
-        <button class="btn-hdr" type="button" data-saran>Kapster siapa paling ramai bulan ini?</button>
-        <button class="btn-hdr" type="button" data-saran>Produk apa yang mau habis?</button>
-        <button class="btn-hdr" type="button" data-saran>Bandingkan omzet bulan ini dengan bulan lalu</button>
-      </div>
-      <form class="asisten-form" id="formAsisten" autocomplete="off">
-        <input type="text" id="inpAsisten" maxlength="600" placeholder="Tulis pertanyaan…" />
-        <button class="btn-hdr" id="btnAsistenKirim" type="submit">Tanya</button>
-      </form>
-      <div class="kelola-pesan" id="pesanAsisten"></div>
     </div>
 
     </section>
@@ -2195,6 +2253,51 @@
     </section>
 
   </main>
+
+  <!-- Asisten AI melayang (Add-on AI). Satu pintu masuk yang selalu terlihat di
+       semua tab: Tanya Data Toko (fitur 5, dijawab ai-asisten dari
+       ringkasan_asisten() migrasi 58 — model hanya membaca ringkasan, tidak
+       pernah menulis query) dan pintasan ke alat AI lain, yang tinggal di
+       tab masing-masing. Percakapan hanya hidup di halaman ini dan tidak
+       disimpan. Berada DI LUAR <main> dan di luar tab, jadi tidak ikut
+       tersembunyi saat berpindah kategori. -->
+  <button class="ai-fab" id="btnAiFab" type="button" aria-label="Buka asisten AI"
+          aria-expanded="false" aria-controls="aiSheet">
+    <span aria-hidden="true">&#10022;</span> Tanya AI
+  </button>
+  <div class="ai-sheet" id="aiSheet" role="dialog" aria-label="Asisten AI" hidden>
+    <div class="ai-kepala">
+      <div>
+        <strong>Asisten AI</strong>
+        <div class="rapi-sub">Tanya data toko atau pakai alat AI.</div>
+      </div>
+      <div class="ai-kepala-aksi">
+        <button class="btn-filter-date" id="btnAsistenBaru" type="button" hidden>Mulai ulang</button>
+        <button class="btn-hapus" id="btnAiTutup" type="button" aria-label="Tutup asisten AI">&#215;</button>
+      </div>
+    </div>
+    <div class="ai-pintasan" aria-label="Alat AI">
+      <button class="btn-hdr" type="button" data-pintas="struk">&#128247; Foto / PDF struk</button>
+      <button class="btn-hdr" type="button" data-pintas="stok">&#128230; Catat stok</button>
+      <button class="btn-hdr" type="button" data-pintas="catatan">&#128221; Rapikan catatan</button>
+    </div>
+    <div class="ai-intro" id="aiIntro">
+      Tanya omzet, kapster, layanan, stok, pengeluaran, atau absensi dengan bahasa sehari-hari.
+      Jawabannya dihitung dari data toko, bukan perkiraan.
+    </div>
+    <div class="asisten-log" id="asistenLog" aria-live="polite"></div>
+    <div class="asisten-saran" id="asistenSaran">
+      <button class="btn-hdr" type="button" data-saran>Omzet minggu ini berapa?</button>
+      <button class="btn-hdr" type="button" data-saran>Kapster paling ramai bulan ini?</button>
+      <button class="btn-hdr" type="button" data-saran>Produk apa yang mau habis?</button>
+      <button class="btn-hdr" type="button" data-saran>Omzet bulan ini vs bulan lalu?</button>
+    </div>
+    <form class="asisten-form" id="formAsisten" autocomplete="off">
+      <input type="text" id="inpAsisten" maxlength="600" placeholder="Tulis pertanyaan…" />
+      <button class="btn-hdr" id="btnAsistenKirim" type="submit">Tanya</button>
+    </form>
+    <div class="kelola-pesan" id="pesanAsisten"></div>
+  </div>
 
   <!-- Editor master data — satu kerangka, isinya dibentuk oleh pemanggil -->
   <div class="ed-backdrop" id="edBackdrop" aria-hidden="true">
@@ -4568,6 +4671,7 @@
       document.getElementById('btnAsistenBaru').hidden = false;
       const milikSaya = gelembungAsisten('saya', pertanyaan);
       asistenRiwayat.push({ peran: 'saya', teks: pertanyaan });
+      aturIntroAi();
       inp.value = '';
       btn.disabled = true; inp.disabled = true;
       const tunggu = gelembungAsisten('ai mengetik', 'Melihat data toko…');
@@ -4588,6 +4692,7 @@
         // dikembalikan ke kolom tanya: gelembung tanpa jawaban terbaca seperti
         // pertanyaan yang sudah terjawab, dan owner cukup menekan Tanya lagi.
         asistenRiwayat.pop();
+        aturIntroAi();
         milikSaya.remove();
         inp.value = pertanyaan;
         if (!asistenRiwayat.length) {
@@ -4611,10 +4716,77 @@
     });
     document.getElementById('btnAsistenBaru').addEventListener('click', function () {
       asistenRiwayat = [];
+      aturIntroAi();
       document.getElementById('asistenLog').innerHTML = '';
       document.getElementById('pesanAsisten').textContent = '';
       document.getElementById('asistenSaran').hidden = false;
       this.hidden = true;
+    });
+
+    /* ── Jendela melayang: buka, tutup, pintasan ──────────────────────────── */
+    function aturIntroAi() {
+      document.getElementById('aiIntro').hidden = asistenRiwayat.length > 0;
+    }
+
+    function selarasPapanKetik() {
+      const v = window.visualViewport;
+      if (!v) return;
+      const sheet = document.getElementById('aiSheet');
+      if (sheet.hidden) return;
+      // Tinggi papan ketik = bagian layar yang tidak lagi terlihat di bawah.
+      sheet.style.setProperty('--ai-naik', Math.max(0, Math.round(window.innerHeight - v.height - v.offsetTop)) + 'px');
+      sheet.style.setProperty('--ai-tinggi', Math.round(v.height) + 'px');
+      // Papan ketik terbuka (lebih dari 120px layar hilang): ruang tinggal
+      // sedikit, jadi pengantar dan saran disembunyikan — owner sedang mengetik.
+      const naik = window.innerHeight - v.height - v.offsetTop;
+      sheet.classList.toggle('ai-papan', naik > 120);
+    }
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', selarasPapanKetik);
+      window.visualViewport.addEventListener('scroll', selarasPapanKetik);
+    }
+
+    function bukaAi() {
+      document.getElementById('aiSheet').hidden = false;
+      selarasPapanKetik();
+      document.getElementById('btnAiFab').setAttribute('aria-expanded', 'true');
+      aturIntroAi();
+      // Di layar sentuh, memfokuskan kolom langsung menaikkan papan ketik dan
+      // menutupi jawaban; owner mengetuk kolomnya sendiri bila mau mengetik.
+      if (!window.matchMedia('(pointer: coarse)').matches) document.getElementById('inpAsisten').focus();
+    }
+
+    function tutupAi(kembaliFokus) {
+      document.getElementById('aiSheet').hidden = true;
+      const fab = document.getElementById('btnAiFab');
+      fab.setAttribute('aria-expanded', 'false');
+      if (kembaliFokus) fab.focus();
+    }
+
+    document.getElementById('btnAiFab').addEventListener('click', bukaAi);
+    document.getElementById('btnAiTutup').addEventListener('click', function () { tutupAi(true); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !document.getElementById('aiSheet').hidden) tutupAi(true);
+    });
+
+    /* Pintasan memindahkan owner ke tab tempat alatnya tinggal lalu
+       membukakannya. Klik pada elemen alatnya dilakukan SEKARANG juga, di
+       dalam penanganan ketukan ini: pemilih berkas (foto/PDF struk) hanya mau
+       terbuka bila dipicu langsung oleh sentuhan pengguna. */
+    const PINTASAN_AI = {
+      struk:   { tab: 'keuangan', klik: 'inpFotoStruk',   gulir: 'formPengeluaran' },
+      stok:    { tab: 'keuangan', klik: 'btnStokAi',      gulir: 'formStokAi' },
+      catatan: { tab: 'karyawan', klik: 'btnRapikanBaru', gulir: 'formRapikan' }
+    };
+    document.querySelector('.ai-pintasan').addEventListener('click', function (e) {
+      const b = e.target.closest('[data-pintas]');
+      const p = b && PINTASAN_AI[b.dataset.pintas];
+      if (!p) return;
+      tutupAi(false);
+      gantiTab(p.tab);
+      document.getElementById(p.klik).click();
+      const tujuan = document.getElementById(p.gulir);
+      if (tujuan && !tujuan.hidden) tujuan.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
     async function loadHpp() {

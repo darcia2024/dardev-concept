@@ -80,8 +80,50 @@ assert.doesNotMatch(gel, /innerHTML/, 'gelembung tidak boleh memakai innerHTML')
 const jsTanpaKomentar = js.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 assert.doesNotMatch(jsTanpaKomentar, /localStorage|sessionStorage/, 'percakapan tidak boleh disimpan di peramban');
 assert.match(js, /sb\.functions\.invoke\('ai-asisten'/);
-const tabRingkasan = rekap.slice(rekap.indexOf('<section class="tab-pane is-on" data-pane="ringkasan"'),
-                                 rekap.indexOf('<section class="tab-pane" data-pane="keuangan"'));
-assert.match(tabRingkasan, /id="asistenLog"/, 'panel di tab Ringkasan');
+/* Asisten melayang: satu pintu masuk yang terlihat di SEMUA tab. Owner pernah
+   mengeluh tidak menemukan AI-nya — panelnya terkubur di tab Ringkasan. Maka
+   tombolnya harus di luar <main> dan di luar tab mana pun. */
+const iMainTutup = rekap.indexOf('</main>');
+const iFab = rekap.indexOf('id="btnAiFab"');
+const iSheet = rekap.indexOf('id="aiSheet"');
+const iLog = rekap.indexOf('id="asistenLog"');
+assert.ok(iFab > iMainTutup && iSheet > iMainTutup && iLog > iSheet, 'tombol dan jendela AI harus di luar <main>, tidak ikut tersembunyi saat berpindah tab');
+for (const pane of rekap.matchAll(/<section class="tab-pane[^"]*" data-pane="([a-z]+)"[\s\S]*?<\/section>/g)) {
+  assert.doesNotMatch(pane[0], /id="asistenLog"|id="btnAiFab"/, `${pane[1]}: asisten tidak boleh terkubur di dalam tab`);
+}
+const fab = rekap.match(/<button class="ai-fab"[\s\S]*?<\/button>/)[0];
+assert.match(fab, /aria-label="Buka asisten AI"/, 'tombol harus punya nama untuk pembaca layar');
+assert.match(fab, /aria-expanded="false" aria-controls="aiSheet"/);
+assert.match(rekap, /<div class="ai-sheet" id="aiSheet" role="dialog" aria-label="Asisten AI" hidden>/);
+// Lapisan: di atas header (50) dan bilah kategori (9), di bawah editor modal (200).
+const z = (sel) => Number(rekap.match(new RegExp(sel.replace('.', '\\.') + ' \\{[^}]*?z-index: (\\d+)'))[1]);
+assert.ok(z('.ai-fab') > 50 && z('.ai-sheet') > z('.ai-fab') && z('.ai-sheet') < 200, 'z-index jendela AI di antara header dan modal');
+assert.match(rekap, /\.ai-fab, \.ai-sheet \{ display: none !important; \}/, 'tidak ikut tercetak');
+// Pintasan menunjuk elemen yang benar-benar ada, dan memicu klik di dalam
+// penanganan sentuhan itu (pemilih berkas menolak dipicu dari tempat lain).
+const pintas = rekap.slice(rekap.indexOf('const PINTASAN_AI = {'), rekap.indexOf('async function loadHpp()'));
+for (const m of pintas.matchAll(/(?:klik|gulir): '([A-Za-z]+)'/g)) {
+  assert.ok(rekap.includes(`id="${m[1]}"`), `pintasan menunjuk #${m[1]} yang tidak ada`);
+}
+assert.match(pintas, /document\.getElementById\(p\.klik\)\.click\(\);/);
+assert.doesNotMatch(pintas, /setTimeout|await /, 'klik pintasan tidak boleh tertunda: pemilih berkas butuh gestur langsung');
+assert.match(rekap, /e\.key === 'Escape' && !document\.getElementById\('aiSheet'\)\.hidden/, 'Escape menutup jendela');
+
+/* Tampilan ponsel. Tiap butir pernah terlihat salah di ukuran nyata:
+   - iOS Safari memperbesar halaman sendiri bila kolom yang diketuk berfont
+     di bawah 16px;
+   - papan ketik HP menutupi bawah layar tanpa mengubah tinggi halaman, jadi
+     lembar yang menempel ke bawah ikut tertutup — termasuk kolom ketiknya;
+   - wadah yang menggulir mendatar kehilangan tinggi minimumnya dan ikut
+     mengecil sampai tombolnya terpotong. */
+const coarse = rekap.slice(rekap.indexOf('@media (pointer: coarse) {'));
+assert.match(coarse.slice(0, 900), /\.asisten-form input[\s\S]*?font-size: 16px;/, 'kolom ketik asisten 16px di layar sentuh');
+assert.match(coarse.slice(0, 900), /\.asisten-form input, \.asisten-form \.btn-hdr \{ min-height: 44px; \}/, 'sasaran sentuh 44px');
+assert.match(rekap, /\.ai-kepala \.btn-hapus \{ min-width: 44px; min-height: 44px;/, 'tombol tutup 44px');
+assert.match(rekap, /\.ai-pintasan \{ display: flex; gap: 6px; flex-wrap: wrap; flex: none; \}/, 'wadah pintasan tidak boleh mengecil');
+assert.match(rekap, /bottom: var\(--ai-naik, 0px\)/, 'lembar naik di atas papan ketik');
+assert.match(rekap, /window\.visualViewport\.addEventListener\('resize', selarasPapanKetik\)/, 'tinggi papan ketik dibaca dari visualViewport');
+assert.match(rekap, /\.ai-sheet \{ overflow-y: auto; \}/, 'isi yang melebihi lembar menggulir, tidak meluber');
+assert.match(rekap, /main\.rekap-container \{ margin-bottom: 76px; \}/, 'tombol melayang tidak menutupi baris terakhir');
 
 console.log('ai-asisten: semua pemeriksaan lolos');

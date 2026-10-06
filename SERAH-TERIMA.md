@@ -412,7 +412,10 @@ outletnya satu. Kalau cabang kedua dibuka, stok perlu dipecah per outlet.
 
 ### Memasang Tanya Data Toko (Add-on AI, fitur 5 "Internal Helper")
 
-Tempatnya di `/rekap` → tab *Ringkasan* → panel *Tanya Data Toko*. Owner
+Tempatnya tombol **✦ Tanya AI** yang melayang di pojok kanan bawah `/rekap`,
+selalu terlihat di semua tab. Di dalamnya ada *Tanya Data Toko* dan tiga
+pintasan ke alat AI lain: foto/PDF struk, catat stok, dan rapikan catatan
+(alatnya sendiri tetap tinggal di tab Keuangan dan Karyawan). Owner
 bertanya dengan bahasa sehari-hari, misalnya "omzet minggu ini berapa?",
 "kapster siapa paling ramai bulan ini?", atau "produk apa yang mau habis?".
 
