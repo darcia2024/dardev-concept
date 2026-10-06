@@ -194,6 +194,24 @@
        menumpuk permintaan hanya membuat angkanya berkedip-kedip. */
     .sel-periode:disabled { opacity: .6; cursor: progress; }
 
+    .periode-khusus { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .periode-khusus[hidden] { display: none; }
+    .periode-khusus label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--fg-dim); font-weight: 600; }
+    .periode-khusus input {
+      -webkit-appearance: none; appearance: none;
+      background: var(--ink-inset); border: 1px solid var(--line); border-radius: var(--r-sm);
+      color: var(--fg); min-height: 44px; padding: 8px 10px; font-family: inherit; font-size: 13px; min-width: 0;
+    }
+    .periode-khusus .btn-filter-date { min-height: 44px; }
+    @media (max-width: 600px) {
+      /* Di ponsel dua kolom tanggal berdampingan dan tombolnya selebar penuh
+         di bawah; sebaris bertiga terpotong di layar 390px. */
+      .periode-khusus { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+      .periode-khusus[hidden] { display: none; }
+      .periode-khusus label { flex-direction: column; align-items: stretch; gap: 4px; }
+      .periode-khusus .btn-filter-date { grid-column: 1 / -1; }
+    }
+
     .btn-filter-date {
       background: var(--ink-inset);
       border: 1px solid var(--line);
@@ -1066,6 +1084,14 @@
              berasal dari satu sumber, kalau tidak keduanya menyimpang tanpa
              ada yang menyadarinya. -->
         <select id="selPeriode" class="sel-periode" aria-label="Periode laporan"></select>
+        <!-- Muncul hanya untuk "Pilih Tanggal…". Tidak memuat apa pun sampai
+             Terapkan ditekan: memuat ulang di setiap ketukan kalender akan
+             menarik data untuk tanggal yang belum selesai dipilih. -->
+        <div class="periode-khusus" id="periodeKhusus" hidden>
+          <label>Dari <input type="date" id="inpPeriodeDari" /></label>
+          <label>Sampai <input type="date" id="inpPeriodeSampai" /></label>
+          <button class="btn-filter-date" id="btnPeriodeTerapkan" type="button">Terapkan</button>
+        </div>
       </div>
 
       <div class="export-group">
@@ -2295,8 +2321,29 @@
       D90:       { label: '3 Bulan Terakhir',   mundur: 90 },
       D180:      { label: '6 Bulan Terakhir',   mundur: 180 },
       D365:      { label: '12 Bulan Terakhir',  mundur: 365 },
-      ALL:       { label: 'Semua Riwayat' }
+      ALL:       { label: 'Semua Riwayat' },
+      // Rentang yang dipilih owner sendiri lewat kalender; isinya di
+      // periodeKhusus, diatur hanya lewat aturPeriodeKhusus().
+      CUSTOM:    { label: 'Pilih Tanggal…', khusus: true }
     };
+    let periodeKhusus = null;   // { dari, sampai } YYYY-MM-DD, sudah diperiksa
+
+    /** Memeriksa dan menyimpan rentang pilihan owner. Mengembalikan pesan
+        galat, atau null bila diterima. Masa depan ditolak: tidak ada
+        transaksinya, dan layar kosong terbaca sebagai "toko sepi". */
+    function aturPeriodeKhusus(dari, sampai) {
+      const pola = /^\d{4}-\d{2}-\d{2}$/;
+      if (!pola.test(dari || '') || !pola.test(sampai || '')) return 'Isi tanggal Dari dan Sampai.';
+      if (dari > sampai) return 'Tanggal Dari harus sebelum atau sama dengan tanggal Sampai.';
+      if (sampai > tanggalMundur(0)) return 'Tanggal Sampai tidak boleh melewati hari ini.';
+      periodeKhusus = { dari: dari, sampai: sampai };
+      return null;
+    }
+
+    function tglPendek(iso, tahun) {
+      return new Date(iso + 'T00:00:00+07:00').toLocaleDateString('id-ID', Object.assign(
+        { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' }, tahun ? { year: 'numeric' } : {}));
+    }
 
     /* Tanggal kerja selalu zona outlet, bukan zona perangkat pemiliknya.
        Pemilik yang membuka dasbor dari luar negeri tetap membaca hari yang
@@ -2309,6 +2356,12 @@
     /** Rentang periode terpilih sebagai { dari, sampai } YYYY-MM-DD.
         null berarti tanpa batas di sisi itu. */
     function rentangPeriode(kunci) {
+      if (kunci === 'CUSTOM') {
+        // Belum pernah diterapkan: jatuh ke hari ini, sama seperti kunci yang
+        // tidak dikenal — bukan ke tanpa batas.
+        return periodeKhusus ? { dari: periodeKhusus.dari, sampai: periodeKhusus.sampai }
+                             : rentangPeriode('TODAY');
+      }
       const p = PERIODE[kunci] || PERIODE.TODAY;
       if (p.tepat !== undefined) {
         const t = tanggalMundur(p.tepat);
@@ -2319,6 +2372,11 @@
     }
 
     function labelPeriode() {
+      if (selectedDateFilter === 'CUSTOM' && periodeKhusus) {
+        const k = periodeKhusus;
+        return k.dari === k.sampai ? tglPendek(k.dari, true)
+                                   : tglPendek(k.dari, k.dari.slice(0, 4) !== k.sampai.slice(0, 4)) + ' – ' + tglPendek(k.sampai, true);
+      }
       return (PERIODE[selectedDateFilter] || PERIODE.TODAY).label;
     }
 
@@ -5185,8 +5243,8 @@
          dikirim null — daftar ini sebuah daftar kerjaan, dan menampilkan
          seluruh nota yang belum diperiksa justru lebih benar daripada
          memotongnya menurut rentang laporan yang sedang dibaca. */
-      const pr = PERIODE[selectedDateFilter] || PERIODE.TODAY;
-      const tgl = pr.tepat !== undefined ? tanggalMundur(pr.tepat) : null;
+      const rq = rentangPeriode(selectedDateFilter);
+      const tgl = rq.dari && rq.dari === rq.sampai ? rq.dari : null;
 
       const { data, error } = await sb.rpc('owner_qris_belum_konfirmasi', { p_tanggal: tgl });
       if (error) {
@@ -6377,7 +6435,9 @@
       // pagar pada nama pelanggan memotong berkasnya, dan satu tanda kutip
       // merusak seluruh struktur kolomnya.
       unduhCsv(
-        'Transaksi_' + selectedDateFilter + '_' + sbJakartaToday() + '.csv',
+        'Transaksi_' + (selectedDateFilter === 'CUSTOM' && periodeKhusus
+          ? periodeKhusus.dari + '_sd_' + periodeKhusus.sampai
+          : selectedDateFilter + '_' + sbJakartaToday()) + '.csv',
         ['Waktu', 'No Invoice', 'Nama Pelanggan', 'No WhatsApp', 'Kapster',
          'Layanan', 'Metode Bayar', 'Kode Ref/Approval', 'Subtotal (Rp)',
          'Diskon Poin (Rp)', 'Diskon Kasir (Rp)', 'Nama Diskon', 'Total (Rp)'],
@@ -6418,12 +6478,12 @@
        Pemilihnya dikunci selama pengambilan: rentang setahun bisa memakan
        beberapa detik, dan permintaan yang menumpuk hanya membuat angkanya
        berkedip di antara dua periode. */
-    document.getElementById('selPeriode').addEventListener('change', async function () {
-      const sel = this;
-      selectedDateFilter = sel.value;
+    async function muatPeriode() {
+      const sel = document.getElementById('selPeriode');
+      const btn = document.getElementById('btnPeriodeTerapkan');
       const stamp = document.getElementById('syncStamp');
       const stampLama = stamp ? stamp.textContent : '';
-      sel.disabled = true;
+      sel.disabled = true; btn.disabled = true;
       if (stamp) stamp.textContent = 'Memuat ' + labelPeriode().toLowerCase() + '…';
       try {
         await loadData();
@@ -6431,8 +6491,48 @@
         if (stamp) stamp.textContent = stampLama;
         alert('Gagal memuat periode itu: ' + (err.message || err));
       } finally {
-        sel.disabled = false;
+        sel.disabled = false; btn.disabled = false;
       }
+    }
+
+    /* Teks pilihan "Pilih Tanggal…" diganti rentang yang sedang berlaku,
+       supaya dropdown yang tertutup tetap memberi tahu periode apa yang
+       sedang dibaca. */
+    function segarkanLabelKhusus() {
+      const opt = document.querySelector('#selPeriode option[value="CUSTOM"]');
+      if (opt) opt.textContent = periodeKhusus ? '📅 ' + labelPeriode() : PERIODE.CUSTOM.label;
+    }
+
+    document.getElementById('selPeriode').addEventListener('change', async function () {
+      const sel = this;
+      const kotak = document.getElementById('periodeKhusus');
+      if (sel.value === 'CUSTOM') {
+        // Tidak memuat apa pun dulu: owner belum memilih tanggalnya.
+        const hariIni = tanggalMundur(0);
+        const dari = document.getElementById('inpPeriodeDari');
+        const sampai = document.getElementById('inpPeriodeSampai');
+        dari.max = hariIni; sampai.max = hariIni;
+        dari.value = periodeKhusus ? periodeKhusus.dari : (rentangPeriode(selectedDateFilter).dari || hariIni);
+        sampai.value = periodeKhusus ? periodeKhusus.sampai : (rentangPeriode(selectedDateFilter).sampai || hariIni);
+        // Kolom tanggal tetap tampil selama pilihan ini aktif, termasuk
+        // sesudah diterapkan: memilih ulang opsi yang sama tidak memicu
+        // 'change', jadi tanpa ini owner tidak bisa mengganti tanggalnya lagi.
+        kotak.hidden = false;
+        return;
+      }
+      kotak.hidden = true;
+      selectedDateFilter = sel.value;
+      await muatPeriode();
+    });
+
+    document.getElementById('btnPeriodeTerapkan').addEventListener('click', async function () {
+      const galat = aturPeriodeKhusus(document.getElementById('inpPeriodeDari').value,
+                                      document.getElementById('inpPeriodeSampai').value);
+      if (galat) { alert(galat); return; }
+      selectedDateFilter = 'CUSTOM';
+      segarkanLabelKhusus();
+      document.getElementById('selPeriode').value = 'CUSTOM';
+      await muatPeriode();
     });
 
     // Pemilih mode performa kapster. Hanya menggambar ulang panelnya —
