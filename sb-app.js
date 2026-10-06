@@ -19,6 +19,23 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY, {
   }
 });
 
+/* Sesi yang mati di tengah jalan.
+
+   Bila token sesi tidak lagi dapat diperbarui (dikeluarkan dari perangkat
+   lain, atau sandinya diganti), supabase-js membuang sesinya diam-diam.
+   Halaman tetap tampak normal, tetapi setiap permintaan sesudahnya terkirim
+   tanpa login: dashboard menjawab "permission denied for function ..." dan
+   fungsi AI menjawab "Sesi login sudah habis" — tanpa memberi tahu bahwa
+   satu-satunya jalan keluar adalah masuk lagi.
+
+   Maka halaman dimuat ulang begitu sesi hilang, dan layar masuk muncul
+   sendiri. Keluar yang ditekan di perangkat ini tidak ikut dimuat ulang di
+   sini; sbSignOut() mengurus kelanjutannya sendiri. */
+let sbKeluarSendiri = false;
+sb.auth.onAuthStateChange(function (event) {
+  if (event === 'SIGNED_OUT' && !sbKeluarSendiri) location.reload();
+});
+
 /* ---------------------------------------------------------------------------
    STATUS KONEKSI
    --------------------------------------------------------------------------- */
@@ -271,8 +288,14 @@ async function sbLoadProfile(user) {
   return { user, profile: data || { full_name: user.email, role: 'kasir' } };
 }
 
+/* scope 'local': hanya perangkat ini yang keluar. Bawaan supabase-js adalah
+   'global' — mencabut sesi akun yang sama di SEMUA perangkat. Akun owner dan
+   akun perangkat kasir dipakai di lebih dari satu tempat, jadi menekan Keluar
+   di satu laptop dulu mematikan dashboard dan kasir di tempat lain begitu
+   token mereka kedaluwarsa, paling lama satu jam kemudian. */
 async function sbSignOut() {
-  await sb.auth.signOut();
+  sbKeluarSendiri = true;
+  await sb.auth.signOut({ scope: 'local' });
   localStorage.removeItem(SB_CASHIER_KEY);
   location.reload();
 }

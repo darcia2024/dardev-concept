@@ -17,7 +17,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { definisiTerakhir, root } = require('./_migrasi');
 
-const baca = (f) => fs.readFileSync(path.join(root, f), 'utf8');
+// Baris dinormalkan ke LF: checkout di Windows memakai CRLF, sedangkan
+// pemotongan fungsi di bawah mencari akhir fungsi dengan '\n    }\n'.
+const baca = (f) => fs.readFileSync(path.join(root, f), 'utf8').replace(/\r\n/g, '\n');
 const fn    = baca('supabase/functions/ai-rapikan/index.ts');
 const rekap = baca('rekap.html');
 const m56   = baca('supabase_migration_56_catatan_rapi.sql');
