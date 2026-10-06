@@ -964,6 +964,27 @@
     .rapi-todo-item.selesai span { text-decoration: line-through; color: var(--fg-dim); }
     .rapi-sub { color: var(--fg-dim); font-size: 12px; }
 
+    /* ── Tanya Data Toko (Add-on AI, fitur 5) ────────────────────────────── */
+    .asisten-log { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+    .asisten-log:empty { display: none; }
+    .asisten-gelembung {
+      max-width: 85%; padding: 9px 12px; border-radius: var(--r-md);
+      font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .asisten-gelembung.saya { align-self: flex-end; background: var(--fg); color: var(--ink); border-bottom-right-radius: 4px; }
+    .asisten-gelembung.ai { align-self: flex-start; background: var(--ink-inset); color: var(--fg); border-bottom-left-radius: 4px; }
+    .asisten-gelembung.ai.kurang { border: 1px dashed var(--line); }
+    .asisten-gelembung.mengetik { color: var(--fg-dim); font-style: italic; }
+    .asisten-saran { display: flex; gap: 8px; flex-wrap: wrap; }
+    .asisten-saran[hidden] { display: none; }
+    .asisten-saran .btn-hdr { font-size: 12.5px; }
+    .asisten-form { display: flex; gap: 8px; }
+    .asisten-form input {
+      flex: 1; min-width: 0; background: var(--ink-inset); border: 1px solid var(--line); border-radius: var(--r-sm);
+      color: var(--fg); padding: 9px 11px; font-size: 14px; font-family: inherit; outline: none;
+    }
+    .asisten-form input:focus { border-color: var(--brand, #BE0000); }
+
     /* ── Stok Produk (Add-on AI, fitur 3) ──────────────────────────────── */
     .stok-pill {
       font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600;
@@ -1157,6 +1178,34 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- Tanya data toko (Add-on AI, fitur 5 "Internal Helper"). Dijawab Edge
+         Function ai-asisten dari ringkasan_asisten() (migrasi 58): model hanya
+         membaca ringkasan yang dihitung basis data, tidak pernah menulis query.
+         Percakapan hanya hidup di halaman ini dan tidak disimpan. -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Tanya Data Toko</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);">
+            Tanya omzet, kapster, layanan, stok, pengeluaran, atau absensi dengan bahasa sehari-hari.
+          </p>
+        </div>
+        <button class="btn-filter-date" id="btnAsistenBaru" type="button" hidden>Mulai ulang</button>
+      </div>
+      <div class="asisten-log" id="asistenLog" aria-live="polite"></div>
+      <div class="asisten-saran" id="asistenSaran">
+        <button class="btn-hdr" type="button" data-saran>Omzet minggu ini berapa?</button>
+        <button class="btn-hdr" type="button" data-saran>Kapster siapa paling ramai bulan ini?</button>
+        <button class="btn-hdr" type="button" data-saran>Produk apa yang mau habis?</button>
+        <button class="btn-hdr" type="button" data-saran>Bandingkan omzet bulan ini dengan bulan lalu</button>
+      </div>
+      <form class="asisten-form" id="formAsisten" autocomplete="off">
+        <input type="text" id="inpAsisten" maxlength="600" placeholder="Tulis pertanyaan…" />
+        <button class="btn-hdr" id="btnAsistenKirim" type="submit">Tanya</button>
+      </form>
+      <div class="kelola-pesan" id="pesanAsisten"></div>
     </div>
 
     </section>
@@ -4407,6 +4456,86 @@
       } finally {
         btn.disabled = false;
       }
+    });
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       TANYA DATA TOKO (Add-on AI, fitur 5 "Internal Helper")
+
+       Edge Function ai-asisten menjawab dari ringkasan_asisten() (migrasi 58).
+       Jawaban AI adalah masukan yang tidak dipercaya: selalu dirender lewat
+       textContent, tidak pernah innerHTML. Riwayat percakapan hanya hidup di
+       variabel ini — tidak disimpan di server maupun di localStorage.
+       ═══════════════════════════════════════════════════════════════════════ */
+    let asistenRiwayat = [];
+
+    function gelembungAsisten(kelas, teks) {
+      const el = document.createElement('div');
+      el.className = 'asisten-gelembung ' + kelas;
+      el.textContent = teks;
+      const log = document.getElementById('asistenLog');
+      log.appendChild(el);
+      log.scrollTop = log.scrollHeight;
+      return el;
+    }
+
+    async function tanyaAsisten(pertanyaan) {
+      pertanyaan = String(pertanyaan || '').trim().slice(0, 600);
+      if (!pertanyaan) return;
+      const pesan = document.getElementById('pesanAsisten');
+      const btn = document.getElementById('btnAsistenKirim');
+      const inp = document.getElementById('inpAsisten');
+      pesan.textContent = '';
+      document.getElementById('asistenSaran').hidden = true;
+      document.getElementById('btnAsistenBaru').hidden = false;
+      const milikSaya = gelembungAsisten('saya', pertanyaan);
+      asistenRiwayat.push({ peran: 'saya', teks: pertanyaan });
+      inp.value = '';
+      btn.disabled = true; inp.disabled = true;
+      const tunggu = gelembungAsisten('ai mengetik', 'Melihat data toko…');
+      try {
+        const { data, error } = await sb.functions.invoke('ai-asisten', { body: { pesan: asistenRiwayat.slice(-10) } });
+        if (error) {
+          let t = error.message || String(error);
+          try { const b = await error.context.json(); if (b && b.error) t = b.error; } catch (_) {}
+          throw new Error(t);
+        }
+        tunggu.remove();
+        const teks = (data && data.jawaban) || 'Maaf, saya tidak bisa menjawab itu dari data toko.';
+        gelembungAsisten('ai' + (data && data.data_cukup === false ? ' kurang' : ''), teks);
+        asistenRiwayat.push({ peran: 'asisten', teks: teks });
+      } catch (err) {
+        tunggu.remove();
+        // Pertanyaan yang gagal dikeluarkan dari riwayat DAN dari layar, lalu
+        // dikembalikan ke kolom tanya: gelembung tanpa jawaban terbaca seperti
+        // pertanyaan yang sudah terjawab, dan owner cukup menekan Tanya lagi.
+        asistenRiwayat.pop();
+        milikSaya.remove();
+        inp.value = pertanyaan;
+        if (!asistenRiwayat.length) {
+          document.getElementById('asistenSaran').hidden = false;
+          document.getElementById('btnAsistenBaru').hidden = true;
+        }
+        kelolaPesan(pesan, 'Gagal: ' + (err.message || err), false);
+      } finally {
+        btn.disabled = false; inp.disabled = false;
+        inp.focus();
+      }
+    }
+
+    document.getElementById('formAsisten').addEventListener('submit', function (e) {
+      e.preventDefault();
+      tanyaAsisten(document.getElementById('inpAsisten').value);
+    });
+    document.getElementById('asistenSaran').addEventListener('click', function (e) {
+      const b = e.target.closest('[data-saran]');
+      if (b) tanyaAsisten(b.textContent);
+    });
+    document.getElementById('btnAsistenBaru').addEventListener('click', function () {
+      asistenRiwayat = [];
+      document.getElementById('asistenLog').innerHTML = '';
+      document.getElementById('pesanAsisten').textContent = '';
+      document.getElementById('asistenSaran').hidden = false;
+      this.hidden = true;
     });
 
     async function loadHpp() {

@@ -410,6 +410,38 @@ menjelaskan setiap selisih. Semua ini berjalan lewat trigger di
 **Batasan:** stok dihitung per produk, tidak per outlet. Itu benar selama
 outletnya satu. Kalau cabang kedua dibuka, stok perlu dipecah per outlet.
 
+### Memasang Tanya Data Toko (Add-on AI, fitur 5 "Internal Helper")
+
+Tempatnya di `/rekap` → tab *Ringkasan* → panel *Tanya Data Toko*. Owner
+bertanya dengan bahasa sehari-hari, misalnya "omzet minggu ini berapa?",
+"kapster siapa paling ramai bulan ini?", atau "produk apa yang mau habis?".
+
+1. Jalankan `supabase_migration_58_ringkasan_asisten.sql` di SQL Editor.
+   Migrasi ini butuh migrasi 57 (stok) sudah terpasang.
+2. Deploy fungsi `ai-asisten`, caranya sama dengan `ai-rapikan`. Secret-nya
+   juga sama. Opsional: `BATAS_ASISTEN_HARIAN` (bawaan 100 pertanyaan per
+   hari) dan `MODEL_AI_ASISTEN`.
+
+**AI tidak pernah menulis query.** `ringkasan_asisten()` menghitung satu
+ringkasan tetap dengan aturan yang sama dengan laporan owner, dan model hanya
+membaca ringkasan itu. Pertanyaan yang jawabannya tidak ada di ringkasan
+dijawab "datanya tidak tersedia", bukan dikarang. Isi ringkasannya:
+
+- tiga bulan terakhir per bulan: omzet, metode bayar, diskon, kapster,
+  layanan dan produk terlaris, pengeluaran, booking, member baru;
+- omzet harian 60 hari terakhir;
+- stok saat ini dan 15 pengeluaran terakhir;
+- absensi bulan ini, booking 7 hari ke depan, dan karyawan aktif.
+
+Nama dan nomor pelanggan tidak ikut. Fungsi ringkasannya hanya bisa dipanggil
+`service_role`, jadi tidak ada jalan memanggilnya dari peramban, termasuk oleh
+owner sendiri. `ai-asisten` memastikan pemanggilnya owner sebelum membaca
+data. Percakapan tidak disimpan di server maupun di peramban.
+
+Kalau owner butuh pertanyaan di luar isi ringkasan, misalnya data lebih dari
+tiga bulan atau per pelanggan, ringkasannya yang perlu ditambah di migrasi
+baru. Instruksi ke model saja tidak cukup.
+
 ---
 
 ## 6. Keputusan Teknis yang Perlu Diketahui Penerus
