@@ -79,7 +79,7 @@ assert.equal((skema.match(/type: 'object'/g) || []).length, (skema.match(/additi
 /* ── 6 · AI hanya mengusulkan ───────────────────────────────────────────── */
 assert.doesNotMatch(fn, /from\('stok_mutasi'\)|rpc\(\s*'owner_stok_catat'/, 'ai-stok tidak boleh mencatat stok');
 assert.match(fn, /Deno\.env\.get\('OPENROUTER_API_KEY'\)/);
-assert.match(js, /sb\.functions\.invoke\('ai-stok'/);
+assert.match(js, /panggilAi\('ai-stok'/);
 const baca2 = js.slice(js.indexOf("getElementById('btnStokBaca').addEventListener"));
 assert.match(baca2, /bukaEditorStok\(hasil\.baris, 'ai'/, 'hasil AI membuka penyunting');
 assert.doesNotMatch(baca2, /owner_stok_catat/, 'membaca tidak boleh langsung menyimpan');

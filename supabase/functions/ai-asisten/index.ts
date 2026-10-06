@@ -125,7 +125,14 @@ Deno.serve(async (req: Request) => {
   });
   const { data: pengguna, error: galatJwt } = await sbSrv.auth.getUser(jwt);
   if (galatJwt || !pengguna?.user) {
-    return jawab({ error: 'Sesi tidak dikenali. Masuk lagi lalu coba ulang.' }, 401, asal);
+    // Alasan dari Auth dicatat dan ikut dikirim. Tanpa itu "sesi tidak
+    // dikenali" tidak dapat dibedakan antara token kedaluwarsa dan kunci
+    // layanan yang salah. Isinya teks galat Auth, bukan data siapa pun.
+    console.error('ai-asisten: getUser', galatJwt?.status, galatJwt?.message);
+    return jawab({
+      error: 'Sesi tidak dikenali. Masuk lagi lalu coba ulang.',
+      alasan: String(galatJwt?.message ?? 'pengguna tidak ditemukan').slice(0, 120),
+    }, 401, asal);
   }
   const { data: profil } = await sbSrv.from('profiles').select('role').eq('id', pengguna.user.id).single();
   if (profil?.role !== 'owner') {

@@ -79,7 +79,7 @@ const gel = js.slice(js.indexOf('function gelembungAsisten'), js.indexOf('async 
 assert.doesNotMatch(gel, /innerHTML/, 'gelembung tidak boleh memakai innerHTML');
 const jsTanpaKomentar = js.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 assert.doesNotMatch(jsTanpaKomentar, /localStorage|sessionStorage/, 'percakapan tidak boleh disimpan di peramban');
-assert.match(js, /sb\.functions\.invoke\('ai-asisten'/);
+assert.match(js, /panggilAi\('ai-asisten'/);
 /* Asisten melayang: satu pintu masuk yang terlihat di SEMUA tab. Owner pernah
    mengeluh tidak menemukan AI-nya — panelnya terkubur di tab Ringkasan. Maka
    tombolnya harus di luar <main> dan di luar tab mana pun. */

@@ -3723,12 +3723,7 @@
         const foto = adalahPdf(berkas) ? await bacaPdf(berkas) : await perkecilGambar(berkas);
         // Lewat Edge Function, bukan langsung: kunci API AI tidak boleh ada di
         // halaman yang dibuka peramban.
-        const { data, error } = await sb.functions.invoke('ai-struk', { body: foto });
-        if (error) {
-          let teks = error.message || String(error);
-          try { const b = await error.context.json(); if (b && b.error) teks = b.error; } catch (_) {}
-          throw new Error(teks);
-        }
+        const data = await panggilAi('ai-struk', foto);
         const hasil = data && data.hasil;
         if (!hasil || hasil.terbaca === false) {
           tutupFormPengeluaran();
@@ -3977,6 +3972,42 @@
       }
     }
 
+    /* Satu pintu untuk semua pemanggilan fungsi AI (ai-struk, ai-rapikan,
+       ai-stok, ai-asisten).
+
+       Token login dikirim EKSPLISIT. Jalur otomatis supabase-js mengirim token
+       sesi bila ada dan kunci publik bila tidak; yang kedua membuat server
+       menjawab "Sesi tidak dikenali" padahal dashboard tampak normal — dan
+       owner tidak punya petunjuk apa pun. Di sini sesi yang tidak ada atau
+       habis dikatakan terus terang sebelum apa pun dikirim.
+
+       Bila server tetap menjawab 401, sesi diperiksa sekali lagi langsung ke
+       Auth: kalau Auth sendiri menolak, sebabnya sesi yang habis dan owner
+       disuruh masuk lagi; kalau Auth menerima, sebabnya di server dan alasan
+       teknisnya ikut ditampilkan supaya dapat ditelusuri. */
+    async function panggilAi(nama, body) {
+      const { data: sesi } = await sb.auth.getSession();
+      if (!sesi || !sesi.session || !sesi.session.access_token) {
+        throw new Error('Sesi login sudah habis. Tekan Keluar, lalu masuk lagi.');
+      }
+      const { data, error } = await sb.functions.invoke(nama, {
+        body: body,
+        headers: { Authorization: 'Bearer ' + sesi.session.access_token }
+      });
+      if (!error) return data;
+
+      const status = error.context && error.context.status;
+      let b = null;
+      try { b = await error.context.json(); } catch (_) {}
+      let teks = (b && b.error) || error.message || String(error);
+      if (status === 401) {
+        const { error: galatAuth } = await sb.auth.getUser();
+        if (galatAuth) teks = 'Sesi login sudah habis. Tekan Keluar, lalu masuk lagi.';
+        else if (b && b.alasan) teks += ' [' + b.alasan + ']';
+      }
+      throw new Error(teks);
+    }
+
     function keBase64(u8) {
       let s = '';
       for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
@@ -4122,12 +4153,7 @@
         const badan = { teks: teks, bentuk: document.getElementById('pilRapikanBentuk').value };
         if (rekam.wav) { badan.audio = keBase64(rekam.wav); badan.detik = Math.round(rekam.detik); }
         // Lewat Edge Function: kunci API AI tidak boleh ada di halaman ini.
-        const { data, error } = await sb.functions.invoke('ai-rapikan', { body: badan });
-        if (error) {
-          let t = error.message || String(error);
-          try { const b = await error.context.json(); if (b && b.error) t = b.error; } catch (_) {}
-          throw new Error(t);
-        }
+        const data = await panggilAi('ai-rapikan', badan);
         const hasil = data && data.hasil;
         if (!hasil || hasil.terbaca === false) {
           kelolaPesan(pesan, rekam.wav
@@ -4612,12 +4638,7 @@
         if (rekamStok.wav) { badan.audio = keBase64(rekamStok.wav); badan.detik = Math.round(rekamStok.detik); }
         if (stokFoto) { badan.gambar = stokFoto.gambar; badan.jenis_gambar = stokFoto.jenis; }
         // Lewat Edge Function: kunci API AI tidak boleh ada di halaman ini.
-        const { data, error } = await sb.functions.invoke('ai-stok', { body: badan });
-        if (error) {
-          let t = error.message || String(error);
-          try { const b = await error.context.json(); if (b && b.error) t = b.error; } catch (_) {}
-          throw new Error(t);
-        }
+        const data = await panggilAi('ai-stok', badan);
         const hasil = data && data.hasil;
         if (!hasil || hasil.terbaca === false || !(hasil.baris || []).length) {
           kelolaPesan(pesan, 'Tidak ada catatan stok yang terbaca. Coba tulis seperti: "pomade sisa 12, clay datang 24".', false);
@@ -4676,12 +4697,7 @@
       btn.disabled = true; inp.disabled = true;
       const tunggu = gelembungAsisten('ai mengetik', 'Melihat data toko…');
       try {
-        const { data, error } = await sb.functions.invoke('ai-asisten', { body: { pesan: asistenRiwayat.slice(-10) } });
-        if (error) {
-          let t = error.message || String(error);
-          try { const b = await error.context.json(); if (b && b.error) t = b.error; } catch (_) {}
-          throw new Error(t);
-        }
+        const data = await panggilAi('ai-asisten', { pesan: asistenRiwayat.slice(-10) });
         tunggu.remove();
         const teks = (data && data.jawaban) || 'Maaf, saya tidak bisa menjawab itu dari data toko.';
         gelembungAsisten('ai' + (data && data.data_cukup === false ? ' kurang' : ''), teks);
