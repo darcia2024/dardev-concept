@@ -375,6 +375,41 @@ Rekaman diubah dulu ke WAV 16 kHz di peramban, karena OpenRouter tidak
 menerima webm, format bawaan perekam Chrome. Panjangnya dibatasi 3 menit.
 Merekam butuh izin mikrofon dan alamat HTTPS.
 
+### Memasang Stok Produk (Add-on AI, fitur 3)
+
+Tempatnya di `/rekap` → tab *Keuangan* → panel *Stok Produk*, di bawah HPP &
+Laba Produk.
+
+1. Jalankan `supabase_migration_57_stok.sql` di SQL Editor.
+2. Deploy fungsi `ai-stok`, caranya sama dengan `ai-rapikan`. Secret yang
+   dipakai juga sama. Opsional: `BATAS_STOK_HARIAN` (bawaan 40) dan
+   `MODEL_AI_STOK`.
+3. **Sekali di awal:** owner menghitung rak lalu mencatat *Hitung fisik* untuk
+   setiap produk. Sebelum itu produknya berstatus *Belum dihitung*, karena
+   penjualan lama tidak dihitung mundur. Stok di rak hari ini memang tidak
+   pernah tercatat, jadi angka dari masa lalu tidak berarti apa-apa.
+
+Yang berjalan sendiri sesudahnya:
+
+- Penjualan produk di POS mengurangi stok. Transaksi yang dihapus owner
+  mengembalikannya.
+- Barang di struk belanja yang ditautkan ke *Produk katalog* menambah stok.
+  Pengeluaran yang dihapus menariknya kembali.
+
+Yang dicatat owner: hitung fisik, barang datang di luar struk, dan barang rusak
+atau hilang. Bisa diketik, di-voice note, atau difoto. AI mencocokkan nama
+barang dengan katalog di server. Nama yang tidak jelas dibiarkan kosong untuk
+dipilih owner, dan tidak ada yang tercatat sebelum Simpan ditekan.
+
+Stok tidak disimpan sebagai satu angka yang ditimpa. Setiap perubahan dicatat
+sebagai mutasi, dan stok adalah jumlah semuanya, sehingga tombol *Riwayat* bisa
+menjelaskan setiap selisih. Semua ini berjalan lewat trigger di
+`transaction_items` dan `pengeluaran_item`, tanpa menulis ulang
+`create_transaction`.
+
+**Batasan:** stok dihitung per produk, tidak per outlet. Itu benar selama
+outletnya satu. Kalau cabang kedua dibuka, stok perlu dipecah per outlet.
+
 ---
 
 ## 6. Keputusan Teknis yang Perlu Diketahui Penerus
