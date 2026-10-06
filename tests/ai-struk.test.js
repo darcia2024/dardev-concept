@@ -107,4 +107,14 @@ assert.match(rekap, /const SISI = 1568;/, 'foto diperkecil sebelum dikirim — t
 assert.match(rekap, /await loadHpp\(\);\s*\n\s*await muatPengeluaran\(\);/, 'daftar pengeluaran ikut dimuat dan ikut berganti periode');
 assert.match(rekap, /gambarBerhalaman\('pengeluaran'/, 'daftar pengeluaran memakai pager yang sama');
 
+/* ── 8 · Tidak bergantung pada secret bawaan yang tidak disuntikkan ──────
+   Dashboard proyek ini hanya mencantumkan SUPABASE_DB_URL dan tiga variabel
+   runtime sebagai secret bawaan: SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY
+   tidak ada. Fungsi yang menuntut keduanya gagal di setiap panggilan. */
+assert.ok(fn.includes("Deno.env.get('KUNCI_LAYANAN')"), 'kunci layanan dibaca dari secret yang dipasang owner');
+assert.ok(fn.includes("Deno.env.get('SUPABASE_URL') ?? 'https://grzjfnqljjzjkvmgtohe.supabase.co'"), 'URL proyek punya cadangan');
+assert.doesNotMatch(fn, /Deno\.env\.get\('SUPABASE_[A-Z_]+'\)!/, 'secret bawaan tidak boleh dianggap pasti ada');
+assert.ok(fn.indexOf('if (!KUNCI_SRV)') > 0 && fn.indexOf('if (!KUNCI_SRV)') < fn.indexOf('sbSrv.auth.getUser'),
+  'tanpa kunci layanan, berhenti dengan pesan yang jelas sebelum apa pun');
+
 console.log('ai-struk: semua pemeriksaan lolos');

@@ -25,8 +25,19 @@
 import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
-const URL_SB     = Deno.env.get('SUPABASE_URL')!;
-const KUNCI_SRV  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+/* Proyek ini memakai kunci jenis baru, dan di proyek seperti itu
+   SUPABASE_URL serta SUPABASE_SERVICE_ROLE_KEY TIDAK selalu disuntikkan ke
+   Edge Function — dashboard proyek ini hanya mencantumkan SUPABASE_DB_URL dan
+   tiga variabel runtime. Maka:
+
+   - URL proyek jatuh ke alamat yang memang sudah publik di sb-app.js.
+   - Kunci layanan dibaca dari secret KUNCI_LAYANAN yang dipasang owner
+     sendiri: sebuah secret key (sb_secret_...) dari Project Settings -> API
+     Keys. Nama tidak diawali SUPABASE_ karena awalan itu dicadangkan.
+     SUPABASE_SERVICE_ROLE_KEY tetap dicoba sebagai cadangan, untuk proyek
+     yang masih menyuntikkannya. */
+const URL_SB    = Deno.env.get('SUPABASE_URL') ?? 'https://grzjfnqljjzjkvmgtohe.supabase.co';
+const KUNCI_SRV = Deno.env.get('KUNCI_LAYANAN') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const BATAS_HARIAN = Number(Deno.env.get('BATAS_STRUK_HARIAN') ?? '60') || 60;
 
 const MODEL = 'claude-opus-5-5';
@@ -118,6 +129,13 @@ Deno.serve(async (req: Request) => {
   const asal = req.headers.get('Origin');
   if (req.method === 'OPTIONS') return new Response('ok', { headers: headerCors(asal) });
   if (req.method !== 'POST') return jawab({ error: 'Metode tidak didukung.' }, 405, asal);
+
+  // Tanpa kunci layanan, fungsi ini tidak dapat memeriksa siapa pemanggilnya.
+  // Lebih baik berhenti dengan pesan yang menyebut sebabnya daripada galat
+  // "Invalid API key" yang tidak dapat ditindaklanjuti siapa pun.
+  if (!KUNCI_SRV) {
+    return jawab({ error: 'Fungsi belum lengkap dipasang: secret KUNCI_LAYANAN belum diisi. Hubungi pengembang.' }, 503, asal);
+  }
 
   /* ── Pemanggilnya owner ─────────────────────────────────────────────── */
   const otorisasi = req.headers.get('Authorization') ?? '';
