@@ -3,55 +3,41 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const m49 = fs.readFileSync(path.join(root, 'supabase_migration_49_perbaiki_token_akun.sql'), 'utf8');
+const m55 = fs.readFileSync(path.join(root, 'supabase_migration_55_token_akun_tidak_null.sql'), 'utf8');
 
 /* GoTrue membaca kolom token auth.users sebagai string yang tidak boleh NULL.
    Akun yang dibuat dengan kolom itu NULL tidak pernah bisa masuk: layar /masuk
    hanya berbunyi "Database error querying schema". */
 
-assert.equal((m49.match(/\$function\$/g) || []).length % 2, 0, 'penanda $function$ harus genap');
+assert.equal((m55.match(/\$function\$/g) || []).length % 2, 0, 'penanda $function$ harus genap');
+
+const KOLOM = ['confirmation_token', 'recovery_token', 'email_change_token_new', 'email_change'];
 
 // ── 1 · Akun lama diluruskan ───────────────────────────────────────────────
-for (const kolom of ['confirmation_token', 'recovery_token', 'email_change_token_new', 'email_change']) {
-  assert.ok(m49.includes(`'${kolom}'`), `${kolom} harus ikut diluruskan dari NULL ke ''`);
-}
-assert.match(m49, /information_schema\.columns/, 'hanya kolom yang ada yang boleh di-UPDATE');
-assert.match(m49, /WHERE %I IS NULL/, 'hanya nilai NULL yang disentuh');
+const perbaikan = m55.slice(m55.indexOf('DO $perbaikan$'), m55.indexOf('END $perbaikan$'));
+for (const k of KOLOM) assert.ok(perbaikan.includes(`'${k}'`), `${k} harus ikut diluruskan`);
+assert.match(perbaikan, /information_schema\.columns/, 'hanya kolom yang ada yang boleh di-UPDATE');
+assert.match(perbaikan, /WHERE %I IS NULL/, 'hanya nilai NULL yang disentuh');
 
-// ── 2 · Fungsi baru mengisi token dengan '' ────────────────────────────────
-const ins = m49.slice(m49.indexOf('INSERT INTO auth.users ('), m49.indexOf('INSERT INTO auth.identities'));
-assert.ok(ins.length > 0, 'INSERT auth.users harus ada');
-const [kolomBag, nilaiBag] = ins.split(') VALUES (');
-const kolom = kolomBag.replace('INSERT INTO auth.users (', '').split(',').map((s) => s.trim());
-// Dipecah pada koma di luar tanda kutip dan kurung: nilai raw_app_meta_data
-// adalah literal JSON yang memuat koma sendiri.
-function pecah(teks) {
-  const hasil = [];
-  let kini = '', dalam = 0, kutip = false;
-  for (const ch of teks) {
-    if (ch === "'") kutip = !kutip;
-    else if (!kutip && ch === '(') dalam++;
-    else if (!kutip && ch === ')') dalam--;
-    if (!kutip && dalam === 0 && ch === ',') { hasil.push(kini.trim()); kini = ''; continue; }
-    kini += ch;
-  }
-  hasil.push(kini.trim());
-  return hasil;
-}
-const nilai = pecah(nilaiBag.replace(/\s*--.*$/gm, '').replace(/\);[\s\S]*$/, ''));
-assert.equal(kolom.length, nilai.length, 'jumlah kolom dan nilai INSERT harus sama');
-for (const k of ['confirmation_token', 'recovery_token', 'email_change_token_new', 'email_change']) {
-  const i = kolom.indexOf(k);
-  assert.ok(i >= 0, `${k} harus disebut di INSERT auth.users`);
-  assert.equal(nilai[i], "''", `${k} harus diisi string kosong, bukan NULL`);
-}
+// ── 2 · Trigger menjaga akun berikutnya ────────────────────────────────────
+const fungsi = m55.slice(m55.indexOf('CREATE OR REPLACE FUNCTION auth_users_token_kosong'), m55.indexOf('DROP TRIGGER'));
+for (const k of KOLOM) assert.ok(fungsi.includes(`'${k}'`), `trigger harus meluruskan ${k}`);
+assert.match(m55, /BEFORE INSERT OR UPDATE ON auth\.users/, 'harus BEFORE, supaya NULL tidak pernah tersimpan');
+assert.match(m55, /DROP TRIGGER IF EXISTS auth_users_token_kosong ON auth\.users;/, 'harus aman dijalankan ulang');
+// Merujuk NEW.kolom langsung akan menggagalkan SETIAP pembuatan akun pada
+// versi GoTrue yang tidak punya kolom itu — termasuk lewat GoTrue sendiri.
+assert.equal(/NEW\.[a-z_]+/.test(fungsi), false, 'kolom tidak boleh dirujuk langsung lewat NEW.<kolom>');
+assert.match(fungsi, /v_baris \? v_kolom/, 'kolom yang tidak ada harus dilewati');
+// Nilai yang sudah diisi (token sungguhan dari GoTrue) tidak boleh ditimpa.
+assert.match(fungsi, /jsonb_typeof\(v_baris -> v_kolom\) = 'null'/, 'hanya NULL yang diganti');
 
-// Penjagaan dari migrasi 47 tidak boleh hilang saat fungsi ditulis ulang.
-assert.match(m49, /IF NOT is_owner\(\) THEN/);
-assert.match(m49, /VALUES \(v_uid, v_cap\.name, 'capster', TRUE\)/);
-assert.match(m49, /extensions\.crypt\(p_password, extensions\.gen_salt\('bf'\)\)/);
-assert.match(m49, /INSERT INTO auth\.identities/);
-assert.match(m49, /REVOKE EXECUTE ON FUNCTION owner_buat_akun_capster\(UUID, TEXT, TEXT\) FROM PUBLIC, anon;/);
-assert.match(m49, /GRANT {2}EXECUTE ON FUNCTION owner_buat_akun_capster\(UUID, TEXT, TEXT\) TO authenticated;/);
+// ── 3 · Tidak menulis ulang fungsi pembuat akun ────────────────────────────
+/* owner_buat_akun_capster pernah tertimpa versi lama karena berkas yang lebih
+   tua dijalankan belakangan. Migrasi ini tidak boleh menjadi berkas lain yang
+   dapat melakukan hal yang sama. */
+assert.equal(m55.includes('FUNCTION owner_buat_akun_capster'), false,
+  'migrasi ini tidak boleh mendefinisikan ulang owner_buat_akun_capster');
+assert.equal(fs.existsSync(path.join(root, 'supabase_migration_49_perbaiki_token_akun.sql')), false,
+  'berkas lama yang menimpa fungsi dengan versi 47 tidak boleh kembali');
 
 console.log('Token akun tests: OK');
