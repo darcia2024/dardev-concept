@@ -19,7 +19,7 @@
  *   Modelnya dibaca dari secret MODEL_AI, sehingga dapat diganti dari dashboard
  *   tanpa mengubah kode. Bawaan: google/gemini-3.5-flash-lite — dipilih karena
  *   murah (sekitar $0,002 per struk menurut harga OpenRouter Oktober 2026) dan
- *   mendukung gambar serta structured outputs. Model pengganti harus mendukung
+ *   mendukung gambar, PDF, serta structured outputs. Model pengganti harus mendukung
  *   keduanya; lihat kolom supported_parameters di openrouter.ai/api/v1/models.
  *
  * BATAS HARIAN
@@ -59,7 +59,12 @@ const BATAS_HARIAN = Number(Deno.env.get('BATAS_STRUK_HARIAN') ?? '60') || 60;
 
 const MODEL = Deno.env.get('MODEL_AI') || 'google/gemini-3.5-flash-lite';
 
-const JENIS_GAMBAR = ['image/jpeg', 'image/png', 'image/webp'] as const;
+/* Foto, atau PDF untuk nota belanja online dan struk yang dikirim pemasok
+   lewat WhatsApp. PDF dikirim ke model sebagai berkas, bukan gambar
+   (openrouter.ai/docs/features/multimodal/pdfs): model yang membaca berkas
+   sendiri ditagih sebagai token biasa; model lain dialihkan OpenRouter ke
+   OCR, sekitar $2 per 1.000 halaman. */
+const JENIS_GAMBAR = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'] as const;
 type JenisGambar = typeof JENIS_GAMBAR[number];
 const jenisSah = (j: string): j is JenisGambar => (JENIS_GAMBAR as readonly string[]).includes(j);
 
@@ -127,7 +132,7 @@ const SKEMA_STRUK = {
   additionalProperties: false,
 } as const;
 
-const INSTRUKSI = `Anda membaca foto struk belanja sebuah barbershop di Indonesia — nota toko grosir, minimarket, struk kasir, atau nota tulisan tangan.
+const INSTRUKSI = `Anda membaca struk belanja sebuah barbershop di Indonesia, berupa foto atau PDF — nota toko grosir, minimarket, struk kasir, nota tulisan tangan, atau invoice belanja online.
 
 Tuliskan setiap barang yang dibeli apa adanya seperti di struk. Angka rupiah ditulis sebagai angka penuh tanpa titik pemisah ribuan: "Rp 12.500" menjadi 12500. Bila hanya subtotal yang tertera, harga_satuan adalah subtotal dibagi qty. Bila qty tidak tertulis, anggap 1.
 
@@ -135,7 +140,9 @@ Jangan menebak. Bila sebuah angka atau nama tidak terbaca jelas, tetap tuliskan 
 
 Bagian yang sama sekali tidak terbaca: toko dan tanggal ditulis sebagai teks kosong, total ditulis 0. Catatan berisi teks kosong bila semuanya jelas.
 
-Bila gambar bukan struk belanja, kembalikan terbaca: false dengan items kosong.`;
+Bila PDF berisi beberapa halaman, baca semua barang dari semua halaman sebagai satu belanja.
+
+Bila gambar atau PDF bukan struk belanja, kembalikan terbaca: false dengan items kosong.`;
 
 async function catatPemakaian(
   // deno-lint-ignore no-explicit-any
@@ -203,13 +210,15 @@ Deno.serve(async (req: Request) => {
   const gambar = String(badan.gambar ?? '');
   const jenis = String(badan.jenis ?? 'image/jpeg');
   if (!jenisSah(jenis)) {
-    return jawab({ error: 'Format gambar harus JPEG, PNG, atau WebP.' }, 400, asal);
+    return jawab({ error: 'Format harus foto (JPEG, PNG, WebP) atau PDF.' }, 400, asal);
   }
   if (!gambar || !/^[A-Za-z0-9+/=]+$/.test(gambar)) {
-    return jawab({ error: 'Gambar tidak terbaca.' }, 400, asal);
+    return jawab({ error: 'Berkas tidak terbaca.' }, 400, asal);
   }
   if (gambar.length > UKURAN_MAKS_BASE64) {
-    return jawab({ error: 'Foto terlalu besar. Potret ulang lebih dekat ke struknya.' }, 413, asal);
+    return jawab({ error: jenis === 'application/pdf'
+      ? 'PDF terlalu besar (maksimal sekitar 5 MB).'
+      : 'Foto terlalu besar. Potret ulang lebih dekat ke struknya.' }, 413, asal);
   }
 
   /* ── OpenRouter ───────────────────────────────────────────────────── */
@@ -243,7 +252,9 @@ Deno.serve(async (req: Request) => {
             role: 'user',
             content: [
               { type: 'text', text: 'Baca struk ini.' },
-              { type: 'image_url', image_url: { url: `data:${jenis};base64,${gambar}` } },
+              jenis === 'application/pdf'
+                ? { type: 'file', file: { filename: 'struk.pdf', file_data: `data:application/pdf;base64,${gambar}` } }
+                : { type: 'image_url', image_url: { url: `data:${jenis};base64,${gambar}` } },
             ],
           },
         ],
@@ -291,7 +302,10 @@ Deno.serve(async (req: Request) => {
     } else if (kodeGalat === 429) {
       pesan = 'Layanan AI sedang sibuk. Coba lagi dalam satu menit.'; status = 429;
     } else if (kodeGalat === 400 || kodeGalat === 403) {
-      pesan = 'Gambar ditolak oleh layanan AI. Coba foto lain.'; status = 400;
+      pesan = jenis === 'application/pdf'
+        ? 'PDF ditolak oleh layanan AI. Coba foto struknya saja.'
+        : 'Gambar ditolak oleh layanan AI. Coba foto lain.';
+      status = 400;
     }
     console.error('ai-struk: openrouter', kodeGalat, data?.error?.message);
     await catatPemakaian(sbSrv, {
@@ -311,7 +325,9 @@ Deno.serve(async (req: Request) => {
 
   if (pilihan?.message?.refusal) {
     await catatPemakaian(sbSrv, { ...pakai, berhasil: false, keterangan: 'refusal' + biaya });
-    return jawab({ error: 'Gambar ini tidak dapat dibaca. Coba potret ulang struknya saja, tanpa latar lain.' }, 422, asal);
+    return jawab({ error: jenis === 'application/pdf'
+      ? 'PDF ini tidak dapat dibaca. Coba foto struknya saja.'
+      : 'Gambar ini tidak dapat dibaca. Coba potret ulang struknya saja, tanpa latar lain.' }, 422, asal);
   }
   // "length": jatah token habis, sering karena reasoning — isinya kosong atau
   // terpotong dan JSON-nya tidak utuh.

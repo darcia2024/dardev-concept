@@ -133,4 +133,22 @@ assert.doesNotMatch(fn, /Deno\.env\.get\('SUPABASE_[A-Z_]+'\)!/, 'secret bawaan 
 assert.ok(fn.indexOf('if (!KUNCI_SRV)') > 0 && fn.indexOf('if (!KUNCI_SRV)') < fn.indexOf('sbSrv.auth.getUser'),
   'tanpa kunci layanan, berhenti dengan pesan yang jelas sebelum apa pun');
 
+/* ── 9 · Struk dari PDF ──────────────────────────────────────────────────
+   PDF dikirim sebagai berkas, bukan gambar (dokumentasi OpenRouter
+   multimodal/pdfs), dan tidak boleh "diperkecil" lewat kanvas — itu hanya
+   bekerja untuk gambar dan akan gagal diam-diam untuk PDF. */
+assert.match(fn, /'image\/webp', 'application\/pdf'\] as const/, 'PDF termasuk jenis yang diterima');
+assert.match(fn, /\{ type: 'file', file: \{ filename: 'struk\.pdf', file_data: `data:application\/pdf;base64,\$\{gambar\}` \} \}/,
+  'PDF dikirim dengan bentuk content part file');
+assert.ok(badanPermintaan.indexOf("type: 'text'") < badanPermintaan.indexOf("type: 'file'"), 'teks mendahului PDF');
+// Batas ukuran tetap diperiksa untuk PDF, sebelum AI dihubungi.
+assert.ok(fn.indexOf('gambar.length > UKURAN_MAKS_BASE64') < iAi);
+const foto = rekap.slice(rekap.indexOf("getElementById('inpFotoStruk').addEventListener"),
+                         rekap.indexOf("getElementById('btnSimpanPengeluaran').addEventListener"));
+assert.match(foto, /adalahPdf\(berkas\) \? await bacaPdf\(berkas\) : await perkecilGambar\(berkas\)/,
+  'PDF dibaca utuh, foto diperkecil');
+const pdf = rekap.slice(rekap.indexOf('function bacaPdf'), rekap.indexOf('function adalahPdf'));
+assert.match(pdf, /berkas\.size > PDF_MAKS/, 'PDF besar ditolak sebelum diunggah');
+assert.doesNotMatch(pdf, /perkecilGambar|canvas/i, 'PDF tidak boleh lewat kanvas');
+
 console.log('ai-struk: semua pemeriksaan lolos');

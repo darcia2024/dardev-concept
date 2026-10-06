@@ -1276,16 +1276,17 @@
         <div>
           <h2 style="font-size: 15px; font-weight: 600;">Pengeluaran &amp; Struk Belanja</h2>
           <p style="font-size: 12px; color: var(--fg-dim);" id="pengeluaranSub">
-            Foto struk kulakan, AI membacakan isinya, periksa, lalu simpan.
+            Foto atau PDF struk kulakan, AI membacakan isinya, periksa, lalu simpan.
           </p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <!-- SENGAJA tanpa atribut capture. capture="environment" memaksa HP
                langsung membuka kamera, padahal struk sering sudah difoto lebih
                dulu atau dikirim pemasok lewat WhatsApp. Tanpa capture, HP
-               menawarkan pilihannya sendiri: ambil foto, galeri, atau berkas. -->
+               menawarkan pilihannya sendiri: ambil foto, galeri, atau berkas.
+               PDF ikut diterima untuk invoice belanja online. -->
           <label class="btn-filter-date" for="inpFotoStruk" style="cursor:pointer;">Foto / Unggah Struk</label>
-          <input type="file" id="inpFotoStruk" accept="image/*" hidden />
+          <input type="file" id="inpFotoStruk" accept="image/*,application/pdf,.pdf" hidden />
           <button class="btn-filter-date" id="btnPengeluaranManual" type="button">+ Manual</button>
         </div>
       </div>
@@ -3364,7 +3365,7 @@
       const jumlah = pengeluaranData.reduce((a, p) => a + Number(p.total || 0), 0);
       document.getElementById('pengeluaranSub').textContent = pengeluaranData.length
         ? labelPeriode() + ': ' + pengeluaranData.length + ' pengeluaran, ' + formatRupiah(jumlah) + '.'
-        : 'Foto struk kulakan, AI membacakan isinya, periksa, lalu simpan.';
+        : 'Foto atau PDF struk kulakan, AI membacakan isinya, periksa, lalu simpan.';
 
       const gambar = function () {
         gambarBerhalaman('pengeluaran', pengeluaranData, {
@@ -3413,6 +3414,24 @@
         };
         img.src = url;
       });
+    }
+
+    /* PDF dikirim apa adanya: tidak ada yang bisa "diperkecil" tanpa merusak
+       tulisan di dalamnya. Batasnya 5 MB — invoice belanja online biasanya
+       puluhan kilobyte; PDF sebesar itu hampir pasti hasil pindai beresolusi
+       tinggi yang lebih baik dipotret ulang. */
+    const PDF_MAKS = 5 * 1024 * 1024;
+    function bacaPdf(berkas) {
+      if (berkas.size > PDF_MAKS) {
+        return Promise.reject(new Error('PDF terlalu besar (maksimal 5 MB). Coba foto struknya saja.'));
+      }
+      return berkas.arrayBuffer().then(function (buf) {
+        return { gambar: keBase64(new Uint8Array(buf)), jenis: 'application/pdf' };
+      });
+    }
+
+    function adalahPdf(berkas) {
+      return berkas.type === 'application/pdf' || /\.pdf$/i.test(berkas.name || '');
     }
 
     function opsiProduk(terpilih) {
@@ -3535,12 +3554,12 @@
 
       const pesan = document.getElementById('pesanStrukAi');
       tutupFormPengeluaran();
-      kelolaPesan(pesan, 'Membaca struk…', true);
+      kelolaPesan(pesan, adalahPdf(berkas) ? 'Membaca PDF struk…' : 'Membaca struk…', true);
       document.getElementById('formPengeluaran').hidden = false;
       document.getElementById('pengItemBody').innerHTML = '';
 
       try {
-        const foto = await perkecilGambar(berkas);
+        const foto = adalahPdf(berkas) ? await bacaPdf(berkas) : await perkecilGambar(berkas);
         // Lewat Edge Function, bukan langsung: kunci API AI tidak boleh ada di
         // halaman yang dibuka peramban.
         const { data, error } = await sb.functions.invoke('ai-struk', { body: foto });
@@ -3552,7 +3571,9 @@
         const hasil = data && data.hasil;
         if (!hasil || hasil.terbaca === false) {
           tutupFormPengeluaran();
-          alert('Gambar itu tidak terbaca sebagai struk belanja. Potret ulang struknya saja, lurus dan terang.');
+          alert(foto.jenis === 'application/pdf'
+            ? 'PDF itu tidak terbaca sebagai struk belanja. Pastikan isinya nota atau invoice belanja.'
+            : 'Gambar itu tidak terbaca sebagai struk belanja. Potret ulang struknya saja, lurus dan terang.');
           return;
         }
         bukaFormPengeluaran(hasil, 'struk_ai');
