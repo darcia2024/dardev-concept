@@ -26,7 +26,6 @@ import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 const URL_SB     = Deno.env.get('SUPABASE_URL')!;
-const KUNCI_ANON = Deno.env.get('SUPABASE_ANON_KEY')!;
 const KUNCI_SRV  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const BATAS_HARIAN = Number(Deno.env.get('BATAS_STRUK_HARIAN') ?? '60') || 60;
 
@@ -125,15 +124,18 @@ Deno.serve(async (req: Request) => {
   const jwt = otorisasi.startsWith('Bearer ') ? otorisasi.slice(7) : '';
   if (!jwt) return jawab({ error: 'Tidak ada sesi. Masuk lagi lalu coba ulang.' }, 401, asal);
 
-  const sbAnon = createClient(URL_SB, KUNCI_ANON);
-  const { data: pengguna, error: galatJwt } = await sbAnon.auth.getUser(jwt);
-  if (galatJwt || !pengguna?.user) {
-    return jawab({ error: 'Sesi tidak dikenali. Masuk lagi lalu coba ulang.' }, 401, asal);
-  }
-
+  /* JWT pemanggil diverifikasi dengan klien service-role yang sama, bukan
+     dengan klien anon. Proyek ini memakai kunci jenis baru (sb_publishable_),
+     dan SUPABASE_ANON_KEY adalah kunci jenis lama yang dapat dimatikan dari
+     dashboard — fungsi yang bergantung padanya akan berhenti tanpa ada yang
+     mengubah kodenya. */
   const sbSrv = createClient(URL_SB, KUNCI_SRV, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  const { data: pengguna, error: galatJwt } = await sbSrv.auth.getUser(jwt);
+  if (galatJwt || !pengguna?.user) {
+    return jawab({ error: 'Sesi tidak dikenali. Masuk lagi lalu coba ulang.' }, 401, asal);
+  }
   const { data: profil } = await sbSrv.from('profiles').select('role').eq('id', pengguna.user.id).single();
   if (profil?.role !== 'owner') {
     return jawab({ error: 'Hanya owner yang boleh membaca struk.' }, 403, asal);
