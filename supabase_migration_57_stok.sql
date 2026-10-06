@@ -50,6 +50,36 @@ ALTER TABLE products_hpp ADD COLUMN IF NOT EXISTS stok_minimum NUMERIC(12, 3) NO
 
 
 -- ── 02 Mutasi ──────────────────────────────────────────────────────────────
+-- Basis data produksi ternyata sudah punya tabel stok_mutasi dari luar repo
+-- ini, berbentuk lain (tanpa product_id). CREATE TABLE IF NOT EXISTS
+-- diam-diam melewatinya, lalu indeks di bawah gagal dengan
+-- "column product_id does not exist". Tabel lama yang KOSONG dibuang dan
+-- dibuat ulang; yang berisi data membuat migrasi berhenti — data tidak
+-- pernah dihapus diam-diam. DROP tanpa CASCADE: bila ada objek lain yang
+-- bergantung padanya, lebih baik gagal dan terlihat.
+DO $tabel_lama$
+DECLARE
+    v_ada_isi BOOLEAN;
+BEGIN
+    IF to_regclass('public.stok_mutasi') IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public' AND table_name = 'stok_mutasi'
+                          AND column_name = 'product_id') THEN
+        EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.stok_mutasi)' INTO v_ada_isi;
+        IF v_ada_isi THEN
+            RAISE EXCEPTION 'Tabel stok_mutasi lama berbentuk lain dan berisi data. '
+                'Migrasi dihentikan supaya datanya tidak hilang; hubungi pengembang.';
+        END IF;
+        DROP TABLE public.stok_mutasi;
+        RAISE NOTICE 'Tabel stok_mutasi lama yang kosong dibuang dan dibuat ulang.';
+    END IF;
+END $tabel_lama$;
+
+-- Fungsi berkembalian tabel tidak dapat diganti bentuknya lewat CREATE OR
+-- REPLACE. Bila versi lain pernah dibuat di luar repo, ganti bersih.
+DROP FUNCTION IF EXISTS owner_stok_list();
+DROP FUNCTION IF EXISTS owner_stok_riwayat(UUID, INT);
+
 CREATE TABLE IF NOT EXISTS stok_mutasi (
     id          BIGSERIAL PRIMARY KEY,
     product_id  UUID NOT NULL REFERENCES products_hpp(id) ON DELETE CASCADE,
