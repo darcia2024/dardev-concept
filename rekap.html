@@ -963,6 +963,51 @@
     .rapi-todo-item input { margin-top: 3px; flex: none; }
     .rapi-todo-item.selesai span { text-decoration: line-through; color: var(--fg-dim); }
     .rapi-sub { color: var(--fg-dim); font-size: 12px; }
+
+    /* ── Stok Produk (Add-on AI, fitur 3) ──────────────────────────────── */
+    .stok-pill {
+      font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600;
+      padding: 3px 8px; border-radius: 4px; white-space: nowrap; display: inline-block;
+      color: var(--fg-dim); background: var(--ink-inset);
+    }
+    .stok-pill.aman    { color: var(--sage, #0F7355); background: var(--sage-wash, rgba(15,115,85,.1)); }
+    .stok-pill.menipis { color: var(--brass); background: rgba(201,162,106,.15); }
+    .stok-pill.habis   { color: var(--brand, #BE0000); background: rgba(190,0,0,.08); }
+    .stok-angka { font-family: var(--mono); font-weight: 600; color: var(--fg); }
+    .stok-list input[data-stok-min] {
+      width: 80px; background: var(--ink-inset); border: 1px solid var(--line); border-radius: var(--r-sm);
+      color: var(--fg); padding: 6px 8px; font-size: 13px; font-family: inherit;
+    }
+    .stok-riwayat td { background: var(--ink-inset); }
+    .stok-riwayat ul { list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+    .stok-riwayat li { display: flex; gap: 10px; flex-wrap: wrap; }
+    .stok-riwayat .rapi-meta { min-width: 96px; }
+    .stok-items .stok-disebut, .stok-items .stok-pratinjau { font-size: 11.5px; color: var(--fg-dim); margin-top: 4px; }
+    .stok-items tr.belum-cocok select[data-f="produk"] { border-color: var(--brand, #BE0000); }
+    @media (max-width: 600px) {
+      /* Sama dengan baris barang pengeluaran: kartu, bukan tabel geser. */
+      table.stok-items, table.stok-list { min-width: 0; }
+      table.stok-items thead, table.stok-list thead { display: none; }
+      table.stok-items tbody, table.stok-list tbody { display: block; }
+      table.stok-items tr, table.stok-list tr {
+        display: grid; gap: 8px; padding: 12px; border-bottom: 1px solid var(--line-soft);
+      }
+      table.stok-items tr { grid-template-columns: 1fr 1fr; }
+      table.stok-list tr { grid-template-columns: 1fr auto; }
+      table.stok-items td, table.stok-list td { display: flex; flex-direction: column; gap: 4px; padding: 0; border: none; min-width: 0; }
+      table.stok-items td::before, table.stok-list td::before {
+        content: attr(data-label);
+        font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-dim);
+      }
+      table.stok-items td[data-label=""]::before, table.stok-list td[data-label=""]::before { content: none; }
+      table.stok-items td.stok-produk, table.stok-items td.stok-catatan { grid-column: 1 / -1; }
+      table.stok-items td.stok-buang { grid-column: 1 / -1; align-items: flex-end; }
+      table.stok-list td.stok-nama { grid-column: 1 / -1; }
+      table.stok-list tr.stok-riwayat { display: block; }
+      table.stok-list td button { align-self: flex-start; }
+      table.stok-list tr:hover td { background: none; }
+      table.stok-list .empty-row { grid-column: 1 / -1; }
+    }
   </style>
 </head>
 <body>
@@ -1236,7 +1281,7 @@
         <div class="kelola-pesan" id="pesanPengSelisih"></div>
         <div class="kelola-pesan" style="margin-top:-4px;">
           Isi <strong>Produk katalog</strong> hanya untuk barang yang Anda jual lagi &mdash; harga modalnya
-          di HPP &amp; Laba Produk ikut diperbarui. Kopi, deterjen, dan perlengkapan lain biarkan kosong.
+          di HPP &amp; Laba Produk ikut diperbarui, dan jumlahnya masuk ke Stok Produk. Kopi, deterjen, dan perlengkapan lain biarkan kosong.
         </div>
         <div class="kelola-pesan" id="pesanPengeluaran"></div>
         <div class="kelola-aksi">
@@ -1283,6 +1328,88 @@
             </tr>
           </thead>
           <tbody id="hppTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Stok produk (Add-on AI, fitur 3). Penjualan POS dan belanja struk
+         yang ditautkan ke produk menggeser stok sendiri (migrasi 57). Owner
+         mencatat hitung fisik, barang datang, atau barang rusak — diketik,
+         lewat voice note, atau foto catatan; AI hanya MENGUSULKAN barisnya,
+         dan tidak ada yang tercatat sebelum owner menekan Simpan. -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Stok Produk</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);" id="stokSub">
+            Terjual di kasir dan belanja dari struk tercatat sendiri. Hitung rak, lalu catat di sini.
+          </p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-filter-date" id="btnStokAi" type="button">Catat dengan AI</button>
+          <button class="btn-filter-date" id="btnStokManual" type="button">+ Manual</button>
+        </div>
+      </div>
+
+      <div class="kelola-form" id="formStokAi" hidden>
+        <div class="kelola-nama">Ketik, rekam, atau foto catatan stok</div>
+        <div class="kelola-label">Catatan</div>
+        <textarea id="inpStokTeks" maxlength="6000" rows="4"
+                  placeholder="Contoh: pomade sisa 12, matte clay tinggal 3, hair tonic datang 2 lusin, 1 pomade pecah"></textarea>
+        <div class="rapi-rekam">
+          <button class="btn-hdr" id="btnRekamStok" type="button">&#127897; Rekam suara</button>
+          <span class="rapi-waktu" id="rekamStokWaktu"></span>
+          <audio id="rekamStokPutar" controls hidden></audio>
+          <button class="btn-hapus" id="btnBuangRekamanStok" type="button" title="Buang rekaman" hidden>&#215;</button>
+        </div>
+        <div class="rapi-rekam">
+          <!-- Tanpa capture: HP menawarkan kamera, galeri, atau berkas. -->
+          <label class="btn-hdr" for="inpFotoStok" style="cursor:pointer;">&#128247; Foto catatan</label>
+          <input type="file" id="inpFotoStok" accept="image/*" hidden />
+          <span class="rapi-waktu" id="stokFotoNama"></span>
+          <button class="btn-hapus" id="btnBuangFotoStok" type="button" title="Buang foto" hidden>&#215;</button>
+        </div>
+        <div class="kelola-pesan" id="pesanStokAi"></div>
+        <div class="kelola-aksi">
+          <button class="btn-hdr" id="btnStokBaca" type="button">Baca dengan AI</button>
+          <button class="btn-hdr" id="btnStokAiBatal" type="button">Batal</button>
+        </div>
+      </div>
+
+      <div class="kelola-form" id="editorStok" hidden>
+        <div class="kelola-nama" id="editorStokJudul">Periksa sebelum dicatat</div>
+        <div class="kelola-pesan" id="pesanStokHasil"></div>
+        <div class="table-scroll">
+          <table class="tx-table stok-items">
+            <thead>
+              <tr><th>Produk</th><th style="width:150px;">Jenis</th><th style="width:96px;">Jumlah</th>
+                  <th>Catatan</th><th style="width:40px;"></th></tr>
+            </thead>
+            <tbody id="stokEditBody"></tbody>
+          </table>
+        </div>
+        <div class="kelola-aksi">
+          <button class="btn-hdr" id="btnStokTambahBaris" type="button">+ Baris</button>
+        </div>
+        <div class="kelola-pesan" style="margin-top:-4px;">
+          <strong>Hitung fisik</strong>: jumlah yang ada di rak sekarang &mdash; stok disamakan dengan angka itu.
+          <strong>Masuk</strong>: barang datang di luar struk. <strong>Keluar</strong>: rusak, hilang, atau dipakai sendiri.
+          Yang terjual di kasir tidak perlu dicatat di sini.
+        </div>
+        <div class="kelola-pesan" id="pesanStok"></div>
+        <div class="kelola-aksi">
+          <button class="btn-hdr" id="btnSimpanStok" type="button">Simpan</button>
+          <button class="btn-hdr" id="btnBatalStok" type="button">Batal</button>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="tx-table stok-list">
+          <thead>
+            <tr><th>Produk</th><th>Stok</th><th style="width:110px;">Batas menipis</th><th>Status</th>
+                <th>Terakhir dihitung</th><th style="width:90px;"></th></tr>
+          </thead>
+          <tbody id="stokBody"></tbody>
         </table>
       </div>
     </div>
@@ -2199,6 +2326,7 @@
       await loadClosings();
       await loadHpp();
       await muatPengeluaran();
+      await muatStok();
       await Promise.all([loadReward(), loadPoinTier(), loadOutlet()]);
       pasangPemilihBulan();
       pasangPemilihPoin();
@@ -3419,6 +3547,7 @@
         const r = Array.isArray(data) ? data[0] : data;
         tutupFormPengeluaran();
         await muatPengeluaran();
+        await muatStok();
         if (r && r.hpp_diperbarui > 0) {
           await loadHpp();
           alert('Tersimpan. Harga modal ' + r.hpp_diperbarui + ' produk ikut diperbarui di HPP & Laba Produk.');
@@ -3440,6 +3569,7 @@
       const { error } = await sb.rpc('owner_hapus_pengeluaran', { p_id: b.dataset.hapusPeng });
       if (error) { b.disabled = false; alert('Gagal menghapus: ' + error.message); return; }
       await muatPengeluaran();
+      await muatStok();
     });
 
     /* ═══════════════════════════════════════════════════════════════════════
@@ -3458,7 +3588,6 @@
     let rapiDiubah = null;      // id catatan yang sedang disunting; null = baru
     let rapiSumber = 'teks';
     let rapiTerbuka = {};       // kartu mana yang sedang dibuka di daftar
-    const rekam = { perekam: null, aliran: null, potongan: [], mulai: 0, detik: 0, pewaktu: null, wav: null, url: null };
     const REKAM_MAKS_DETIK = 180;
 
     async function muatCatatanRapi() {
@@ -3623,96 +3752,115 @@
       return btoa(s);
     }
 
-    function aturTombolRekam() {
-      const btn = document.getElementById('btnRekam');
-      const sedang = !!(rekam.perekam && rekam.perekam.state === 'recording');
-      btn.classList.toggle('merekam', sedang);
-      btn.innerHTML = sedang ? '&#9632; Berhenti' : (rekam.wav ? '&#127897; Rekam ulang' : '&#127897; Rekam suara');
-      document.getElementById('rekamPutar').hidden = sedang || !rekam.url;
-      document.getElementById('btnBuangRekaman').hidden = sedang || !rekam.wav;
-    }
+    /* Satu perekam per panel. Rapikan Catatan dan Stok Produk masing-masing
+       memakai tombol, pewaktu, dan pemutarnya sendiri, tetapi cara merekam
+       dan mengubahnya ke WAV harus sama persis — dua salinan kode ini akan
+       cepat berbeda, dan yang tertinggal hanya ketahuan di HP owner. */
+    function buatPerekam(id) {
+      const st = { perekam: null, aliran: null, potongan: [], mulai: 0, detik: 0, pewaktu: null, wav: null, url: null };
+      const el = (k) => document.getElementById(id[k]);
+      const sedang = () => !!(st.perekam && st.perekam.state === 'recording');
 
-    function buangRekaman() {
-      if (rekam.url) URL.revokeObjectURL(rekam.url);
-      rekam.wav = null; rekam.url = null; rekam.detik = 0;
-      const putar = document.getElementById('rekamPutar');
-      putar.removeAttribute('src'); putar.load();
-      document.getElementById('rekamWaktu').textContent = '';
-      aturTombolRekam();
-    }
-
-    function hentikanAliran() {
-      if (rekam.aliran) rekam.aliran.getTracks().forEach(t => t.stop());
-      rekam.aliran = null;
-      clearInterval(rekam.pewaktu);
-    }
-
-    async function mulaiRekam() {
-      const pesan = document.getElementById('pesanRapikan');
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-        kelolaPesan(pesan, 'Peramban ini tidak bisa merekam suara. Ketik catatannya saja, atau buka lewat Chrome/Safari terbaru.', false);
-        return;
+      function segarkan() {
+        const btn = el('tombol');
+        btn.classList.toggle('merekam', sedang());
+        btn.innerHTML = sedang() ? '&#9632; Berhenti' : (st.wav ? '&#127897; Rekam ulang' : '&#127897; Rekam suara');
+        el('putar').hidden = sedang() || !st.url;
+        el('buang').hidden = sedang() || !st.wav;
       }
-      try {
-        rekam.aliran = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (e) {
-        kelolaPesan(pesan, 'Izin mikrofon ditolak. Izinkan mikrofon untuk situs ini di pengaturan peramban, lalu coba lagi.', false);
-        return;
+
+      function buang() {
+        if (st.url) URL.revokeObjectURL(st.url);
+        st.wav = null; st.url = null; st.detik = 0;
+        const putar = el('putar');
+        putar.removeAttribute('src'); putar.load();
+        el('waktu').textContent = '';
+        segarkan();
       }
-      buangRekaman();
-      pesan.textContent = '';
-      rekam.potongan = [];
-      rekam.perekam = new MediaRecorder(rekam.aliran);
-      rekam.perekam.ondataavailable = function (e) { if (e.data && e.data.size) rekam.potongan.push(e.data); };
-      rekam.perekam.onstop = async function () {
-        hentikanAliran();
-        const blob = new Blob(rekam.potongan, { type: rekam.perekam.mimeType || 'audio/webm' });
-        rekam.perekam = null;
-        aturTombolRekam();
-        if (!blob.size) { kelolaPesan(pesan, 'Rekaman kosong. Coba lagi.', false); return; }
-        kelolaPesan(pesan, 'Menyiapkan rekaman…', true);
-        try {
-          const r = await rekamanKeWav(blob);
-          if (r.detik < 1) { kelolaPesan(pesan, 'Rekaman terlalu pendek.', false); return; }
-          rekam.wav = r.wav; rekam.detik = r.detik;
-          rekam.url = URL.createObjectURL(new Blob([r.wav], { type: 'audio/wav' }));
-          document.getElementById('rekamPutar').src = rekam.url;
-          document.getElementById('rekamWaktu').textContent = Math.round(r.detik) + ' detik';
-          pesan.textContent = ''; pesan.className = 'kelola-pesan';
-        } catch (e) {
-          kelolaPesan(pesan, 'Rekaman tidak dapat diolah di peramban ini. Ketik catatannya saja.', false);
+
+      function hentikanAliran() {
+        if (st.aliran) st.aliran.getTracks().forEach(t => t.stop());
+        st.aliran = null;
+        clearInterval(st.pewaktu);
+      }
+
+      async function mulai() {
+        const pesan = el('pesan');
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+          kelolaPesan(pesan, 'Peramban ini tidak bisa merekam suara. Ketik saja, atau buka lewat Chrome/Safari terbaru.', false);
+          return;
         }
-        aturTombolRekam();
+        try {
+          st.aliran = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (e) {
+          kelolaPesan(pesan, 'Izin mikrofon ditolak. Izinkan mikrofon untuk situs ini di pengaturan peramban, lalu coba lagi.', false);
+          return;
+        }
+        buang();
+        pesan.textContent = '';
+        st.potongan = [];
+        st.perekam = new MediaRecorder(st.aliran);
+        st.perekam.ondataavailable = function (e) { if (e.data && e.data.size) st.potongan.push(e.data); };
+        st.perekam.onstop = async function () {
+          hentikanAliran();
+          const blob = new Blob(st.potongan, { type: st.perekam.mimeType || 'audio/webm' });
+          st.perekam = null;
+          segarkan();
+          if (!blob.size) { kelolaPesan(pesan, 'Rekaman kosong. Coba lagi.', false); return; }
+          kelolaPesan(pesan, 'Menyiapkan rekaman…', true);
+          try {
+            const r = await rekamanKeWav(blob);
+            if (r.detik < 1) { kelolaPesan(pesan, 'Rekaman terlalu pendek.', false); return; }
+            st.wav = r.wav; st.detik = r.detik;
+            st.url = URL.createObjectURL(new Blob([r.wav], { type: 'audio/wav' }));
+            el('putar').src = st.url;
+            el('waktu').textContent = Math.round(r.detik) + ' detik';
+            pesan.textContent = ''; pesan.className = 'kelola-pesan';
+          } catch (e) {
+            kelolaPesan(pesan, 'Rekaman tidak dapat diolah di peramban ini. Ketik saja.', false);
+          }
+          segarkan();
+        };
+        st.perekam.start(1000);
+        st.mulai = Date.now();
+        const waktu = el('waktu');
+        st.pewaktu = setInterval(function () {
+          const d = Math.floor((Date.now() - st.mulai) / 1000);
+          waktu.textContent = '● ' + Math.floor(d / 60) + ':' + String(d % 60).padStart(2, '0') + ' / 3:00';
+          // Batasnya ditegakkan di sini, bukan hanya di server: rekaman yang
+          // ditolak sesudah owner bicara tiga menit lebih menjengkelkan
+          // daripada rekaman yang berhenti sendiri.
+          if (d >= REKAM_MAKS_DETIK && sedang()) st.perekam.stop();
+        }, 500);
+        segarkan();
+      }
+
+      // Menutup formulir di tengah rekaman: hentikan tanpa mengolah hasilnya.
+      function batal() {
+        if (sedang()) {
+          st.perekam.onstop = null;
+          st.perekam.stop();
+          st.perekam = null;
+        }
+        hentikanAliran();
+        buang();
+      }
+
+      el('tombol').addEventListener('click', function () { if (sedang()) st.perekam.stop(); else mulai(); });
+      el('buang').addEventListener('click', buang);
+
+      return {
+        get wav() { return st.wav; },
+        get detik() { return st.detik; },
+        sedang: sedang, segarkan: segarkan, buang: buang, batal: batal
       };
-      rekam.perekam.start(1000);
-      rekam.mulai = Date.now();
-      const waktu = document.getElementById('rekamWaktu');
-      rekam.pewaktu = setInterval(function () {
-        const d = Math.floor((Date.now() - rekam.mulai) / 1000);
-        waktu.textContent = '● ' + Math.floor(d / 60) + ':' + String(d % 60).padStart(2, '0') + ' / 3:00';
-        // Batasnya ditegakkan di sini, bukan hanya di server: rekaman yang
-        // ditolak sesudah owner bicara tiga menit lebih menjengkelkan
-        // daripada rekaman yang berhenti sendiri.
-        if (d >= REKAM_MAKS_DETIK && rekam.perekam && rekam.perekam.state === 'recording') rekam.perekam.stop();
-      }, 500);
-      aturTombolRekam();
     }
 
-    document.getElementById('btnRekam').addEventListener('click', function () {
-      if (rekam.perekam && rekam.perekam.state === 'recording') rekam.perekam.stop();
-      else mulaiRekam();
-    });
-    document.getElementById('btnBuangRekaman').addEventListener('click', buangRekaman);
+    const rekam = buatPerekam({ tombol: 'btnRekam', waktu: 'rekamWaktu', putar: 'rekamPutar', buang: 'btnBuangRekaman', pesan: 'pesanRapikan' });
 
     /* ── Formulir masukan ──────────────────────────────────────────────── */
     function tutupFormRapikan() {
-      if (rekam.perekam && rekam.perekam.state === 'recording') {
-        rekam.perekam.onstop = null;
-        rekam.perekam.stop();
-        rekam.perekam = null;
-      }
-      hentikanAliran();
-      buangRekaman();
+      rekam.batal();
       document.getElementById('formRapikan').hidden = true;
       document.getElementById('pesanRapikan').textContent = '';
     }
@@ -3723,7 +3871,7 @@
       document.getElementById('pilRapikanBentuk').value = 'otomatis';
       document.getElementById('pesanRapikan').textContent = '';
       document.getElementById('formRapikan').hidden = false;
-      aturTombolRekam();
+      rekam.segarkan();
       document.getElementById('inpRapikanTeks').focus();
     });
     document.getElementById('btnBatalRapikan').addEventListener('click', tutupFormRapikan);
@@ -3731,7 +3879,7 @@
     document.getElementById('btnRapikan').addEventListener('click', async function () {
       const pesan = document.getElementById('pesanRapikan');
       const teks = document.getElementById('inpRapikanTeks').value.trim();
-      if (rekam.perekam && rekam.perekam.state === 'recording') {
+      if (rekam.sedang()) {
         kelolaPesan(pesan, 'Hentikan rekaman dulu.', false); return;
       }
       if (!teks && !rekam.wav) { kelolaPesan(pesan, 'Tulis catatannya atau rekam suara dulu.', false); return; }
@@ -3956,6 +4104,309 @@
       }
       c.isi = isi;
       gambarDaftarRapi();
+    });
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       STOK PRODUK (Add-on AI, fitur 3)
+
+       Stok adalah jumlah mutasi di stok_mutasi (migrasi 57). Penjualan POS
+       dan belanja struk yang ditautkan ke produk menggesernya lewat trigger;
+       panel ini hanya mencatat yang tidak terlihat sistem: hitung fisik,
+       barang datang di luar struk, dan barang rusak atau hilang.
+
+       Edge Function ai-stok hanya MENGUSULKAN baris. Nama produknya dipetakan
+       ke id di server, dan baris yang tidak cocok dibiarkan kosong untuk
+       dipilih owner — tidak ada yang tercatat sebelum owner menekan Simpan.
+       ═══════════════════════════════════════════════════════════════════════ */
+    let stokData = [];
+    let stokSumber = 'manual';
+    let stokFoto = null;          // { gambar, jenis } yang sudah diperkecil
+    let stokRiwayatBuka = null;   // product_id yang riwayatnya sedang dibuka
+    const STATUS_STOK = { aman: 'Aman', menipis: 'Menipis', habis: 'Habis', belum: 'Belum dihitung' };
+    const JENIS_STOK = { hitung: 'Hitung fisik', masuk: 'Masuk', keluar: 'Keluar', belanja: 'Belanja (struk)',
+                         batal_belanja: 'Belanja dibatalkan', jual: 'Terjual', batal_jual: 'Penjualan dibatalkan' };
+
+    function fmtQty(n) {
+      return Number(n || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 });
+    }
+
+    async function muatStok() {
+      const tb = document.getElementById('stokBody');
+      const { data, error } = await sb.rpc('owner_stok_list');
+      if (error) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
+        return;
+      }
+      stokData = data || [];
+      gambarStok();
+    }
+
+    function gambarStok() {
+      const tb = document.getElementById('stokBody');
+      const aktif = stokData.filter(p => p.is_active !== false);
+      const hitung = (st) => aktif.filter(p => p.status === st).length;
+      const ringkas = [
+        hitung('habis') ? hitung('habis') + ' habis' : '',
+        hitung('menipis') ? hitung('menipis') + ' menipis' : '',
+        hitung('belum') ? hitung('belum') + ' belum pernah dihitung' : ''
+      ].filter(Boolean).join(', ');
+      document.getElementById('stokSub').textContent = ringkas
+        ? ringkas + '. Terjual di kasir dan belanja dari struk tercatat sendiri.'
+        : 'Terjual di kasir dan belanja dari struk tercatat sendiri. Hitung rak, lalu catat di sini.';
+
+      if (!stokData.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">Belum ada produk. Tambahkan di HPP &amp; Laba Produk.</td></tr>';
+        return;
+      }
+      tb.innerHTML = stokData.map(function (p) {
+        // Angka stok produk yang belum pernah dihitung tidak berarti apa-apa
+        // (penjualan dikurangkan dari nol), jadi tidak ditampilkan sebagai
+        // angka yang terlihat pasti.
+        const angka = p.status === 'belum' ? '<span class="rapi-sub">—</span>' : '<span class="stok-angka">' + fmtQty(p.stok) + '</span>';
+        let h = '<tr' + (p.is_active === false ? ' style="opacity:.55;"' : '') + '>'
+          + '<td class="stok-nama" data-label=""><strong>' + escapeHtml(p.name) + '</strong>'
+          + (p.is_active === false ? ' <span class="rapi-sub">(nonaktif)</span>' : '') + '</td>'
+          + '<td data-label="Stok">' + angka + '</td>'
+          + '<td data-label="Batas menipis"><input type="number" inputmode="decimal" min="0" step="any" data-stok-min="' + p.product_id + '" value="' + Number(p.stok_minimum || 0) + '" /></td>'
+          + '<td data-label="Status"><span class="stok-pill ' + p.status + '">' + STATUS_STOK[p.status] + '</span></td>'
+          + '<td data-label="Terakhir dihitung" style="font-size:12px;">' + (p.terakhir_dihitung ? tglRapi(p.terakhir_dihitung) : '—') + '</td>'
+          + '<td data-label=""><button class="btn-hdr" data-stok-riwayat="' + p.product_id + '" type="button">'
+          + (stokRiwayatBuka === p.product_id ? 'Tutup' : 'Riwayat') + '</button></td>'
+          + '</tr>';
+        if (stokRiwayatBuka === p.product_id) {
+          h += '<tr class="stok-riwayat"><td colspan="6" data-label=""><div id="stokRiwayatIsi" class="rapi-sub">Memuat…</div></td></tr>';
+        }
+        return h;
+      }).join('');
+      if (stokRiwayatBuka) muatRiwayatStok(stokRiwayatBuka);
+    }
+
+    async function muatRiwayatStok(id) {
+      const { data, error } = await sb.rpc('owner_stok_riwayat', { p_product_id: id, p_limit: 30 });
+      const el = document.getElementById('stokRiwayatIsi');
+      if (!el) return;
+      if (error) { el.textContent = 'Gagal memuat: ' + error.message; return; }
+      if (!data || !data.length) { el.textContent = 'Belum ada mutasi.'; return; }
+      el.className = '';
+      el.innerHTML = '<ul>' + data.map(function (m) {
+        const d = Number(m.qty_delta);
+        const isi = m.jenis === 'hitung'
+          ? 'dihitung ' + fmtQty(m.qty_hitung) + ' (selisih ' + (d > 0 ? '+' : '') + fmtQty(d) + ')'
+          : (d > 0 ? '+' : '') + fmtQty(d);
+        return '<li><span class="rapi-meta">' + tglRapi(m.created_at) + '</span>'
+          + '<span><strong>' + escapeHtml(JENIS_STOK[m.jenis] || m.jenis) + '</strong> ' + isi
+          + ' &rarr; ' + fmtQty(m.stok_sesudah)
+          + (m.sumber === 'ai' ? ' <span class="kelola-tag">AI</span>' : '')
+          + (m.catatan ? ' <span class="rapi-sub">— ' + escapeHtml(m.catatan) + '</span>' : '') + '</span></li>';
+      }).join('') + '</ul>';
+    }
+
+    document.getElementById('stokBody').addEventListener('click', function (e) {
+      const b = e.target.closest('[data-stok-riwayat]');
+      if (!b) return;
+      stokRiwayatBuka = stokRiwayatBuka === b.dataset.stokRiwayat ? null : b.dataset.stokRiwayat;
+      gambarStok();
+    });
+
+    document.getElementById('stokBody').addEventListener('change', async function (e) {
+      const inp = e.target.closest('[data-stok-min]');
+      if (!inp) return;
+      const nilai = Number(inp.value);
+      if (inp.value === '' || !(nilai >= 0)) { alert('Batas menipis harus angka 0 atau lebih.'); await muatStok(); return; }
+      inp.disabled = true;
+      const { error } = await sb.rpc('owner_set_stok_minimum', { p_product_id: inp.dataset.stokMin, p_minimum: nilai });
+      if (error) alert('Gagal menyimpan batas: ' + error.message);
+      await muatStok();
+    });
+
+    /* ── Penyunting baris ──────────────────────────────────────────────── */
+    function opsiProdukStok(terpilih) {
+      return '<option value="">— pilih produk —</option>' + stokData.filter(p => p.is_active !== false || p.product_id === terpilih)
+        .map(p => '<option value="' + p.product_id + '"' + (p.product_id === terpilih ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>')
+        .join('');
+    }
+
+    function barisStok(b) {
+      b = b || {};
+      const jenis = b.jenis || 'hitung';
+      return '<tr' + (b.disebut && !b.product_id ? ' class="belum-cocok"' : '') + '>'
+        + '<td class="stok-produk" data-label="Produk"><select data-f="produk">' + opsiProdukStok(b.product_id) + '</select>'
+        + (b.disebut ? '<div class="stok-disebut">Tertulis: &ldquo;' + escapeHtml(b.disebut) + '&rdquo;</div>' : '')
+        + '<div class="stok-pratinjau"></div></td>'
+        + '<td data-label="Jenis"><select data-f="jenis">'
+        + ['hitung', 'masuk', 'keluar'].map(j => '<option value="' + j + '"' + (j === jenis ? ' selected' : '') + '>' + JENIS_STOK[j] + '</option>').join('')
+        + '</select></td>'
+        + '<td data-label="Jumlah"><input type="number" inputmode="decimal" min="0" step="any" data-f="qty" value="' + (b.qty ?? '') + '" /></td>'
+        + '<td class="stok-catatan" data-label="Catatan"><input type="text" data-f="catatan" maxlength="300" placeholder="Opsional" value="' + escapeHtml(b.catatan || '') + '" /></td>'
+        + '<td class="stok-buang" data-label=""><button class="btn-hapus" data-stok-buang type="button" title="Buang baris">&#215;</button></td>'
+        + '</tr>';
+    }
+
+    /* Hitung fisik menimpa stok, jadi owner diperlihatkan akibatnya sebelum
+       menyimpan: "tercatat 20 → 17 (selisih -3)". Selisih besar biasanya
+       berarti produk yang salah dipilih, bukan barang yang hilang. */
+    function pratinjauStok(tr) {
+      const id = tr.querySelector('[data-f="produk"]').value;
+      const jenis = tr.querySelector('[data-f="jenis"]').value;
+      const qty = tr.querySelector('[data-f="qty"]').value;
+      const el = tr.querySelector('.stok-pratinjau');
+      tr.classList.toggle('belum-cocok', !id);
+      const p = stokData.find(x => x.product_id === id);
+      if (!p || qty === '') { el.textContent = ''; return; }
+      const q = Number(qty);
+      const lama = Number(p.stok);
+      if (jenis === 'hitung') {
+        el.textContent = p.status === 'belum'
+          ? 'Stok awal: ' + fmtQty(q)
+          : 'Tercatat ' + fmtQty(lama) + ' → ' + fmtQty(q) + ' (selisih ' + (q - lama > 0 ? '+' : '') + fmtQty(q - lama) + ')';
+      } else {
+        el.textContent = p.status === 'belum' ? 'Belum pernah dihitung — catat hitung fisik dulu agar angkanya berarti.'
+          : 'Stok jadi ' + fmtQty(jenis === 'keluar' ? lama - q : lama + q);
+      }
+    }
+
+    function bukaEditorStok(baris, sumber, judul) {
+      stokSumber = sumber;
+      document.getElementById('editorStokJudul').textContent = judul;
+      document.getElementById('stokEditBody').innerHTML = (baris.length ? baris : [{}]).map(barisStok).join('');
+      document.querySelectorAll('#stokEditBody tr').forEach(pratinjauStok);
+      document.getElementById('pesanStok').textContent = '';
+      document.getElementById('pesanStokHasil').textContent = '';
+      document.getElementById('editorStok').hidden = false;
+      document.getElementById('editorStok').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function tutupEditorStok() { document.getElementById('editorStok').hidden = true; }
+
+    document.getElementById('stokEditBody').addEventListener('input', function (e) {
+      const tr = e.target.closest('tr');
+      if (tr) pratinjauStok(tr);
+    });
+    document.getElementById('stokEditBody').addEventListener('change', function (e) {
+      const tr = e.target.closest('tr');
+      if (tr) pratinjauStok(tr);
+    });
+    document.getElementById('stokEditBody').addEventListener('click', function (e) {
+      if (!e.target.closest('[data-stok-buang]')) return;
+      e.target.closest('tr').remove();
+      if (!document.querySelector('#stokEditBody tr')) document.getElementById('stokEditBody').innerHTML = barisStok({});
+    });
+    document.getElementById('btnStokTambahBaris').addEventListener('click', function () {
+      document.getElementById('stokEditBody').insertAdjacentHTML('beforeend', barisStok({}));
+    });
+    document.getElementById('btnBatalStok').addEventListener('click', tutupEditorStok);
+    document.getElementById('btnStokManual').addEventListener('click', function () {
+      tutupFormStokAi();
+      bukaEditorStok([], 'manual', 'Catat stok');
+    });
+
+    document.getElementById('btnSimpanStok').addEventListener('click', async function () {
+      const msg = document.getElementById('pesanStok');
+      const baris = [...document.querySelectorAll('#stokEditBody tr')].map(function (tr) {
+        const v = (f) => tr.querySelector('[data-f="' + f + '"]').value;
+        return { product_id: v('produk'), jenis: v('jenis'), qty: v('qty') === '' ? null : Number(v('qty')), catatan: v('catatan').trim() };
+      }).filter(b => b.product_id || b.qty !== null);
+      if (!baris.length) { kelolaPesan(msg, 'Isi minimal satu baris.', false); return; }
+      const iKosong = baris.findIndex(b => !b.product_id);
+      if (iKosong >= 0) { kelolaPesan(msg, 'Baris ke-' + (iKosong + 1) + ' belum dipilih produknya.', false); return; }
+      const iQty = baris.findIndex(b => b.qty === null || !(b.qty >= 0) || (b.jenis !== 'hitung' && b.qty === 0));
+      if (iQty >= 0) { kelolaPesan(msg, 'Jumlah di baris ke-' + (iQty + 1) + ' belum benar.', false); return; }
+
+      const btn = this;
+      btn.disabled = true;
+      try {
+        const { error } = await sb.rpc('owner_stok_catat', { p_items: baris, p_sumber: stokSumber });
+        if (error) throw error;
+        tutupEditorStok();
+        await muatStok();
+      } catch (err) {
+        kelolaPesan(msg, 'Gagal menyimpan: ' + (err.message || err), false);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    /* ── Masukan untuk AI: teks, suara, foto ───────────────────────────── */
+    const rekamStok = buatPerekam({ tombol: 'btnRekamStok', waktu: 'rekamStokWaktu', putar: 'rekamStokPutar', buang: 'btnBuangRekamanStok', pesan: 'pesanStokAi' });
+
+    function buangFotoStok() {
+      stokFoto = null;
+      document.getElementById('stokFotoNama').textContent = '';
+      document.getElementById('btnBuangFotoStok').hidden = true;
+    }
+
+    function tutupFormStokAi() {
+      rekamStok.batal();
+      buangFotoStok();
+      document.getElementById('formStokAi').hidden = true;
+      document.getElementById('pesanStokAi').textContent = '';
+    }
+
+    document.getElementById('btnStokAi').addEventListener('click', function () {
+      tutupEditorStok();
+      document.getElementById('inpStokTeks').value = '';
+      buangFotoStok();
+      document.getElementById('pesanStokAi').textContent = '';
+      document.getElementById('formStokAi').hidden = false;
+      rekamStok.segarkan();
+      document.getElementById('inpStokTeks').focus();
+    });
+    document.getElementById('btnStokAiBatal').addEventListener('click', tutupFormStokAi);
+    document.getElementById('btnBuangFotoStok').addEventListener('click', buangFotoStok);
+
+    document.getElementById('inpFotoStok').addEventListener('change', async function () {
+      const berkas = this.files && this.files[0];
+      this.value = '';
+      if (!berkas) return;
+      try {
+        stokFoto = await perkecilGambar(berkas);
+        document.getElementById('stokFotoNama').textContent = 'Foto siap';
+        document.getElementById('btnBuangFotoStok').hidden = false;
+      } catch (err) {
+        kelolaPesan(document.getElementById('pesanStokAi'), err.message || String(err), false);
+      }
+    });
+
+    document.getElementById('btnStokBaca').addEventListener('click', async function () {
+      const pesan = document.getElementById('pesanStokAi');
+      const teks = document.getElementById('inpStokTeks').value.trim();
+      if (rekamStok.sedang()) { kelolaPesan(pesan, 'Hentikan rekaman dulu.', false); return; }
+      if (!teks && !rekamStok.wav && !stokFoto) { kelolaPesan(pesan, 'Ketik, rekam, atau foto catatan stoknya dulu.', false); return; }
+
+      const btn = this;
+      btn.disabled = true;
+      kelolaPesan(pesan, 'Membaca catatan stok…', true);
+      try {
+        const badan = { teks: teks };
+        if (rekamStok.wav) { badan.audio = keBase64(rekamStok.wav); badan.detik = Math.round(rekamStok.detik); }
+        if (stokFoto) { badan.gambar = stokFoto.gambar; badan.jenis_gambar = stokFoto.jenis; }
+        // Lewat Edge Function: kunci API AI tidak boleh ada di halaman ini.
+        const { data, error } = await sb.functions.invoke('ai-stok', { body: badan });
+        if (error) {
+          let t = error.message || String(error);
+          try { const b = await error.context.json(); if (b && b.error) t = b.error; } catch (_) {}
+          throw new Error(t);
+        }
+        const hasil = data && data.hasil;
+        if (!hasil || hasil.terbaca === false || !(hasil.baris || []).length) {
+          kelolaPesan(pesan, 'Tidak ada catatan stok yang terbaca. Coba tulis seperti: "pomade sisa 12, clay datang 24".', false);
+          return;
+        }
+        tutupFormStokAi();
+        bukaEditorStok(hasil.baris, 'ai', 'Periksa hasil bacaan AI');
+        const belum = hasil.baris.filter(b => !b.product_id).length;
+        kelolaPesan(document.getElementById('pesanStokHasil'),
+          'Terbaca ' + hasil.baris.length + ' baris. '
+          + (belum ? belum + ' baris belum cocok dengan produk mana pun — pilih produknya. ' : '')
+          + 'Periksa produk, jenis, dan jumlahnya sebelum menyimpan.'
+          + (hasil.catatan ? ' Perhatikan: ' + hasil.catatan : '')
+          + (typeof data.sisa_hari_ini === 'number' ? ' (Sisa hari ini: ' + data.sisa_hari_ini + ')' : ''),
+          !belum && !hasil.catatan);
+      } catch (err) {
+        kelolaPesan(pesan, 'Gagal membaca: ' + (err.message || err), false);
+      } finally {
+        btn.disabled = false;
+      }
     });
 
     async function loadHpp() {
