@@ -3,7 +3,27 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const m47 = fs.readFileSync(path.join(root, 'supabase_migration_47_owner_buat_akun_capster.sql'), 'utf8');
+
+/* Yang diperiksa adalah definisi TERAKHIR owner_buat_akun_capster, bukan
+   berkas migrasi tertentu. Fungsi ini pernah ditulis ulang di migrasi 49
+   untuk memperbaiki bentrok dengan trigger profil; tes yang terpaku pada
+   migrasi 47 akan lulus sambil menjaga kode yang sudah tidak berjalan lagi —
+   bentuk kegagalan yang paling menyesatkan, sebab layarnya hijau. */
+function migrasiTerakhirYangMendefinisikan(nama) {
+  const berkas = fs.readdirSync(root)
+    .filter(f => /^supabase_migration_\d+.*\.sql$/.test(f))
+    .map(f => ({ f, n: Number(f.match(/^supabase_migration_(\d+)/)[1]) }))
+    .sort((a, b) => a.n - b.n);
+  let isi = null, dari = null;
+  for (const { f } of berkas) {
+    const teks = fs.readFileSync(path.join(root, f), 'utf8');
+    if (teks.includes('FUNCTION ' + nama + '(')) { isi = teks; dari = f; }
+  }
+  assert.ok(isi, nama + ' tidak didefinisikan di migrasi mana pun');
+  return { isi, dari };
+}
+
+const { isi: m47, dari: berkasFungsi } = migrasiTerakhirYangMendefinisikan('owner_buat_akun_capster');
 const rekap = fs.readFileSync(path.join(root, 'rekap.html'), 'utf8');
 
 /* Fungsi ini membuat akun yang dapat masuk ke sistem. Kegagalannya tidak
@@ -21,6 +41,39 @@ const tandaTangan = m47.slice(m47.indexOf('CREATE OR REPLACE FUNCTION owner_buat
 assert.equal(tandaTangan.indexOf('role'), -1, 'peran tidak boleh menjadi parameter');
 assert.match(m47, /INSERT INTO profiles \(id, full_name, role, is_active\)\s*\n\s*VALUES \(v_uid, v_cap\.name, 'capster', TRUE\)/,
   "peran harus dipaku 'capster' di badan fungsi");
+
+/* ── 1b · Bentrok dengan trigger profil ───────────────────────────────────
+   supabase_schema.sql memasang on_auth_user_created pada auth.users: tiap
+   baris baru di sana OTOMATIS mendapat barisnya di profiles. Menyisipkan ke
+   profiles sesudahnya tanpa ON CONFLICT bertabrakan dengan baris yang dibuat
+   fungsi itu sendiri, dan tombol Buat selalu gagal dengan
+
+       duplicate key value violates unique constraint "profiles_pkey"
+
+   Ini pernah terjadi sungguhan, dan selalu — bukan kadang-kadang. */
+// Dipotong sampai UPDATE capsters SESUDAH sisipan itu, bukan yang pertama di
+// berkas: sejak migrasi 51 jalur pakai ulang akun datang lebih dulu dan punya
+// UPDATE capsters sendiri, sehingga potongan ke yang pertama menjadi kosong.
+const iSisip = m47.indexOf('INSERT INTO profiles');
+const sisipProfil = m47.slice(iSisip, m47.indexOf('UPDATE capsters SET auth_user_id', iSisip));
+assert.ok(sisipProfil.length > 0, 'sisipan ke profiles harus dapat dipotong');
+assert.match(
+  sisipProfil, /ON CONFLICT \(id\) DO UPDATE/,
+  'sisipan ke profiles harus ON CONFLICT: trigger on_auth_user_created sudah membuat barisnya lebih dulu'
+);
+assert.match(
+  sisipProfil, /role\s*=\s*'capster'/,
+  'pada tabrakan, perannya harus tetap dipaksa capster — bukan dibiarkan apa adanya'
+);
+
+/* Dan sebaliknya: trigger membaca role dari raw_user_meta_data. Tanpa kunci
+   itu ia memberi peran 'kasir', sehingga kapsternya tidak bisa absen dan
+   penggantian sandinya ditolak dengan "Akun itu bukan akun capster" —
+   dua kegagalan yang tidak satu pun menyebut sebabnya. */
+assert.match(
+  m47, /jsonb_build_object\('full_name', v_cap\.name, 'role', 'capster'\)/,
+  "raw_user_meta_data harus memuat role: trigger membacanya, dan tanpanya profilnya jadi 'kasir'"
+);
 for (const peran of ["'owner'", "'kasir'"]) {
   assert.equal(m47.indexOf('role, is_active)\n    VALUES (v_uid, v_cap.name, ' + peran), -1,
     'fungsi ini tidak boleh dapat membuat akun ber-peran ' + peran);
@@ -56,8 +109,40 @@ assert.match(m47, /email_confirmed_at/, 'akun harus langsung terkonfirmasi');
 // ── 5 · Menolak, bukan menimpa ─────────────────────────────────────────────
 assert.match(m47, /IF v_cap\.auth_user_id IS NOT NULL THEN[\s\S]{0,120}RAISE EXCEPTION/,
   'kapster yang sudah punya akun harus ditolak, bukan dibuatkan akun kedua');
-assert.match(m47, /EXISTS \(SELECT 1 FROM auth\.users u WHERE lower\(u\.email\) = v_mail\)[\s\S]{0,120}RAISE EXCEPTION/,
-  'email yang sudah dipakai harus ditolak');
+/* Email yang sudah ada (migrasi 51). Dulu selalu ditolak — sehingga akun yang
+   dilepas lewat "Lepas akun" tidak pernah bisa dipakai lagi, padahal justru
+   itu tujuan melepas alih-alih menghapus. Sekarang tiga cabang, dan dua di
+   antaranya harus tetap MENOLAK: */
+
+// (a) Sudah tertaut ke karyawan lain — dua orang tidak boleh berbagi akun.
+assert.match(m47,
+  /SELECT k\.name INTO v_pemilik FROM capsters k WHERE k\.auth_user_id = v_uid[\s\S]{0,160}RAISE EXCEPTION/,
+  'email milik akun yang sudah tertaut ke karyawan lain harus ditolak');
+
+// (b) Bukan akun karyawan — owner atau perangkat POS. Tanpa penjaga ini,
+//     mengetik email owner di kartu karyawan akan mengganti sandi owner
+//     dan menurunkannya menjadi capster.
+assert.match(m47,
+  /IF v_peran IS NULL OR v_peran NOT IN \('capster', 'kasir'\) THEN[\s\S]{0,200}RAISE EXCEPTION/,
+  'akun owner dan perangkat POS tidak boleh diambil alih lewat jalur ini');
+assert.doesNotMatch(m47, /NOT IN \([^)]*'owner'/, 'owner tidak boleh masuk daftar peran yang boleh dipakai ulang');
+assert.doesNotMatch(m47, /NOT IN \([^)]*'pos_device'/, 'perangkat POS tidak boleh masuk daftar peran yang boleh dipakai ulang');
+
+// Urutannya penting: kedua penolakan harus terjadi SEBELUM sandinya diganti.
+const iGantiSandi = m47.indexOf('UPDATE auth.users');
+assert.ok(iGantiSandi > 0, 'jalur pakai ulang harus mengganti sandi akunnya');
+assert.ok(m47.indexOf('v_pemilik IS NOT NULL') < iGantiSandi, 'cek karyawan lain harus sebelum sandi diganti');
+assert.ok(m47.indexOf("NOT IN ('capster', 'kasir')") < iGantiSandi, 'cek peran harus sebelum sandi diganti');
+
+// (c) Akun karyawan yang tidak tertaut: dipakai ulang, perannya dipastikan
+//     capster, dan ditautkan ke karyawan ini.
+const pakaiUlang = m47.slice(iGantiSandi, m47.indexOf('RETURN QUERY SELECT v_cap.name, v_mail, TRUE'));
+assert.match(pakaiUlang, /extensions\.crypt\(p_password, extensions\.gen_salt\('bf'\)\)/, 'sandi baru harus di-hash');
+assert.match(pakaiUlang, /SET role = 'capster'/, 'peran akun yang dipakai ulang harus dipastikan capster');
+assert.match(pakaiUlang, /UPDATE capsters SET auth_user_id = v_uid WHERE id = p_capster_id/, 'akunnya harus ditautkan');
+
+// Tipe keluaran berubah, jadi versi lamanya harus dibuang lebih dulu.
+assert.match(m47, /DROP FUNCTION IF EXISTS owner_buat_akun_capster\(UUID, TEXT, TEXT\);/);
 assert.match(m47, /RAISE EXCEPTION 'Kapster tidak ditemukan\.'/);
 
 // ── 6 · Layar owner ────────────────────────────────────────────────────────

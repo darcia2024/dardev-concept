@@ -812,6 +812,21 @@
     .tab-btn.is-on .tab-dot { box-shadow: 0 0 0 2px var(--fg); }
     .tab-dot[hidden] { display: none; }
 
+    /* Navigasi halaman di bawah tabel. :empty menyembunyikannya sama sekali
+       saat semua baris muat dalam satu halaman — kotak kosong bergaris di
+       bawah tabel pendek terbaca seperti sesuatu yang gagal dimuat. */
+    .pager {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 8px; flex-wrap: wrap;
+    }
+    .pager:empty { display: none; }
+    .pager-info {
+      font-size: 12px; color: var(--fg-dim);
+      font-family: var(--mono); white-space: nowrap;
+    }
+    .pager .btn-filter-date { min-width: 38px; }
+    .pager .btn-filter-date:disabled { opacity: .4; cursor: default; }
+
     .tab-pane { display: none; flex-direction: column; gap: 18px; }
     .tab-pane.is-on { display: flex; }
 
@@ -1062,6 +1077,88 @@
       </div>
     </div>
 
+    <!-- Pengeluaran toko, dari foto struk atau diketik (Add-on AI, fitur 1).
+         AI hanya MEMBACA. Hasilnya muncul di formulir untuk diperiksa owner,
+         dan baru tersimpan saat owner menekan Simpan. -->
+    <div class="table-panel">
+      <div class="table-controls">
+        <div>
+          <h2 style="font-size: 15px; font-weight: 600;">Pengeluaran &amp; Struk Belanja</h2>
+          <p style="font-size: 12px; color: var(--fg-dim);" id="pengeluaranSub">
+            Foto struk kulakan, AI membacakan isinya, periksa, lalu simpan.
+          </p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <!-- capture="environment" membuka kamera belakang langsung di HP.
+               Di laptop ia jatuh menjadi pemilih berkas biasa. -->
+          <label class="btn-filter-date" for="inpFotoStruk" style="cursor:pointer;">Foto Struk</label>
+          <input type="file" id="inpFotoStruk" accept="image/*" capture="environment" hidden />
+          <button class="btn-filter-date" id="btnPengeluaranManual" type="button">+ Manual</button>
+        </div>
+      </div>
+
+      <div class="kelola-form" id="formPengeluaran" hidden>
+        <div class="kelola-nama" id="formPengeluaranJudul">Periksa hasil bacaan</div>
+        <div class="kelola-pesan" id="pesanStrukAi"></div>
+        <div class="kelola-form-dua">
+          <div>
+            <div class="kelola-label">Toko</div>
+            <input type="text" id="inpPengToko" maxlength="150" placeholder="Nama toko" />
+          </div>
+          <div>
+            <div class="kelola-label">Tanggal belanja</div>
+            <input type="date" id="inpPengTanggal" />
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="tx-table">
+            <thead>
+              <tr>
+                <th>Barang</th><th style="width:78px;">Qty</th><th style="width:120px;">Harga satuan</th>
+                <th style="width:120px;">Subtotal</th><th style="width:170px;">Produk katalog</th><th style="width:40px;"></th>
+              </tr>
+            </thead>
+            <tbody id="pengItemBody"></tbody>
+          </table>
+        </div>
+        <div class="kelola-aksi">
+          <button class="btn-hdr" id="btnPengTambahBaris" type="button">+ Baris</button>
+        </div>
+        <div class="kelola-form-dua">
+          <div>
+            <div class="kelola-label">Total dibayar</div>
+            <input type="number" id="inpPengTotal" min="0" step="1" />
+          </div>
+          <div>
+            <div class="kelola-label">Catatan</div>
+            <input type="text" id="inpPengCatatan" maxlength="300" placeholder="Opsional" />
+          </div>
+        </div>
+        <div class="kelola-pesan" id="pesanPengSelisih"></div>
+        <div class="kelola-pesan" style="margin-top:-4px;">
+          Isi <strong>Produk katalog</strong> hanya untuk barang yang Anda jual lagi &mdash; harga modalnya
+          di HPP &amp; Laba Produk ikut diperbarui. Kopi, deterjen, dan perlengkapan lain biarkan kosong.
+        </div>
+        <div class="kelola-pesan" id="pesanPengeluaran"></div>
+        <div class="kelola-aksi">
+          <button class="btn-hdr" id="btnSimpanPengeluaran" type="button">Simpan</button>
+          <button class="btn-hdr" id="btnBatalPengeluaran" type="button">Batal</button>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th>Tanggal</th><th>Toko</th><th>Barang</th><th>Total</th><th>Sumber</th><th style="width:44px;"></th>
+            </tr>
+          </thead>
+          <tbody id="pengeluaranBody"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="pengeluaranPager"></div>
+    </div>
+
     <!-- Kalkulator HPP & Laba Produk -->
     <div class="table-panel">
       <div class="table-controls">
@@ -1207,6 +1304,9 @@
           <tbody id="absenRowBody"></tbody>
         </table>
       </div>
+      <!-- Diisi gambarBerhalaman(). Kosong bila seluruh baris muat dalam satu
+           halaman, supaya tidak ada tombol yang tidak melakukan apa-apa. -->
+      <div class="pager" id="absenRowPager"></div>
     </div>
 
     <div class="table-panel">
@@ -1296,6 +1396,23 @@
                 <input type="text" id="inpKarTelepon" inputmode="tel" autocomplete="off"
                        placeholder="081297754581" />
               </div>
+            </div>
+            <!-- Kosong = ikut jam buka toko hari itu, seperti kapster. Diisi =
+                 berlaku setiap hari, termasuk Jumat saat toko buka lebih siang.
+                 Keterlambatan saat absen masuk diukur dari jam masuk ini. -->
+            <div class="kelola-form-dua">
+              <div>
+                <div class="kelola-label">Jam masuk</div>
+                <input type="time" id="inpKarJamMasuk" />
+              </div>
+              <div>
+                <div class="kelola-label">Jam pulang</div>
+                <input type="time" id="inpKarJamPulang" />
+              </div>
+            </div>
+            <div class="kelola-pesan" style="margin-top:-4px;">
+              Kosongkan keduanya agar ikut jam buka toko. Isi untuk karyawan dengan
+              jam sendiri, misalnya 09.00&ndash;17.00 &mdash; terlambat dihitung dari jam masuk ini.
             </div>
             <label class="kelola-cek">
               <input type="checkbox" id="chkKarIkutPos" checked />
@@ -1893,6 +2010,7 @@
       renderDashboard();
       await loadClosings();
       await loadHpp();
+      await muatPengeluaran();
       await Promise.all([loadReward(), loadPoinTier(), loadOutlet()]);
       pasangPemilihBulan();
       pasangPemilihPoin();
@@ -2855,6 +2973,286 @@
     document.getElementById('btnTambahProduk').addEventListener('click', function () { editorProduk(null); });
 
 
+    /* ═══════════════════════════════════════════════════════════════════════
+       PENGELUARAN & STRUK BELANJA (Add-on AI, fitur 1)
+
+       Alurnya sengaja dua langkah. Edge Function ai-struk hanya MEMBACA foto
+       dan mengembalikan hasilnya ke formulir; tidak ada yang tersimpan sampai
+       owner memeriksanya dan menekan Simpan. Struk kusut dan nota tulisan
+       tangan adalah keadaan biasa, dan pengeluaran yang salah tercatat
+       terlihat seperti fakta — itu lebih merusak daripada mengetik sendiri.
+       ═══════════════════════════════════════════════════════════════════════ */
+    let pengeluaranData = [];
+    let pengSumber = 'manual';
+
+    async function muatPengeluaran() {
+      const r = rentangPeriode(selectedDateFilter);
+      const { data, error } = await sb.rpc('owner_pengeluaran_list', { p_dari: r.dari, p_sampai: r.sampai });
+      const tb = document.getElementById('pengeluaranBody');
+      if (error) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
+        document.getElementById('pengeluaranPager').innerHTML = '';
+        return;
+      }
+      pengeluaranData = data || [];
+      const jumlah = pengeluaranData.reduce((a, p) => a + Number(p.total || 0), 0);
+      document.getElementById('pengeluaranSub').textContent = pengeluaranData.length
+        ? labelPeriode() + ': ' + pengeluaranData.length + ' pengeluaran, ' + formatRupiah(jumlah) + '.'
+        : 'Foto struk kulakan, AI membacakan isinya, periksa, lalu simpan.';
+
+      const gambar = function () {
+        gambarBerhalaman('pengeluaran', pengeluaranData, {
+          tbody: 'pengeluaranBody', nav: 'pengeluaranPager', kolom: 6,
+          kosong: 'Belum ada pengeluaran pada ' + labelPeriode().toLowerCase() + '.',
+          baris: function (p) {
+            return '<tr>'
+              + '<td style="font-family:var(--mono); font-size:12px;">' + escapeHtml(p.tanggal) + '</td>'
+              + '<td>' + escapeHtml(p.toko || '—') + '</td>'
+              + '<td style="font-size:12.5px; color:var(--fg-dim);">' + escapeHtml(p.ringkasan || '')
+              + (Number(p.jml_item) > 4 ? ' &hellip; (' + p.jml_item + ' barang)' : '') + '</td>'
+              + '<td style="font-family:var(--mono);">' + formatRupiah(p.total) + '</td>'
+              + '<td><span class="kelola-tag">' + (p.sumber === 'struk_ai' ? 'Struk AI' : 'Manual') + '</span></td>'
+              + '<td><button class="btn-hapus" data-hapus-peng="' + p.id + '" title="Hapus pengeluaran ini">&#215;</button></td>'
+              + '</tr>';
+          }
+        });
+      };
+      gambarUlangTabel.pengeluaran = gambar;
+      gambar();
+    }
+
+    /* Foto kamera HP bisa 4-8 MB dan berukuran 4000 piksel. Diperkecil di
+       sini sebelum dikirim: sisi terpanjang 1568 piksel sudah lebih dari cukup
+       untuk membaca tulisan struk, unggahannya jauh lebih cepat di jaringan
+       outlet, dan biaya pembacaannya ikut turun karena tagihan AI dihitung
+       dari ukuran gambar. */
+    function perkecilGambar(berkas) {
+      return new Promise(function (selesai, gagal) {
+        const url = URL.createObjectURL(berkas);
+        const img = new Image();
+        img.onload = function () {
+          URL.revokeObjectURL(url);
+          const SISI = 1568;
+          const skala = Math.min(1, SISI / Math.max(img.naturalWidth, img.naturalHeight));
+          const kanvas = document.createElement('canvas');
+          kanvas.width = Math.round(img.naturalWidth * skala);
+          kanvas.height = Math.round(img.naturalHeight * skala);
+          kanvas.getContext('2d').drawImage(img, 0, 0, kanvas.width, kanvas.height);
+          const dataUrl = kanvas.toDataURL('image/jpeg', 0.85);
+          selesai({ gambar: dataUrl.slice(dataUrl.indexOf(',') + 1), jenis: 'image/jpeg' });
+        };
+        img.onerror = function () {
+          URL.revokeObjectURL(url);
+          gagal(new Error('Foto tidak dapat dibuka. Coba potret ulang dengan kamera biasa.'));
+        };
+        img.src = url;
+      });
+    }
+
+    function opsiProduk(terpilih) {
+      return '<option value="">—</option>' + (hppData || []).map(function (p) {
+        return '<option value="' + p.id + '"' + (p.id === terpilih ? ' selected' : '') + '>'
+          + escapeHtml(p.name) + (p.is_active === false ? ' (nonaktif)' : '') + '</option>';
+      }).join('');
+    }
+
+    function barisPengeluaran(it) {
+      it = it || {};
+      return '<tr>'
+        + '<td><input type="text" data-f="nama" maxlength="200" value="' + escapeHtml(it.nama || '') + '" /></td>'
+        + '<td><input type="number" data-f="qty" min="0" step="any" value="' + (it.qty ?? 1) + '" /></td>'
+        + '<td><input type="number" data-f="harga" min="0" step="1" value="' + (it.harga_satuan ?? '') + '" /></td>'
+        + '<td><input type="number" data-f="sub" min="0" step="1" value="' + (it.subtotal ?? '') + '" /></td>'
+        + '<td><select data-f="produk">' + opsiProduk(it.produk_id) + '</select></td>'
+        + '<td><button class="btn-hapus" data-hapus-baris type="button" title="Buang baris">&#215;</button></td>'
+        + '</tr>';
+    }
+
+    function bacaBarisPengeluaran() {
+      return [...document.querySelectorAll('#pengItemBody tr')].map(function (tr) {
+        const v = (f) => tr.querySelector('[data-f="' + f + '"]').value;
+        return {
+          nama: v('nama').trim(),
+          qty: v('qty') === '' ? null : Number(v('qty')),
+          harga_satuan: v('harga') === '' ? null : Number(v('harga')),
+          subtotal: v('sub') === '' ? null : Number(v('sub')),
+          produk_id: v('produk') || null
+        };
+      });
+    }
+
+    /* Selisih antara jumlah baris dan total dibayar BUKAN galat — diskon,
+       pajak, dan ongkos layanan memang tidak masuk ke baris barang. Tetapi
+       selisih besar sering berarti satu angka salah terbaca, jadi owner
+       diberi tahu besarnya dan dibiarkan memutuskan. */
+    function periksaSelisih() {
+      const jumlah = bacaBarisPengeluaran().reduce((a, b) => a + (Number(b.subtotal) || 0), 0);
+      const total = Number(document.getElementById('inpPengTotal').value) || 0;
+      const el = document.getElementById('pesanPengSelisih');
+      const selisih = total - jumlah;
+      if (!total || Math.abs(selisih) < 1) { el.textContent = ''; el.className = 'kelola-pesan'; return; }
+      kelolaPesan(el, 'Jumlah baris ' + formatRupiah(jumlah) + ', total dibayar ' + formatRupiah(total)
+        + ' — selisih ' + formatRupiah(Math.abs(selisih))
+        + (selisih < 0 ? '. Periksa apakah ada diskon, atau angka yang salah terbaca.'
+                       : '. Bisa jadi pajak atau ongkos, atau barang yang belum tercatat.'), false);
+    }
+
+    function bukaFormPengeluaran(hasil, sumber) {
+      pengSumber = sumber;
+      hasil = hasil || {};
+      document.getElementById('formPengeluaranJudul').textContent =
+        sumber === 'struk_ai' ? 'Periksa hasil bacaan struk' : 'Pengeluaran baru';
+      document.getElementById('inpPengToko').value = hasil.toko || '';
+      // AI menulis tanggal yang tidak terbaca sebagai teks kosong, tetapi bisa
+      // juga mengembalikan bentuk lain ("12/10/26"). <input type=date> hanya
+      // menerima YYYY-MM-DD dan diam-diam mengosongkan selainnya, jadi bentuk
+      // lain diganti hari ini — owner tetap melihat dan dapat membetulkannya.
+      const tgl = /^\d{4}-\d{2}-\d{2}$/.test(hasil.tanggal || '') ? hasil.tanggal : sbJakartaToday();
+      document.getElementById('inpPengTanggal').value = tgl;
+      document.getElementById('inpPengTanggal').max = sbJakartaToday();
+      // 0 berarti "tidak terbaca" — dikosongkan, supaya owner mengisinya atau
+      // membiarkannya dihitung dari jumlah baris saat menyimpan.
+      document.getElementById('inpPengTotal').value = hasil.total ? hasil.total : '';
+      document.getElementById('inpPengCatatan').value = '';
+      const items = (hasil.items && hasil.items.length) ? hasil.items : [{}];
+      document.getElementById('pengItemBody').innerHTML = items.map(barisPengeluaran).join('');
+      document.getElementById('pesanPengeluaran').textContent = '';
+      document.getElementById('pesanPengeluaran').className = 'kelola-pesan';
+      document.getElementById('formPengeluaran').hidden = false;
+      periksaSelisih();
+    }
+
+    function tutupFormPengeluaran() {
+      document.getElementById('formPengeluaran').hidden = true;
+      document.getElementById('pesanStrukAi').textContent = '';
+    }
+
+    document.getElementById('btnPengeluaranManual').addEventListener('click', function () {
+      document.getElementById('pesanStrukAi').textContent = '';
+      bukaFormPengeluaran(null, 'manual');
+    });
+    document.getElementById('btnBatalPengeluaran').addEventListener('click', tutupFormPengeluaran);
+    document.getElementById('btnPengTambahBaris').addEventListener('click', function () {
+      document.getElementById('pengItemBody').insertAdjacentHTML('beforeend', barisPengeluaran({}));
+    });
+
+    document.getElementById('pengItemBody').addEventListener('click', function (e) {
+      if (!e.target.closest('[data-hapus-baris]')) return;
+      e.target.closest('tr').remove();
+      if (!document.querySelector('#pengItemBody tr')) {
+        document.getElementById('pengItemBody').innerHTML = barisPengeluaran({});
+      }
+      periksaSelisih();
+    });
+
+    // Mengubah qty atau harga menghitung ulang subtotal baris itu. Mengubah
+    // subtotal langsung dibiarkan — struk kadang membulatkan.
+    document.getElementById('pengItemBody').addEventListener('input', function (e) {
+      const f = e.target.dataset.f;
+      if (f === 'qty' || f === 'harga') {
+        const tr = e.target.closest('tr');
+        const q = Number(tr.querySelector('[data-f="qty"]').value);
+        const h = Number(tr.querySelector('[data-f="harga"]').value);
+        if (q > 0 && h >= 0) tr.querySelector('[data-f="sub"]').value = Math.round(q * h);
+      }
+      periksaSelisih();
+    });
+    document.getElementById('inpPengTotal').addEventListener('input', periksaSelisih);
+
+    document.getElementById('inpFotoStruk').addEventListener('change', async function () {
+      const inp = this;
+      const berkas = inp.files && inp.files[0];
+      // Dikosongkan segera supaya memotret ulang struk yang sama tetap memicu
+      // pembacaan — tanpa ini peramban menganggap tidak ada yang berubah.
+      inp.value = '';
+      if (!berkas) return;
+
+      const pesan = document.getElementById('pesanStrukAi');
+      tutupFormPengeluaran();
+      kelolaPesan(pesan, 'Membaca struk…', true);
+      document.getElementById('formPengeluaran').hidden = false;
+      document.getElementById('pengItemBody').innerHTML = '';
+
+      try {
+        const foto = await perkecilGambar(berkas);
+        // Lewat Edge Function, bukan langsung: kunci API AI tidak boleh ada di
+        // halaman yang dibuka peramban.
+        const { data, error } = await sb.functions.invoke('ai-struk', { body: foto });
+        if (error) {
+          let teks = error.message || String(error);
+          try { const b = await error.context.json(); if (b && b.error) teks = b.error; } catch (_) {}
+          throw new Error(teks);
+        }
+        const hasil = data && data.hasil;
+        if (!hasil || hasil.terbaca === false) {
+          tutupFormPengeluaran();
+          alert('Gambar itu tidak terbaca sebagai struk belanja. Potret ulang struknya saja, lurus dan terang.');
+          return;
+        }
+        bukaFormPengeluaran(hasil, 'struk_ai');
+        const ragu = hasil.catatan ? ' Perhatikan: ' + hasil.catatan : '';
+        kelolaPesan(pesan, 'Terbaca ' + (hasil.items || []).length + ' barang. Periksa setiap angka sebelum menyimpan.'
+          + ragu + (typeof data.sisa_hari_ini === 'number' ? ' (Sisa pembacaan hari ini: ' + data.sisa_hari_ini + ')' : ''), !hasil.catatan);
+      } catch (err) {
+        // tutupFormPengeluaran, bukan sekadar menyembunyikan: pesan "Membaca
+        // struk…" yang tertinggal akan muncul lagi saat formulir dibuka manual.
+        tutupFormPengeluaran();
+        alert('Gagal membaca struk: ' + (err.message || err) + '\n\nAnda tetap bisa mengisinya lewat tombol + Manual.');
+      }
+    });
+
+    document.getElementById('btnSimpanPengeluaran').addEventListener('click', async function () {
+      const msg = document.getElementById('pesanPengeluaran');
+      const items = bacaBarisPengeluaran().filter(b => b.nama || b.harga_satuan || b.subtotal);
+      const tanggal = document.getElementById('inpPengTanggal').value;
+      const total = document.getElementById('inpPengTotal').value;
+
+      if (!tanggal) { kelolaPesan(msg, 'Tanggal belanja wajib diisi.', false); return; }
+      if (!items.length) { kelolaPesan(msg, 'Isi minimal satu barang.', false); return; }
+      const kosong = items.find(b => !b.nama || !(b.qty > 0) || b.harga_satuan === null);
+      if (kosong) { kelolaPesan(msg, 'Setiap barang butuh nama, jumlah, dan harga satuan.', false); return; }
+      // Total kosong diisi dari jumlah baris, bukan ditolak: nota warung sering
+      // tidak menuliskan total sama sekali.
+      const nilaiTotal = total === '' ? items.reduce((a, b) => a + (Number(b.subtotal) || b.qty * b.harga_satuan), 0) : Number(total);
+
+      const btn = this;
+      btn.disabled = true;
+      try {
+        const { data, error } = await sb.rpc('owner_simpan_pengeluaran', {
+          p_tanggal: tanggal,
+          p_toko: document.getElementById('inpPengToko').value,
+          p_total: nilaiTotal,
+          p_catatan: document.getElementById('inpPengCatatan').value,
+          p_sumber: pengSumber,
+          p_items: items
+        });
+        if (error) throw error;
+        const r = Array.isArray(data) ? data[0] : data;
+        tutupFormPengeluaran();
+        await muatPengeluaran();
+        if (r && r.hpp_diperbarui > 0) {
+          await loadHpp();
+          alert('Tersimpan. Harga modal ' + r.hpp_diperbarui + ' produk ikut diperbarui di HPP & Laba Produk.');
+        }
+      } catch (err) {
+        kelolaPesan(msg, 'Gagal menyimpan: ' + (err.message || err), false);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('pengeluaranBody').addEventListener('click', async function (e) {
+      const b = e.target.closest('[data-hapus-peng]');
+      if (!b) return;
+      const p = pengeluaranData.find(x => x.id === b.dataset.hapusPeng);
+      if (!confirm('Hapus pengeluaran ' + (p ? (p.toko || 'tanpa nama toko') + ' ' + formatRupiah(p.total) : '') + '?\n\n'
+        + 'Harga modal produk yang sempat diperbarui olehnya TIDAK dikembalikan — betulkan di HPP & Laba Produk bila perlu.')) return;
+      b.disabled = true;
+      const { error } = await sb.rpc('owner_hapus_pengeluaran', { p_id: b.dataset.hapusPeng });
+      if (error) { b.disabled = false; alert('Gagal menghapus: ' + error.message); return; }
+      await muatPengeluaran();
+    });
+
     async function loadHpp() {
       const { data, error } = await sb.rpc('hpp_report');
       if (error) {
@@ -3024,6 +3422,10 @@
         el.addEventListener('change', function () {
           if (!el.value) { el.value = bulanAbsensi; return; }
           bulanAbsensi = el.value;
+          // Bulan lain berarti daftar lain: halaman 9 September tidak ada
+          // hubungannya dengan Agustus. Penjepitan di gambarBerhalaman hanya
+          // menjaga agar nomornya sah, bukan agar ia bermakna.
+          halamanTabel.absen = 1;
           document.querySelectorAll('.inp-bulan').forEach(function (lain) { lain.value = bulanAbsensi; });
           tulisJudulBulan();
           muatSemuaAbsensi();
@@ -3992,22 +4394,81 @@
        tetapi tidak memberi cara menunjuk satu catatan untuk dihapus. Tabel ini
        memakai attendance_rows() yang mengembalikan barisnya satu per satu.
        ═══════════════════════════════════════════════════════════════════════ */
+    /* ── Tabel berhalaman ─────────────────────────────────────────────────
+       Tiga karyawan dikali tiga puluh hari sudah hampir seratus baris untuk
+       satu bulan, dan seluruhnya dirender sekaligus.
+
+       Pemenggalannya dilakukan di sisi layar, bukan di kueri: datanya sudah
+       dibatasi per bulan oleh attendance_rows, jadi yang datang memang tidak
+       banyak. Memindahkan pemenggalan ke server berarti satu panggilan tiap
+       kali halaman berganti, untuk baris yang sudah ada di tangan.
+
+       Nomor halaman disimpan per tabel dan DIJEPIT, bukan disetel ulang, tiap
+       kali digambar. Menghapus baris terakhir di halaman 9 dari 9 akan
+       menyisakan halaman yang tidak ada lagi; menjepitnya membawa owner ke
+       halaman terakhir yang masih sah, bukan ke tabel kosong yang terbaca
+       seperti kerusakan. */
+    const BARIS_PER_HALAMAN = 10;
+    const halamanTabel = {};
+
+    function gambarBerhalaman(kunci, baris, opsi) {
+      const tb = document.getElementById(opsi.tbody);
+      const nav = document.getElementById(opsi.nav);
+      if (!tb) return;
+
+      if (!baris.length) {
+        tb.innerHTML = '<tr><td colspan="' + opsi.kolom + '" class="empty-row">'
+                     + opsi.kosong + '</td></tr>';
+        if (nav) nav.innerHTML = '';
+        return;
+      }
+
+      const maks = Math.ceil(baris.length / BARIS_PER_HALAMAN);
+      const h = Math.min(Math.max(1, halamanTabel[kunci] || 1), maks);
+      halamanTabel[kunci] = h;
+
+      const dari = (h - 1) * BARIS_PER_HALAMAN;
+      const sampai = Math.min(dari + BARIS_PER_HALAMAN, baris.length);
+      tb.innerHTML = baris.slice(dari, sampai).map(opsi.baris).join('');
+
+      if (!nav) return;
+      if (maks === 1) { nav.innerHTML = ''; return; }
+      nav.innerHTML =
+          '<span class="pager-info">' + (dari + 1) + '&ndash;' + sampai
+        + ' dari ' + baris.length + '</span>'
+        + '<button class="btn-filter-date" data-pager="' + kunci + '" data-ke="' + (h - 1) + '"'
+        + (h === 1 ? ' disabled' : '') + '>&larr;</button>'
+        + '<span class="pager-info">Hal. ' + h + '/' + maks + '</span>'
+        + '<button class="btn-filter-date" data-pager="' + kunci + '" data-ke="' + (h + 1) + '"'
+        + (h === maks ? ' disabled' : '') + '>&rarr;</button>';
+    }
+
+    /* Penggambar ulang per tabel, supaya tombol halaman tahu apa yang harus
+       dipanggil tanpa memuat ulang dari server. */
+    const gambarUlangTabel = {};
+
+    document.addEventListener('click', function (e) {
+      const b = e.target.closest('[data-pager]');
+      if (!b || b.disabled) return;
+      const kunci = b.dataset.pager;
+      halamanTabel[kunci] = Number(b.dataset.ke);
+      if (gambarUlangTabel[kunci]) gambarUlangTabel[kunci]();
+    });
+
     async function muatAbsenBaris() {
       const tb = document.getElementById('absenRowBody');
       const { data, error } = await sb.rpc('attendance_rows', { p_bulan: bulanKeTanggal(bulanAbsensi) });
       if (error) {
         tb.innerHTML = '<tr><td colspan="9" class="empty-row">Gagal memuat: ' + escapeHtml(error.message) + '</td></tr>';
+        const nav = document.getElementById('absenRowPager');
+        if (nav) nav.innerHTML = '';
         return;
       }
       const rows = data || [];
-      if (!rows.length) {
-        tb.innerHTML = '<tr><td colspan="9" class="empty-row">Belum ada catatan absensi bulan ini.</td></tr>';
-        return;
-      }
       const jam = function (t) {
         return t ? new Date(t).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '-';
       };
-      tb.innerHTML = rows.map(function (r) {
+      const satuBaris = function (r) {
         const telat = (r.terlambat_menit || 0) > 0;
         return '<tr>'
           + '<td style="font-family:var(--mono); font-size:12px;">' + r.business_date + '</td>'
@@ -4025,7 +4486,16 @@
           + 'data-nama="' + escapeHtml(r.capster_name) + '" data-tgl="' + r.business_date + '" '
           + 'title="Hapus catatan absensi ini">&#215;</button></td>'
           + '</tr>';
-      }).join('');
+      };
+
+      const gambar = function () {
+        gambarBerhalaman('absen', rows, {
+          tbody: 'absenRowBody', nav: 'absenRowPager', kolom: 9,
+          kosong: 'Belum ada catatan absensi bulan ini.', baris: satuBaris
+        });
+      };
+      gambarUlangTabel.absen = gambar;
+      gambar();
     }
 
     document.getElementById('absenRowBody').addEventListener('click', async (e) => {
@@ -4219,6 +4689,11 @@
       document.getElementById('inpKarNama').value    = kar ? (kar.name || '') : '';
       document.getElementById('inpKarJabatan').value = kar ? (kar.jabatan || 'Kapster') : '';
       document.getElementById('inpKarTelepon').value = kar ? (kar.telepon || '') : '';
+      // TIME dari Postgres datang sebagai 'HH:MM:SS'; <input type=time> menerima
+      // 'HH:MM'. Tanpa dipotong, beberapa peramban menampilkan kolomnya kosong
+      // dan simpan berikutnya diam-diam menghapus jam kerja orang itu.
+      document.getElementById('inpKarJamMasuk').value  = kar && kar.jam_masuk  ? String(kar.jam_masuk).slice(0, 5)  : '';
+      document.getElementById('inpKarJamPulang').value = kar && kar.jam_pulang ? String(kar.jam_pulang).slice(0, 5) : '';
       document.getElementById('chkKarIkutPos').checked = kar ? (kar.ikut_pos !== false) : true;
       document.getElementById('chkKarAktif').checked   = kar ? (kar.is_active !== false) : true;
       document.getElementById('pesanKaryawan').textContent = '';
@@ -4271,6 +4746,13 @@
             +   (mencukur
                   ? '<span class="kelola-tag cukur">Mencukur</span>'
                   : '<span class="kelola-tag">Tidak mencukur</span>')
+            // Jam kerjanya sendiri, bila ada. Yang ikut jam toko tidak diberi
+            // penanda: itu keadaan biasa, dan penanda di setiap kartu hanya
+            // membuat yang istimewa tenggelam di antara yang biasa.
+            +   (c.jam_masuk && c.jam_pulang
+                  ? '<span class="kelola-tag">' + String(c.jam_masuk).slice(0, 5).replace(':', '.')
+                    + '&ndash;' + String(c.jam_pulang).slice(0, 5).replace(':', '.') + '</span>'
+                  : '')
             +   (c.is_active ? '' : '<span class="kelola-tag mati">Nonaktif</span>')
             + '</div></div>'
             + '<div class="kelola-aksi">'
@@ -4356,6 +4838,17 @@
         kelolaPesan(msg, 'Nomor terlalu pendek. Contoh: 081297754581.', false); return;
       }
 
+      // Keduanya atau tidak sama sekali. Server menolaknya juga, tetapi owner
+      // tidak perlu menunggu jaringan untuk tahu ia lupa mengisi satu kolom.
+      const jamMasuk  = document.getElementById('inpKarJamMasuk').value;
+      const jamPulang = document.getElementById('inpKarJamPulang').value;
+      if (!!jamMasuk !== !!jamPulang) {
+        kelolaPesan(msg, 'Isi jam masuk dan jam pulang sekaligus, atau kosongkan keduanya.', false); return;
+      }
+      if (jamMasuk && jamPulang <= jamMasuk) {
+        kelolaPesan(msg, 'Jam pulang harus setelah jam masuk.', false); return;
+      }
+
       const btn = this;
       btn.disabled = true;
       const label = btn.textContent;
@@ -4367,7 +4860,9 @@
           p_telepon:  telp || null,
           p_jabatan:  document.getElementById('inpKarJabatan').value.trim() || 'Kapster',
           p_ikut_pos: document.getElementById('chkKarIkutPos').checked,
-          p_aktif:    document.getElementById('chkKarAktif').checked
+          p_aktif:    document.getElementById('chkKarAktif').checked,
+          p_jam_masuk:  jamMasuk  || null,
+          p_jam_pulang: jamPulang || null
         });
         if (error) throw error;
         tutupFormKaryawan();
@@ -4435,8 +4930,14 @@
         await muatKelolaAkun();
         const baru = document.querySelector('[data-sandi-pesan="' + id + '"]');
         if (baru) {
+          // Akun lama yang ditautkan ulang disebut terang-terangan: sandinya
+          // baru saja diganti, dan siapa pun yang masih memegang sandi lamanya
+          // perlu tahu sandi itu sudah tidak berlaku.
           kelolaPesan(baru, 'Akun ' + (r ? r.email : mail)
-            + ' dibuat. Kapster sudah bisa masuk dan absen.', true);
+            + (r && r.akun_lama
+                ? ' yang sudah ada ditautkan ulang dengan sandi baru.'
+                : ' dibuat.')
+            + ' Karyawan sudah bisa masuk dan absen.', true);
         }
         return;
       }

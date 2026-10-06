@@ -290,7 +290,7 @@
   </header>
 
   <main id="mainArea" hidden>
-    <div class="kpi-row">
+    <div class="kpi-row" data-khusus-cukur>
       <div class="kpi is-lead">
         <div class="kpi-label">Pelanggan Hari Ini</div>
         <div class="kpi-val" id="kpiHeads">0</div>
@@ -380,7 +380,7 @@
       <div class="rows" id="cutiList"></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-khusus-cukur>
       <div class="card-head">
         <h2>Layanan Hari Ini</h2>
         <span id="lblServiceCount"></span>
@@ -388,7 +388,7 @@
       <div class="rows" id="serviceRows"></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-khusus-cukur>
       <div class="card-head">
         <h2>30 Hari Terakhir</h2>
         <span id="lblMonthTotal"></span>
@@ -467,6 +467,7 @@
        ------------------------------------------------------------------------- */
 
     let aturanKerja = null;
+    let jamKerjaSaya = null;   // jam_kerja_saya(): jam yang dipakai menilai orang ini hari ini
     let meCapster = null;
 
     function jamWIB(iso) {
@@ -491,9 +492,12 @@
       const a = Array.isArray(res.data) ? res.data[0] : res.data;
       const dot = $('absenDot'), btn = $('btnAbsen');
 
+      const jamTampil = jamKerjaSaya || aturanKerja;
+      if (jamTampil) {
+        $('jamKerja').textContent = String(jamTampil.jam_masuk).slice(0,5)
+          + '–' + String(jamTampil.jam_pulang).slice(0,5);
+      }
       if (aturanKerja) {
-        $('jamKerja').textContent = String(aturanKerja.jam_masuk).slice(0,5)
-          + '–' + String(aturanKerja.jam_pulang).slice(0,5);
         // Keterangan mengikuti aturan yang sedang berlaku. Menyebut radius
         // padahal pengecekannya dimatikan membuat layar ini berbohong, dan
         // capster akan mengira absennya gagal karena posisi.
@@ -831,6 +835,19 @@
         }
         aturanKerja = r.data || null;
       }
+      if (!jamKerjaSaya) {
+        /* Jam yang dipakai MENILAI orang ini hari ini — jamnya sendiri bila
+           ada, selain itu jadwal toko hari itu. work_rules di atas hanya satu
+           angka umum untuk semua orang: menampilkannya membuat karyawan
+           09.00 - 17.00 membaca 10:00 - 21:00, dan kapster membaca 10:00 pada
+           hari Jumat padahal toko baru buka 13.00.
+
+           Bila gagal — misalnya migrasi 52 belum dijalankan — layar kembali
+           memakai work_rules seperti sebelumnya, bukan kosong. */
+        const j = await sb.rpc('jam_kerja_saya');
+        const baris = !j.error && (Array.isArray(j.data) ? j.data[0] : j.data);
+        jamKerjaSaya = baris && baris.jam_masuk ? baris : null;
+      }
       await Promise.all([muatAbsen(), muatCuti()]);
     }
 
@@ -999,14 +1016,32 @@
         renderHarian(harian);
       }
 
-      await muat();
+      /* Karyawan yang tidak mencukur — admin, tim sosial media — tidak punya
+         pelanggan, layanan, maupun omzet. Kotak-kotak itu akan selalu nol
+         baginya, dan angka nol yang tampil setiap hari terbaca seperti
+         teguran, bukan seperti keterangan.
+
+         !== false, bukan === true: sebelum migrasi 48 me_capster belum
+         membawa ikut_pos, dan tanpa kolom itu semua orang memang kapster.
+
+         Datanya juga tidak diminta sama sekali, termasuk penyegaran tiap
+         menit. Menyembunyikan tampilan sambil tetap menanyakan server setiap
+         60 detik adalah pekerjaan yang tidak dibaca siapa pun. */
+      const mencukur = me.ikut_pos !== false;
+      if (!mencukur) {
+        document.querySelectorAll('[data-khusus-cukur]').forEach(function (el) { el.hidden = true; });
+      }
+
+      if (mencukur) await muat();
       await muatAbsenDanCuti().catch(function () {});
 
       // Transaksi masuk dari perangkat kasir, bukan dari halaman ini
-      setInterval(() => { if (SBConn.online) muat(); }, 60000);
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && SBConn.online) muat();
-      });
+      if (mencukur) {
+        setInterval(() => { if (SBConn.online) muat(); }, 60000);
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && SBConn.online) muat();
+        });
+      }
     })();
   </script>
 </body>
