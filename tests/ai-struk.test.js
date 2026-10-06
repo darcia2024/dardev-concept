@@ -1,4 +1,4 @@
-/* Add-on AI, fitur 1: pengeluaran dari foto struk (migrasi 53, ai-struk).
+/* Add-on AI, fitur 1: pengeluaran dari foto struk (migrasi 53, ai-struk, lewat OpenRouter).
  *
  * Yang dijaga di sini adalah janji-janji yang, bila dilanggar, tidak akan
  * tampak sebagai galat — hanya sebagai tagihan yang membengkak, kunci API yang
@@ -6,7 +6,7 @@
  *
  *   1. Kunci API AI tidak pernah sampai ke peramban.
  *   2. AI hanya MEMBACA. Tidak ada yang tersimpan sebelum owner menekan Simpan.
- *   3. Batas harian diperiksa SEBELUM Claude dihubungi, jadi tidak ditagih.
+ *   3. Batas harian diperiksa SEBELUM model AI dihubungi, jadi tidak ditagih.
  *   4. Harga modal (HPP) hanya berubah untuk baris yang owner tautkan sendiri.
  *   5. Penolakan dan jawaban terpotong ditangani sebelum JSON-nya dibaca.
  */
@@ -21,11 +21,13 @@ const fn    = baca('supabase/functions/ai-struk/index.ts');
 const rekap = baca('rekap.html');
 
 /* ── 1 · Kunci API hanya di server ───────────────────────────────────────── */
-assert.match(fn, /apiKey: Deno\.env\.get\('ANTHROPIC_API_KEY'\)/, 'kunci dibaca dari secret Supabase');
+assert.match(fn, /Deno\.env\.get\('OPENROUTER_API_KEY'\)/, 'kunci dibaca dari secret Supabase');
 for (const f of ['rekap.html', 'pos.html', 'kartu.html', 'landing.html', 'capster.html', 'masuk.html', 'sb-app.js']) {
   const isi = baca(f);
+  assert.doesNotMatch(isi, /sk-or-[A-Za-z0-9_-]{10,}/, `${f} memuat sesuatu yang berbentuk kunci OpenRouter`);
   assert.doesNotMatch(isi, /sk-ant-[A-Za-z0-9_-]{10,}/, `${f} memuat sesuatu yang berbentuk kunci API Anthropic`);
-  assert.doesNotMatch(isi, /api\.anthropic\.com/, `${f} memanggil API Anthropic langsung — itu hanya mungkin dengan kunci di peramban`);
+  assert.doesNotMatch(isi, /openrouter\.ai\/api|api\.anthropic\.com/,
+    `${f} memanggil layanan AI langsung — itu hanya mungkin dengan kunci di peramban`);
 }
 assert.match(rekap, /sb\.functions\.invoke\('ai-struk'/, 'pembacaan struk harus lewat Edge Function');
 
@@ -46,46 +48,53 @@ assert.ok(penanganFoto.length > 0);
 assert.match(penanganFoto, /bukaFormPengeluaran\(hasil, 'struk_ai'\)/, 'hasil bacaan mengisi formulir untuk diperiksa');
 assert.doesNotMatch(penanganFoto, /owner_simpan_pengeluaran/, 'membaca struk tidak boleh langsung menyimpan');
 
-/* ── 3 · Batas harian sebelum Claude dihubungi ───────────────────────────
+/* ── 3 · Batas harian sebelum model AI dihubungi ─────────────────────────
    Bila urutannya terbalik, panggilan yang ditolak tetap sudah ditagih. */
-const iBatas  = fn.indexOf('>= BATAS_HARIAN');
-const iClaude = fn.indexOf('claude.beta.messages.create(');
-assert.ok(iBatas > 0 && iClaude > 0, 'batas harian dan panggilan Claude harus ada');
-assert.ok(iBatas < iClaude, 'batas harian harus diperiksa sebelum Claude dihubungi');
-// Penjaga owner juga sebelum Claude, dan sebelum badan permintaan dibaca.
+const iBatas = fn.indexOf('>= BATAS_HARIAN');
+const iAi    = fn.indexOf("fetch('https://openrouter.ai/api/v1/chat/completions'");
+assert.ok(iBatas > 0 && iAi > 0, 'batas harian dan panggilan AI harus ada');
+assert.ok(iBatas < iAi, 'batas harian harus diperiksa sebelum model AI dihubungi');
+// Penjaga owner juga sebelum AI, dan sebelum badan permintaan dibaca.
 assert.ok(fn.indexOf("profil?.role !== 'owner'") < fn.indexOf('await req.json()'), 'owner diperiksa sebelum masukan dibaca');
-assert.ok(fn.indexOf("profil?.role !== 'owner'") < iClaude);
-// Setiap jalan keluar setelah Claude dipanggil tercatat — kalau tidak, batasnya bocor.
-const sesudah = fn.slice(iClaude);
-assert.ok((sesudah.match(/await catatPemakaian\(/g) || []).length >= 4,
-  'berhasil, refusal, max_tokens, dan galat harus semuanya tercatat');
+assert.ok(fn.indexOf("profil?.role !== 'owner'") < iAi);
+// Setiap jalan keluar setelah AI dipanggil tercatat — kalau tidak, batasnya bocor.
+const sesudah = fn.slice(iAi);
+assert.ok((sesudah.match(/await catatPemakaian\(/g) || []).length >= 6,
+  'jaringan, galat HTTP, refusal, length, JSON rusak, dan berhasil harus semuanya tercatat');
 
-/* ── 4 · Permintaan ke Claude ────────────────────────────────────────────── */
-assert.match(fn, /const MODEL = 'claude-opus-5-5';/);
-assert.match(fn, /effort: 'medium'/, 'effort ditulis eksplisit — bawaan model ini medium, dan pilihan itu harus terlihat');
-assert.match(fn, /format: \{ type: 'json_schema', schema: SKEMA_STRUK \}/, 'jawaban dibatasi skema lewat structured outputs');
-assert.match(fn, /betas: \['server-side-fallback-2026-07-01'\]/);
-assert.match(fn, /fallbacks: 'default'/);
-assert.doesNotMatch(fn, /budget_tokens|type: 'disabled'|temperature/,
-  'parameter yang ditolak model ini tidak boleh dikirim');
+/* ── 4 · Permintaan ke OpenRouter ────────────────────────────────────────── */
+assert.match(fn, /const MODEL = Deno\.env\.get\('MODEL_AI'\) \|\| 'google\/gemini-3\.5-flash-lite';/,
+  'model dapat diganti lewat secret MODEL_AI, dengan bawaan yang murah');
+assert.match(fn, /response_format: \{\s*type: 'json_schema',\s*json_schema: \{ name: 'struk', strict: true, schema: SKEMA_STRUK \},?\s*\}/,
+  'jawaban dibatasi skema lewat structured outputs');
+// Tanpa ini OpenRouter boleh merutekan ke penyedia yang mengabaikan skema.
+assert.match(fn, /provider: \{ require_parameters: true \}/);
+// Parameter reasoning TIDAK dikirim: require_parameters akan menuntutnya
+// juga, sehingga mengganti MODEL_AI ke model tanpa reasoning gagal dirutekan.
+const badanPermintaan = fn.slice(iAi, fn.indexOf('  } catch (e) {', iAi));
+assert.doesNotMatch(badanPermintaan, /reasoning\s*:/, 'parameter reasoning tidak boleh dikirim bersama require_parameters');
+// Teks lebih dulu, lalu gambar — rekomendasi OpenRouter.
+assert.ok(badanPermintaan.indexOf("type: 'text'") < badanPermintaan.indexOf("type: 'image_url'"),
+  'bagian teks harus mendahului gambar');
 
 // Structured outputs menolak batasan angka dan panjang string, dan menuntut
-// additionalProperties: false pada setiap objek.
+// additionalProperties: false pada setiap objek. anyOf dihindari karena
+// dukungan penyedia di belakang OpenRouter tidak merata.
 const skema = fn.slice(fn.indexOf('const SKEMA_STRUK'), fn.indexOf('as const;'));
 assert.doesNotMatch(skema, /minimum|maximum|minLength|maxLength|multipleOf/, 'batasan yang tidak didukung structured outputs');
+assert.doesNotMatch(skema, /anyOf|'null'/, 'skema tidak boleh bergantung pada anyOf/null');
 assert.equal((skema.match(/type: 'object'/g) || []).length, (skema.match(/additionalProperties: false/g) || []).length,
   'setiap objek dalam skema harus additionalProperties: false');
 
-/* ── 5 · Penolakan dan jawaban terpotong ditangani sebelum JSON dibaca ──── */
-// Pembacaan JAWABAN Claude, bukan JSON.parse pertama di berkas — pemilah
-// SUPABASE_SECRET_KEYS di bagian atas juga memakai JSON.parse.
+/* ── 5 · Galat, penolakan, dan jawaban terpotong ditangani sebelum JSON dibaca */
 const iParse = fn.indexOf('JSON.parse(teks');
-assert.ok(iParse > 0, 'pembacaan jawaban Claude harus ditemukan');
-assert.ok(fn.indexOf("stop_reason === 'refusal'") < iParse, 'refusal diperiksa sebelum JSON dibaca');
-assert.ok(fn.indexOf("stop_reason === 'max_tokens'") < iParse, 'jawaban terpotong diperiksa sebelum JSON dibaca');
-// Galat API ditangkap dari yang paling khusus, tanpa mencocokkan teks pesan.
-assert.match(fn, /e instanceof Anthropic\.AuthenticationError/);
-assert.match(fn, /e instanceof Anthropic\.RateLimitError/);
+assert.ok(iParse > 0, 'pembacaan jawaban AI harus ditemukan');
+assert.ok(fn.indexOf('if (kodeGalat)') < iParse, 'galat HTTP dan galat di badan diperiksa sebelum JSON dibaca');
+assert.match(fn, /!res\.ok \? res\.status : \(data\?\.error/, 'galat di tengah jalan datang sebagai 200 dengan error di badan');
+assert.ok(fn.indexOf('message?.refusal') < iParse, 'penolakan diperiksa sebelum JSON dibaca');
+assert.ok(fn.indexOf("finish_reason === 'length'") < iParse, 'jawaban terpotong diperiksa sebelum JSON dibaca');
+// Saldo habis (402) disebut terang-terangan, bukan sebagai "gagal" umum.
+assert.match(fn, /kodeGalat === 402\)[\s\S]{0,200}Saldo layanan AI habis/, 'saldo habis harus disebut dengan jelas');
 
 /* ── 6 · Basis data ──────────────────────────────────────────────────────── */
 const simpan = definisiTerakhir('owner_simpan_pengeluaran').badan;
