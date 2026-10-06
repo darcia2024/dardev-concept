@@ -103,7 +103,8 @@ assert.doesNotMatch(landing.slice(landing.indexOf('const riwayatTanya')), /local
 /* ── 4 · Booking tidak dibuat AI; sarannya diperiksa terhadap data ───────── */
 assert.doesNotMatch(fn, /create_booking|from\('bookings'\)/, 'ai-tanya tidak boleh membuat booking');
 const iSaring = fn.indexOf('const namaLayanan = new Map(');
-assert.ok(iSaring > 0 && iSaring < fn.indexOf('booking: { tawarkan:'),
+// Jawaban biasa, bukan jalur penolakan topik yang juga memuat "booking:".
+assert.ok(iSaring > 0 && iSaring < fn.indexOf('booking: { tawarkan: hasil.tawarkan_booking'),
   'nama layanan dan kapster dari AI harus diperiksa terhadap data sebelum dikembalikan');
 const pilih = ambilFungsi(landing, 'function pilihkanBooking');
 assert.match(pilih, /b\.click\(\)/, 'memilih lewat tombol yang sudah ada');
@@ -117,5 +118,55 @@ assert.ok(blokTanya.length > 0);
 assert.match(ambilFungsi(landing, 'function gelembung'), /el\.textContent = teks/, 'gelembung chat memakai textContent');
 assert.doesNotMatch(blokTanya, /innerHTML/, 'tidak ada innerHTML di logika chat — jawaban AI adalah masukan tak dipercaya');
 assert.match(landing, /sb\.functions\.invoke\('ai-tanya'/);
+
+/* ── 6 · Penghalang pertanyaan di luar topik ─────────────────────────────
+   Instruksi kepada model dapat dibujuk; penolakan ditegakkan kode server. */
+
+// Lapis 1: klasifikasi wajib, sebagai kolom PERTAMA di skema.
+const skema = fn.slice(fn.indexOf('const SKEMA_JAWABAN'), fn.indexOf('} as const;', fn.indexOf('const SKEMA_JAWABAN')));
+assert.match(skema, /enum: \['barbershop', 'di_luar'\]/, 'topik harus dibatasi pada dua nilai');
+assert.ok(skema.indexOf('topik:') < skema.indexOf('jawaban:'),
+  'topik harus mendahului jawaban, supaya klasifikasi diputuskan sebelum jawaban ditulis');
+assert.match(skema, /required: \['topik',/, 'topik wajib diisi');
+
+// Gagal tertutup: yang bukan "barbershop" — termasuk kolom kosong — ditolak.
+assert.match(fn, /if \(hasil\.topik !== 'barbershop' \|\| jawabanMencurigakan\(jawabanBersih\)\)/,
+  "syaratnya !== 'barbershop', bukan === 'di_luar': kolom yang kosong harus ikut ditolak");
+
+// Jawaban model DIBUANG, bukan disunting: yang dikembalikan hanya PENOLAKAN.
+const jalurTolak = fn.slice(fn.indexOf("if (hasil.topik !== 'barbershop'"), fn.indexOf('/* Saran booking diperiksa'));
+assert.match(jalurTolak, /jawaban: PENOLAKAN,/, 'jalur penolakan mengembalikan teks dari kode, bukan dari model');
+assert.doesNotMatch(jalurTolak, /jawaban: (hasil|jawabanBersih)/, 'tidak satu kata pun dari model boleh lolos di jalur penolakan');
+assert.match(jalurTolak, /tawarkan: false, layanan: \[\], kapster: ''/, 'saran booking ikut dibuang');
+assert.match(jalurTolak, /keterangan: 'di_luar_topik'/, 'tercatat supaya lapis 3 dapat menghitungnya');
+
+// Lapis 2: saringan bentuk jawaban, dijalankan sungguhan.
+const kodeSaring = mod.stripTypeScriptTypes(
+  'const PANJANG_MAKS_JAWABAN = 700;\n' + ambilFungsi(fn, 'function jawabanMencurigakan'), { mode: 'strip' });
+const mencurigakan = new Function(kodeSaring + '; return jawabanMencurigakan;')();
+const SAH = [
+  'Haircut Rp 85.000, sekitar 45 menit. Mau saya pilihkan di formulir booking?',
+  'Kami buka setiap hari 10.00-21.00, kecuali Jumat mulai 13.00.',
+  'Alamat kami di BSD City, Ruko Bidex C8. WhatsApp 081510474646.',
+  'Untuk rambut ikal yang susah diatur, Down Perm bisa jadi pilihan (Rp 175.000).',
+];
+for (const t of SAH) assert.equal(mencurigakan(t), false, 'jawaban sah tidak boleh tertolak: ' + t);
+const CURIGA = [
+  'Tentu! Berikut kodenya:\n```python\nprint(1)\n```',
+  'Lihat di https://contoh.com untuk info lebih lanjut.',
+  'Kunjungi www.situslain.com sekarang.',
+  'Klik <a href="x">di sini</a>',
+  'x'.repeat(701),
+];
+for (const t of CURIGA) assert.equal(mencurigakan(t), true, 'harus tertolak: ' + t.slice(0, 40));
+
+// Lapis 3: pengunjung yang terus mencoba diblokir SEBELUM model dihubungi.
+const iBlokir = fn.indexOf('>= BATAS_DI_LUAR');
+assert.ok(iBlokir > 0 && iBlokir < iAi, 'blokir pengunjung yang terus mencoba harus sebelum AI dihubungi');
+assert.match(fn, /Number\(Deno\.env\.get\('BATAS_TANYA_DI_LUAR'\) \?\? '3'\)/);
+
+// Instruksi mendefinisikan batas topik dengan jelas, dan bila ragu: di luar.
+assert.match(instruksi, /Bila ragu apakah sebuah pertanyaan termasuk topik barbershop, anggap "di_luar"/);
+assert.match(instruksi, /Jangan menjawab sebagian/);
 
 console.log('ai-tanya: semua pemeriksaan lolos');
