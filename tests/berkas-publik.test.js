@@ -45,6 +45,8 @@ const WAJIB_TERTUTUP = [
   'tests/berkas-publik.test.js',
   'tests/akun-karyawan.test.js',
   'supabase/functions/ai-struk/index.ts',
+  'supabase/functions/ai-tanya/index.ts',
+  'supabase_migration_54_ai_tanya.sql',
   'perencanaan.html',
   'SERAH-TERIMA.md',
   'README.md',
