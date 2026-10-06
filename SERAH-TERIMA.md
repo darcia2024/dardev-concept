@@ -18,6 +18,18 @@ Disusun oleh **Dardev**. Menyertai *Addendum Ruang Lingkup Revisi 02*.
 
 Basis: `https://dardev-concept.vercel.app`
 
+**Deploy.** Sejak 6 Oktober 2026 proyek Vercel `dardev-concept` tersambung ke
+repo GitHub `darcia2024/dardev-concept`: setiap push ke `main` langsung
+di-deploy ke produksi. Sebelumnya deploy dijalankan manual lewat skrip lokal,
+sehingga commit bisa berhari-hari berada di `main` tanpa pernah live. Di
+daftar Deployments, deployment lama dari CLI bertanda `>_`; jangan di-Redeploy,
+sebab yang dibangun ulang adalah berkas lama yang dulu diunggah, bukan isi
+`main` sekarang.
+
+Migrasi SQL dan Edge Function tetap tidak ikut deploy Vercel: SQL dijalankan
+di SQL Editor Supabase, Edge Function di-deploy lewat dashboard Supabase atau
+`supabase functions deploy`.
+
 ---
 
 ## 2. Siapa Masuk Lewat Mana
