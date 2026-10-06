@@ -207,13 +207,16 @@ Perannya dipaku `capster` di dalam fungsinya dan tidak dapat ditentukan
 pemanggil, sehingga jalur ini tidak bisa dipakai memunculkan owner atau kasir
 baru. `tests/buat-akun-kapster.test.js` menjaganya.
 
-Versi pertama fungsi ini membiarkan kolom token `auth.users`
-(`confirmation_token`, `recovery_token`, `email_change`, dst.) bernilai NULL.
-GoTrue tidak mau membaca NULL di kolom itu, sehingga akun yang dibuatnya tidak
-pernah bisa masuk: `/masuk` hanya menjawab **"Database error querying
-schema"**. Migrasi 49 meluruskan akun yang sudah terlanjur dibuat dan menulis
-ulang fungsinya agar kolom itu diisi `''`. Bila gejala yang sama muncul lagi
-pada akun mana pun yang dibuat lewat SQL, sebabnya hampir pasti sama.
+Fungsi ini membiarkan kolom token `auth.users` (`confirmation_token`,
+`recovery_token`, `email_change`, dst.) bernilai NULL. GoTrue tidak mau membaca
+NULL di kolom itu, sehingga akun yang dibuatnya tidak pernah bisa masuk:
+`/masuk` hanya menjawab **"Database error querying schema"**. Migrasi 55
+meluruskan akun yang sudah terlanjur dibuat dan memasang trigger di
+`auth.users` yang mengganti NULL itu dengan `''` sebelum tersimpan. Sengaja
+trigger, bukan versi keempat `owner_buat_akun_capster`: fungsi itu sudah
+pernah tertimpa versi lama, dan trigger tetap bekerja versi fungsi mana pun
+yang sedang aktif. Bila gejala yang sama muncul lagi, periksa dulu trigger
+`auth_users_token_kosong` masih terpasang.
 `tests/token-akun.test.js` menjaganya.
 
 ---
