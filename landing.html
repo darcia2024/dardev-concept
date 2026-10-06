@@ -1458,6 +1458,9 @@
         riwayatTanya.push({ peran: 'asisten', teks: data.jawaban });
 
         if (data.booking && data.booking.tawarkan) {
+          // Hanya tombol booking terbaru yang ditampilkan: tombol yang sama
+          // berulang di setiap jawaban membuat chat terasa seperti iklan.
+          document.querySelectorAll('#tanyaIsi .tanya-aksi').forEach(function (el) { el.remove(); });
           const aksi = document.createElement('div');
           aksi.className = 'tanya-aksi';
           const b = document.createElement('button');

@@ -169,4 +169,18 @@ assert.match(fn, /Number\(Deno\.env\.get\('BATAS_TANYA_DI_LUAR'\) \?\? '3'\)/);
 assert.match(instruksi, /Bila ragu apakah sebuah pertanyaan termasuk topik barbershop, anggap "di_luar"/);
 assert.match(instruksi, /Jangan menjawab sebagian/);
 
+/* ── Menjelaskan layanan sendiri ──────────────────────────────────────────
+   Data toko hanya memuat nama, harga, dan durasi layanan. Tanpa izin eksplisit
+   memakai pengetahuan umum, AI menjawab "tidak tahu" ketika ditanya apa itu
+   Design Perm — layanan termahal tokonya sendiri. */
+assert.match(instruksi, /BOLEH menjelaskan secara umum apa itu layanan/, 'AI harus boleh menjelaskan arti layanan');
+assert.match(instruksi, /Jangan pernah menjawab "tidak tahu" untuk pertanyaan tentang arti atau hasil sebuah layanan/);
+assert.doesNotMatch(instruksi, /Bila jawabannya tidak ada di DATA TOKO, katakan terus terang Anda tidak tahu/,
+  'aturan lama yang membuat AI menolak menjelaskan layanan tidak boleh kembali');
+// Tombol booking lama dibuang sebelum yang baru dipasang.
+const tampilBooking = landing.slice(landing.indexOf('if (data.booking && data.booking.tawarkan)'));
+assert.ok(tampilBooking.indexOf(".tanya-aksi').forEach") > 0 &&
+  tampilBooking.indexOf(".tanya-aksi').forEach") < tampilBooking.indexOf("createElement('div')"),
+  'hanya tombol booking terbaru yang tampil');
+
 console.log('ai-tanya: semua pemeriksaan lolos');
