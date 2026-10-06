@@ -411,6 +411,65 @@
     .pesan.baik { color: var(--ok); background: var(--ok-wash); border: 1px solid rgba(15,115,85,.28); }
     .kode { display: block; margin-top: 7px; font-size: 24px; font-weight: var(--w-semi); letter-spacing: .06em; }
 
+    /* [hidden] hanya berasal dari stylesheet bawaan peramban, dan aturan
+       author mana pun yang menetapkan display mengalahkannya. Kotak chat di
+       bawah memakai hidden dan display:flex bersamaan; tanpa baris ini ia
+       tidak akan pernah tertutup. */
+    [hidden] { display: none !important; }
+
+    /* ── Tanya (chat pelanggan, Add-on AI) ─────────────────────────────── */
+    .tanya-buka {
+      position: fixed; right: 18px; bottom: 18px; z-index: 60;
+      border-radius: 999px; padding: 12px 20px;
+    }
+    .tanya {
+      position: fixed; right: 18px; bottom: 18px; z-index: 61;
+      width: min(380px, calc(100vw - 36px)); height: min(560px, calc(100vh - 110px));
+      display: flex; flex-direction: column;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-lg); box-shadow: 0 24px 60px rgba(22, 24, 28, .18); overflow: hidden;
+    }
+    .tanya-kepala {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 16px; border-bottom: 1px solid var(--border-soft);
+    }
+    .tanya-kepala strong { display: block; font-size: 15px; font-weight: var(--w-semi); }
+    .tanya-kepala span { display: block; font-size: 12px; color: var(--text-dim); }
+    .tanya-kepala button {
+      border: 0; background: var(--surface-sunk); color: var(--text-mid);
+      width: 34px; height: 34px; border-radius: 999px; font-size: 18px; cursor: pointer;
+    }
+    .tanya-isi {
+      flex: 1; overflow-y: auto; padding: 14px 14px 6px;
+      display: flex; flex-direction: column; gap: 10px; background: var(--bg);
+    }
+    .tanya-gelembung {
+      max-width: 86%; padding: 10px 13px; border-radius: 14px;
+      font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .tanya-gelembung.saya { align-self: flex-end; background: var(--brand); color: #FFFFFF; border-bottom-right-radius: 4px; }
+    .tanya-gelembung.ai { align-self: flex-start; background: var(--surface); border: 1px solid var(--border-soft); border-bottom-left-radius: 4px; }
+    .tanya-gelembung.galat { align-self: flex-start; background: var(--brand-wash); color: var(--brand-deep); border: 1px solid var(--brand-line); }
+    .tanya-gelembung a { color: inherit; font-weight: var(--w-semi); }
+    .tanya-gelembung.mengetik { color: var(--text-dim); font-style: italic; }
+    .tanya-aksi { align-self: flex-start; margin-top: -4px; }
+    .tanya-aksi .pil { min-height: 36px; padding: 7px 14px; font-size: 13px; }
+    .tanya-form {
+      display: grid; grid-template-columns: 1fr auto; gap: 8px;
+      padding: 10px 12px; border-top: 1px solid var(--border-soft); background: var(--surface);
+    }
+    .tanya-form input {
+      min-width: 0; border: 1px solid var(--border); border-radius: var(--r-sm);
+      background: var(--surface-sunk); padding: 10px 12px; font: inherit; font-size: 14px; color: var(--text);
+    }
+    .tanya-form input:focus { outline: none; border-color: var(--brand); }
+    .tanya-form .pil { min-height: 42px; padding: 9px 16px; }
+    .tanya-catatan { padding: 0 14px 10px; font-size: 11.5px; color: var(--text-dim); background: var(--surface); }
+    @media (max-width: 560px) {
+      .tanya { right: 0; bottom: 0; width: 100vw; height: 82vh; border-radius: var(--r-lg) var(--r-lg) 0 0; }
+      .tanya-buka { right: 14px; bottom: 14px; }
+    }
+
     /* ── Lokasi ────────────────────────────────────────────────────────── */
     .lokasi-isi { display: grid; gap: 26px; grid-template-columns: 1.3fr .7fr; align-items: start; }
     .alamat {
@@ -684,6 +743,29 @@
   </footer>
 
 </div>
+
+  <!-- Chat pelanggan (Add-on AI, fitur 5 + 4). Dijawab Edge Function ai-tanya
+       hanya dari data toko. Ia tidak membuat booking: tombol di bawah
+       jawabannya memilihkan layanan dan kapster di formulir booking di atas,
+       dan pengunjung tetap mengirimnya sendiri. -->
+  <button class="tanya-buka pil pil-isi" id="tanyaBuka" type="button"
+          aria-controls="tanyaPanel" aria-expanded="false">Tanya kami</button>
+  <section class="tanya" id="tanyaPanel" hidden aria-label="Chat Underrated Barbershop">
+    <div class="tanya-kepala">
+      <div>
+        <strong>Tanya Underrated</strong>
+        <span>Harga, jam buka, lokasi, kapster</span>
+      </div>
+      <button type="button" id="tanyaTutup" aria-label="Tutup chat">&times;</button>
+    </div>
+    <div class="tanya-isi" id="tanyaIsi" aria-live="polite"></div>
+    <form class="tanya-form" id="tanyaForm">
+      <input id="tanyaMasukan" maxlength="500" autocomplete="off"
+             placeholder="Tulis pertanyaan…" aria-label="Pertanyaan Anda" />
+      <button class="pil pil-isi" id="tanyaKirim" type="submit">Kirim</button>
+    </form>
+    <div class="tanya-catatan">Dijawab AI dari data toko. Untuk kepastian, hubungi kami lewat WhatsApp.</div>
+  </section>
 
   <script src="vendor/supabase.js"></script>
   <script>
@@ -1274,6 +1356,137 @@
        untuk baris yang baru disisipkan. Kalau ia hanya menunggu data, satu
        kegagalan jaringan meninggalkan seluruh halaman tak terlihat, bukan
        sekadar tanpa daftar layanan. */
+    /* ══ Tanya — chat pelanggan (Add-on AI, fitur 5 + 4) ═══════════════════
+       Riwayat hanya hidup di memori halaman ini: tidak disimpan di peramban,
+       tidak disimpan di server. Menutup tab berarti mulai dari awal.
+
+       Teks jawaban dirender sebagai TEKS, tidak pernah sebagai HTML. Jawaban
+       AI adalah masukan yang tidak dipercaya, dan pengunjung dapat memancing
+       model menulis apa pun — termasuk markah yang akan dijalankan peramban. */
+    const riwayatTanya = [];
+    let tanyaSibuk = false;
+
+    function tautanWa() {
+      const t = ISI && ISI.outlet && ISI.outlet.telepon ? String(ISI.outlet.telepon).replace(/\D/g, '') : '';
+      return t ? 'https://wa.me/' + t : '';
+    }
+
+    function gelembung(kelas, teks) {
+      const el = document.createElement('div');
+      el.className = 'tanya-gelembung ' + kelas;
+      el.textContent = teks;
+      $('tanyaIsi').appendChild(el);
+      $('tanyaIsi').scrollTop = $('tanyaIsi').scrollHeight;
+      return el;
+    }
+
+    function gelembungGalat(teks) {
+      const el = gelembung('galat', teks);
+      const wa = tautanWa();
+      if (wa) {
+        el.appendChild(document.createTextNode(' '));
+        const a = document.createElement('a');
+        a.href = wa; a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = 'Buka WhatsApp';
+        el.appendChild(a);
+      }
+    }
+
+    /* Memilihkan layanan dan kapster dengan MENEKAN tombol pilihan yang
+       sudah ada, bukan mengubah layananPilih dari sini. Durasi, total harga,
+       slot jam, dan kalimat catatan kapster semuanya ikut dihitung lewat
+       jalur yang sama; jalur kedua yang menulis variabel itu langsung akan
+       perlahan berbeda dari yang dipakai formulir. */
+    function pilihkanBooking(saran) {
+      const layanan = (ISI && ISI.layanan) || [];
+      (saran.layanan || []).forEach(function (nama) {
+        const s = layanan.find(function (x) { return String(x.nama).toLowerCase() === String(nama).toLowerCase(); });
+        if (!s || layananPilih.indexOf(s.id) !== -1) return;
+        const b = $('bkLayanan').querySelector('[data-layanan="' + CSS.escape(String(s.id)) + '"]');
+        if (b) b.click();
+      });
+      if (saran.kapster) {
+        const b = $('kapsterDaftar').querySelector('[data-kapster="' + CSS.escape(saran.kapster) + '"]');
+        const sudah = !!kapsterPilih && kapsterPilih.nama === saran.kapster;
+        if (b && !sudah) b.click();
+      }
+      if (window.matchMedia('(max-width: 560px)').matches) tutupTanya();
+      $('booking').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function bukaTanya() {
+      $('tanyaPanel').hidden = false;
+      $('tanyaBuka').hidden = true;
+      $('tanyaBuka').setAttribute('aria-expanded', 'true');
+      if (!$('tanyaIsi').childElementCount) {
+        // Sapaan tidak ikut dikirim sebagai riwayat: ia bukan jawaban model.
+        gelembung('ai', 'Halo! Mau tanya apa soal Underrated? Harga, jam buka, lokasi, atau mau booking?');
+      }
+      $('tanyaMasukan').focus();
+    }
+    function tutupTanya() {
+      $('tanyaPanel').hidden = true;
+      $('tanyaBuka').hidden = false;
+      $('tanyaBuka').setAttribute('aria-expanded', 'false');
+    }
+    $('tanyaBuka').addEventListener('click', bukaTanya);
+    $('tanyaTutup').addEventListener('click', tutupTanya);
+
+    $('tanyaForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const teks = $('tanyaMasukan').value.trim();
+      if (!teks || tanyaSibuk) return;
+      tanyaSibuk = true;
+      $('tanyaKirim').disabled = true;
+      $('tanyaMasukan').value = '';
+
+      gelembung('saya', teks);
+      riwayatTanya.push({ peran: 'pengguna', teks: teks });
+      const tunggu = gelembung('ai mengetik', 'Sedang mengetik…');
+
+      try {
+        const { data, error } = await sb.functions.invoke('ai-tanya', {
+          body: { pesan: riwayatTanya.slice(-8) }
+        });
+        if (error) {
+          let pesanGalat = 'Chat sedang tidak tersedia. Silakan hubungi kami lewat WhatsApp.';
+          try { const b = await error.context.json(); if (b && b.error) pesanGalat = b.error; } catch (_) {}
+          throw new Error(pesanGalat);
+        }
+        tunggu.remove();
+        gelembung('ai', data.jawaban);
+        riwayatTanya.push({ peran: 'asisten', teks: data.jawaban });
+
+        if (data.booking && data.booking.tawarkan) {
+          // Hanya tombol booking terbaru yang ditampilkan: tombol yang sama
+          // berulang di setiap jawaban membuat chat terasa seperti iklan.
+          document.querySelectorAll('#tanyaIsi .tanya-aksi').forEach(function (el) { el.remove(); });
+          const aksi = document.createElement('div');
+          aksi.className = 'tanya-aksi';
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'pil pil-isi';
+          b.textContent = data.booking.layanan && data.booking.layanan.length
+            ? 'Booking ' + data.booking.layanan.join(' + ')
+            : 'Ke formulir booking';
+          b.addEventListener('click', function () { pilihkanBooking(data.booking); });
+          aksi.appendChild(b);
+          $('tanyaIsi').appendChild(aksi);
+          $('tanyaIsi').scrollTop = $('tanyaIsi').scrollHeight;
+        }
+      } catch (err) {
+        tunggu.remove();
+        // Pertanyaan yang gagal dijawab dikeluarkan dari riwayat, supaya
+        // pertanyaan berikutnya tidak membawa giliran yang tidak berpasangan.
+        riwayatTanya.pop();
+        gelembungGalat(err.message || String(err));
+      } finally {
+        tanyaSibuk = false;
+        $('tanyaKirim').disabled = false;
+        $('tanyaMasukan').focus();
+      }
+    });
+
     amati();
     muat();
   </script>

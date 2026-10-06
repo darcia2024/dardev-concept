@@ -40,3 +40,8 @@ tests/
 # Daftar id elemen pos.html, dipakai saat pengembangan. Tidak berbahaya,
 # tetapi juga tidak ada gunanya berada di server.
 .pos_hooks.txt
+
+# Edge Function (ai-struk, Add-on AI). Di-deploy lewat `supabase functions
+# deploy`, bukan lewat Vercel. Kodenya tidak memuat kunci — kunci API AI
+# tinggal sebagai secret Supabase — tetapi tidak ada alasan menyiarkannya.
+supabase/

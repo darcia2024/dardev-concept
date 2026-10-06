@@ -16,6 +16,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { definisiTerakhir } = require('./_migrasi');
 
 const root = path.resolve(__dirname, '..');
 const baca = (f) => fs.readFileSync(path.join(root, f), 'utf8');
@@ -88,17 +89,19 @@ assert.match(
    SECURITY DEFINER berjalan sebagai pemiliknya dan melewati policy itu —
    penjaganya harus ditulis di dalam fungsinya sendiri. */
 for (const fn of ['owner_upsert_karyawan', 'owner_hapus_karyawan']) {
-  const badan = m48.slice(m48.indexOf(`FUNCTION ${fn}`), m48.indexOf(`GRANT  EXECUTE ON FUNCTION ${fn}`));
+  // Definisi TERAKHIR, bukan migrasi 48: owner_upsert_karyawan ditulis ulang
+  // di migrasi 50, dan menjaga salinan lamanya berarti hijau untuk kode mati.
+  const { isi, badan, dari } = definisiTerakhir(fn);
   assert.match(badan, /IF NOT is_owner\(\) THEN[\s\S]*?RAISE EXCEPTION/,
-    `${fn} harus menolak pemanggil yang bukan owner`);
-  assert.match(m48, new RegExp(`REVOKE EXECUTE ON FUNCTION ${fn}\\([^)]*\\) FROM PUBLIC, anon`),
-    `${fn} harus dicabut dari anon — Supabase memberikannya otomatis`);
+    `${fn} (${dari}) harus menolak pemanggil yang bukan owner`);
+  assert.match(isi, new RegExp(`REVOKE EXECUTE ON FUNCTION ${fn}\\([^)]*\\) FROM PUBLIC, anon`),
+    `${fn} (${dari}) harus dicabut dari anon — Supabase memberikannya otomatis`);
 }
 
 /* Nomor telepon tetap lewat satu penormal yang sama. Menyimpan '0812...'
    apa adanya membuat notifikasi WhatsApp gagal tanpa pesan galat. */
 assert.match(
-  m48.slice(m48.indexOf('FUNCTION owner_upsert_karyawan')),
+  definisiTerakhir('owner_upsert_karyawan').badan,
   /normalkan_nomor_wa\(p_telepon\)/,
   'nomor harus dinormalkan server, bukan disimpan apa adanya'
 );
@@ -173,7 +176,7 @@ assert.match(
   'peringatan hapus harus memakai jumlah absen yang sebenarnya'
 );
 assert.match(
-  m48, /jml_absen BIGINT/,
+  definisiTerakhir('owner_staff_list').badan, /jml_absen BIGINT/,
   'owner_staff_list harus ikut membawa jumlah absen'
 );
 
@@ -189,5 +192,33 @@ assert.match(
   m48.slice(m48.indexOf('FUNCTION me_capster')), /c\.jabatan/,
   'me_capster harus mengembalikan jabatan'
 );
+
+/* ── 8 · Karyawan yang tidak mencukur tidak melihat kotak kapster ─────────
+   Pelanggan, layanan, dan omzet akan selalu nol bagi admin atau tim sosial
+   media, dan nol yang tampil setiap hari terbaca seperti teguran.
+
+   Yang lebih penting dijaga adalah arah sebaliknya: bagian absensi, izin,
+   dan ganti sandi TIDAK BOLEH ikut tersembunyi. Karyawan non-cukur justru
+   ada di sistem ini untuk absen. */
+for (const judul of ['Pelanggan Hari Ini', '<h2>Layanan Hari Ini</h2>', '<h2>30 Hari Terakhir</h2>']) {
+  const i = kapster.indexOf(judul);
+  const pembungkus = kapster.slice(0, i).match(/<div class="(kpi-row|card)"[^>]*>(?![\s\S]*<div class="(kpi-row|card)")/);
+  assert.ok(pembungkus && /data-khusus-cukur/.test(pembungkus[0]),
+    `bagian "${judul.replace(/<[^>]+>/g, '')}" harus ditandai khusus kapster`);
+}
+for (const judul of ['<h2>Absensi Hari Ini</h2>', '<h2>Izin &amp; Libur</h2>', '<h2>Ganti Sandi</h2>']) {
+  const i = kapster.indexOf(judul);
+  assert.ok(i > 0, judul + ' harus ada');
+  const pembungkus = kapster.slice(0, i).match(/<div class="(absen-card|card)"[^>]*>(?![\s\S]*<div class="(absen-card|card)")/);
+  assert.ok(pembungkus && !/data-khusus-cukur/.test(pembungkus[0]),
+    `bagian "${judul.replace(/<[^>]+>/g, '')}" tidak boleh disembunyikan dari karyawan non-cukur`);
+}
+assert.equal((kapster.match(/data-khusus-cukur>/g) || []).length, 3,
+  'tepat tiga bagian yang khusus kapster — penanda di tempat lain ikut menyembunyikannya');
+
+assert.match(kapster, /const mencukur = me\.ikut_pos !== false;/,
+  'ikut_pos dibaca dengan !== false: tanpa kolom itu semua orang memang kapster');
+assert.match(kapster, /if \(mencukur\) await muat\(\);/, 'data kapster tidak diminta untuk yang tidak mencukur');
+assert.match(kapster, /if \(mencukur\) \{\s*\n\s*setInterval/, 'penyegaran tiap menit juga tidak dijalankan');
 
 console.log('karyawan-panel: semua pemeriksaan lolos');
