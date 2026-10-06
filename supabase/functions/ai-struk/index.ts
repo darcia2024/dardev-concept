@@ -1,5 +1,5 @@
 /**
- * ai-struk — membaca foto struk belanja dengan Claude.
+ * ai-struk — membaca foto struk belanja dengan model AI lewat OpenRouter.
  *
  * Add-on AI, fitur 1 (#INV/BU-AI/2026/019). Owner memotret struk kulakan,
  * fungsi ini mengembalikan barang, jumlah, harga, tanggal, dan total dalam
@@ -11,18 +11,23 @@
  * tulisan tangan adalah keadaan biasa; pengeluaran yang salah tercatat terlihat
  * seperti fakta, dan itu lebih merusak daripada mengetik sendiri.
  *
- * KUNCI API
- *   ANTHROPIC_API_KEY disimpan sebagai secret Supabase. Tidak pernah dikirim ke
- *   peramban: siapa pun yang memegangnya dapat memakai akun API itu atas tagihan
+ * KUNCI DAN MODEL
+ *   OPENROUTER_API_KEY disimpan sebagai secret Supabase. Tidak pernah dikirim
+ *   ke peramban: siapa pun yang memegangnya dapat memakai saldo OpenRouter
  *   pemiliknya.
+ *
+ *   Modelnya dibaca dari secret MODEL_AI, sehingga dapat diganti dari dashboard
+ *   tanpa mengubah kode. Bawaan: google/gemini-3.5-flash-lite — dipilih karena
+ *   murah (sekitar $0,002 per struk menurut harga OpenRouter Oktober 2026) dan
+ *   mendukung gambar serta structured outputs. Model pengganti harus mendukung
+ *   keduanya; lihat kolom supported_parameters di openrouter.ai/api/v1/models.
  *
  * BATAS HARIAN
  *   Setiap panggilan dicatat di ai_pemakaian. Bila jumlah panggilan hari ini
  *   sudah mencapai BATAS_STRUK_HARIAN (bawaan 60), panggilan berikutnya
- *   ditolak sebelum Claude dihubungi — jadi tidak ditagih.
+ *   ditolak sebelum model AI dihubungi — jadi tidak ditagih.
  */
 
-import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 /* Kunci layanan, dari yang paling diutamakan:
@@ -52,7 +57,7 @@ const KUNCI_SRV = Deno.env.get('KUNCI_LAYANAN') || kunciRahasiaBaru()
                || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const BATAS_HARIAN = Number(Deno.env.get('BATAS_STRUK_HARIAN') ?? '60') || 60;
 
-const MODEL = 'claude-opus-5-5';
+const MODEL = Deno.env.get('MODEL_AI') || 'google/gemini-3.5-flash-lite';
 
 const JENIS_GAMBAR = ['image/jpeg', 'image/png', 'image/webp'] as const;
 type JenisGambar = typeof JENIS_GAMBAR[number];
@@ -88,14 +93,18 @@ function jawab(isi: unknown, status: number, asal: string | null): Response {
   });
 }
 
-/* Skema hasil bacaan. Diberikan ke Claude lewat structured outputs, sehingga
-   jawabannya selalu JSON yang sah menurut skema ini — tidak perlu menebak
-   apakah ia menyisipkan kalimat pengantar. Semua angka dalam rupiah penuh. */
+/* Skema hasil bacaan, diberikan lewat structured outputs, sehingga jawabannya
+   selalu JSON yang sah menurut skema ini. Semua angka dalam rupiah penuh.
+
+   Sengaja TANPA nilai null (anyOf dengan null). OpenRouter meneruskan skema
+   ke berbagai penyedia di belakangnya, dan dukungan mereka untuk anyOf tidak
+   merata. Bagian yang tidak terbaca ditulis sebagai teks kosong atau 0 —
+   layar owner memperlakukan keduanya sebagai "belum diisi". */
 const SKEMA_STRUK = {
   type: 'object',
   properties: {
-    toko: { anyOf: [{ type: 'string' }, { type: 'null' }], description: 'Nama toko atau penjual, null bila tidak terbaca' },
-    tanggal: { anyOf: [{ type: 'string' }, { type: 'null' }], description: 'Tanggal belanja, format YYYY-MM-DD, null bila tidak terbaca' },
+    toko: { type: 'string', description: 'Nama toko atau penjual, teks kosong bila tidak terbaca' },
+    tanggal: { type: 'string', description: 'Tanggal belanja, format YYYY-MM-DD, teks kosong bila tidak terbaca' },
     items: {
       type: 'array',
       items: {
@@ -110,9 +119,9 @@ const SKEMA_STRUK = {
         additionalProperties: false,
       },
     },
-    total: { anyOf: [{ type: 'number' }, { type: 'null' }], description: 'Total yang dibayar menurut struk, null bila tidak terbaca' },
+    total: { type: 'number', description: 'Total yang dibayar menurut struk, 0 bila tidak terbaca' },
     terbaca: { type: 'boolean', description: 'false bila gambar bukan struk atau sama sekali tidak terbaca' },
-    catatan: { anyOf: [{ type: 'string' }, { type: 'null' }], description: 'Bagian yang ragu atau tidak terbaca, singkat, bahasa Indonesia' },
+    catatan: { type: 'string', description: 'Bagian yang ragu atau tidak terbaca, singkat, bahasa Indonesia; teks kosong bila semua jelas' },
   },
   required: ['toko', 'tanggal', 'items', 'total', 'terbaca', 'catatan'],
   additionalProperties: false,
@@ -123,6 +132,8 @@ const INSTRUKSI = `Anda membaca foto struk belanja sebuah barbershop di Indonesi
 Tuliskan setiap barang yang dibeli apa adanya seperti di struk. Angka rupiah ditulis sebagai angka penuh tanpa titik pemisah ribuan: "Rp 12.500" menjadi 12500. Bila hanya subtotal yang tertera, harga_satuan adalah subtotal dibagi qty. Bila qty tidak tertulis, anggap 1.
 
 Jangan menebak. Bila sebuah angka atau nama tidak terbaca jelas, tetap tuliskan bacaan terbaik Anda lalu sebutkan keraguannya di catatan, supaya pemilik toko tahu baris mana yang harus ia periksa. Diskon, pajak, dan biaya layanan bukan barang: jangan dimasukkan ke items, tetapi total tetap total yang benar-benar dibayar.
+
+Bagian yang sama sekali tidak terbaca: toko dan tanggal ditulis sebagai teks kosong, total ditulis 0. Catatan berisi teks kosong bila semuanya jelas.
 
 Bila gambar bukan struk belanja, kembalikan terbaca: false dengan items kosong.`;
 
@@ -171,7 +182,7 @@ Deno.serve(async (req: Request) => {
     return jawab({ error: 'Hanya owner yang boleh membaca struk.' }, 403, asal);
   }
 
-  /* ── Batas harian, diperiksa SEBELUM Claude dihubungi ──────────────── */
+  /* ── Batas harian, diperiksa SEBELUM model AI dihubungi ──────────── */
   // Tanggal hari ini menurut jam outlet, lalu tengah malamnya dalam WIB.
   // WIB tidak punya musim panas, jadi +07:00 selalu benar.
   const hariIni = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
@@ -201,81 +212,123 @@ Deno.serve(async (req: Request) => {
     return jawab({ error: 'Foto terlalu besar. Potret ulang lebih dekat ke struknya.' }, 413, asal);
   }
 
-  /* ── Claude ───────────────────────────────────────────────────────── */
-  const claude = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+  /* ── OpenRouter ───────────────────────────────────────────────────── */
+  const kunciAi = Deno.env.get('OPENROUTER_API_KEY') ?? '';
+  if (!kunciAi) {
+    return jawab({ error: 'Kunci AI belum dipasang (secret OPENROUTER_API_KEY). Hubungi pengembang.' }, 503, asal);
+  }
 
+  let res: Response;
   try {
-    const res = await claude.beta.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      // Pembacaan struk tidak menuntut penalaran panjang, tetapi struk kusut
-      // dan tulisan tangan butuh ketelitian. medium adalah bawaan model ini;
-      // ditulis eksplisit supaya pilihan itu terlihat dan dapat disetel.
-      output_config: {
-        effort: 'medium',
-        format: { type: 'json_schema', schema: SKEMA_STRUK },
+    res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${kunciAi}`,
+        'Content-Type': 'application/json',
+        // Atribusi aplikasi di dasbor OpenRouter. Tidak memuat data apa pun.
+        'HTTP-Referer': 'https://underratedbarbershop.com',
+        'X-Title': 'Underrated Barbershop',
       },
-      // Bila pemeriksa keamanan model menolak sebuah gambar secara keliru,
-      // server mencoba ulang dengan model cadangan yang direkomendasikan,
-      // alih-alih owner menerima penolakan tanpa penjelasan.
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      system: INSTRUKSI,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: jenis, data: gambar } },
-          { type: 'text', text: 'Baca struk ini.' },
+      body: JSON.stringify({
+        model: MODEL,
+        // Token reasoning ikut memakan max_tokens. Model bawaan memakai
+        // reasoning wajib dengan upaya "minimal"; 4000 memberi ruang lega
+        // untuk itu ditambah JSON hasil bacaan struk yang panjang.
+        max_tokens: 4000,
+        // Teks lebih dulu, lalu gambar — urutan yang direkomendasikan
+        // OpenRouter karena cara isinya diurai.
+        messages: [
+          { role: 'system', content: INSTRUKSI },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Baca struk ini.' },
+              { type: 'image_url', image_url: { url: `data:${jenis};base64,${gambar}` } },
+            ],
+          },
         ],
-      }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: { name: 'struk', strict: true, schema: SKEMA_STRUK },
+        },
+        // Hanya diarahkan ke penyedia yang benar-benar mendukung
+        // response_format. Tanpa ini, OpenRouter boleh memilih penyedia yang
+        // mengabaikan skema, dan jawabannya bisa berupa kalimat bebas.
+        //
+        // Parameter reasoning sengaja TIDAK dikirim: require_parameters juga
+        // akan menuntutnya, sehingga mengganti MODEL_AI ke model tanpa
+        // reasoning mendadak gagal dirutekan.
+        provider: { require_parameters: true },
+      }),
     });
-
-    const pakai = {
-      fitur: 'struk', model: res.model, pemanggil: pengguna.user.id,
-      input_tokens: res.usage?.input_tokens ?? 0,
-      output_tokens: res.usage?.output_tokens ?? 0,
-    };
-
-    if (res.stop_reason === 'refusal') {
-      await catatPemakaian(sbSrv, { ...pakai, berhasil: false, keterangan: 'refusal' });
-      return jawab({ error: 'Gambar ini tidak dapat dibaca. Coba potret ulang struknya saja, tanpa latar lain.' }, 422, asal);
-    }
-    if (res.stop_reason === 'max_tokens') {
-      await catatPemakaian(sbSrv, { ...pakai, berhasil: false, keterangan: 'max_tokens' });
-      return jawab({ error: 'Struk terlalu panjang untuk dibaca sekaligus. Potret per bagian.' }, 422, asal);
-    }
-
-    const teks = res.content.find((b) => b.type === 'text');
-    let hasil: unknown;
-    try {
-      hasil = JSON.parse(teks && teks.type === 'text' ? teks.text : '');
-    } catch {
-      await catatPemakaian(sbSrv, { ...pakai, berhasil: false, keterangan: 'json tidak sah' });
-      return jawab({ error: 'Hasil bacaan tidak dapat diolah. Coba lagi.' }, 502, asal);
-    }
-
-    await catatPemakaian(sbSrv, { ...pakai, berhasil: true });
-    return jawab({ hasil, sisa_hari_ini: Math.max(0, BATAS_HARIAN - (dipakai ?? 0) - 1) }, 200, asal);
   } catch (e) {
-    // Urutan dari yang paling khusus. Pesan teknisnya tidak diteruskan ke
-    // layar owner — ia tidak dapat menindaklanjutinya — tetapi dicatat.
+    console.error('ai-struk: jaringan', e instanceof Error ? e.message : e);
+    await catatPemakaian(sbSrv, {
+      fitur: 'struk', berhasil: false, model: MODEL, pemanggil: pengguna.user.id, keterangan: 'galat jaringan',
+    });
+    return jawab({ error: 'Layanan AI tidak dapat dihubungi. Coba lagi sebentar lagi.' }, 502, asal);
+  }
+
+  // deno-lint-ignore no-explicit-any
+  let data: any = null;
+  try { data = await res.json(); } catch { /* ditangani di bawah */ }
+
+  /* Galat sebelum model mulai menjawab datang sebagai status HTTP; galat di
+     tengah jalan datang sebagai status 200 dengan objek error di badannya.
+     Keduanya diperiksa. Pesan teknisnya tidak diteruskan ke layar owner —
+     ia tidak dapat menindaklanjutinya — tetapi dicatat. */
+  const kodeGalat: number = !res.ok ? res.status : (data?.error ? Number(data.error.code) || 502 : 0);
+  if (kodeGalat) {
     let pesan = 'Pembacaan struk gagal. Coba lagi sebentar lagi.';
     let status = 502;
-    if (e instanceof Anthropic.AuthenticationError) {
-      pesan = 'Kunci API AI belum dipasang atau sudah tidak berlaku. Hubungi pengembang.';
+    if (kodeGalat === 401) {
+      pesan = 'Kunci AI tidak berlaku. Hubungi pengembang.'; status = 503;
+    } else if (kodeGalat === 402) {
+      // Saldo OpenRouter habis. Disebut terang-terangan: bukan kerusakan,
+      // dan pengembang perlu tahu untuk mengisi ulang.
+      pesan = 'Saldo layanan AI habis. Hubungi pengembang untuk mengisi ulang. Sementara itu, isi pengeluaran secara manual.';
       status = 503;
-    } else if (e instanceof Anthropic.RateLimitError) {
-      pesan = 'Layanan AI sedang sibuk. Coba lagi dalam satu menit.';
-      status = 429;
-    } else if (e instanceof Anthropic.BadRequestError) {
-      pesan = 'Gambar ditolak oleh layanan AI. Coba foto lain.';
-      status = 400;
+    } else if (kodeGalat === 429) {
+      pesan = 'Layanan AI sedang sibuk. Coba lagi dalam satu menit.'; status = 429;
+    } else if (kodeGalat === 400 || kodeGalat === 403) {
+      pesan = 'Gambar ditolak oleh layanan AI. Coba foto lain.'; status = 400;
     }
-    console.error('ai-struk:', e instanceof Error ? e.message : e);
+    console.error('ai-struk: openrouter', kodeGalat, data?.error?.message);
     await catatPemakaian(sbSrv, {
       fitur: 'struk', berhasil: false, model: MODEL, pemanggil: pengguna.user.id,
-      keterangan: e instanceof Anthropic.APIError ? `api ${e.status}` : 'galat jaringan',
+      keterangan: `openrouter ${kodeGalat}`,
     });
     return jawab({ error: pesan }, status, asal);
   }
+
+  const pilihan = data?.choices?.[0];
+  const biaya = typeof data?.usage?.cost === 'number' ? ` biaya $${data.usage.cost}` : '';
+  const pakai = {
+    fitur: 'struk', model: data?.model ?? MODEL, pemanggil: pengguna.user.id,
+    input_tokens: data?.usage?.prompt_tokens ?? 0,
+    output_tokens: data?.usage?.completion_tokens ?? 0,
+  };
+
+  if (pilihan?.message?.refusal) {
+    await catatPemakaian(sbSrv, { ...pakai, berhasil: false, keterangan: 'refusal' + biaya });
+    return jawab({ error: 'Gambar ini tidak dapat dibaca. Coba potret ulang struknya saja, tanpa latar lain.' }, 422, asal);
+  }
+  // "length": jatah token habis, sering karena reasoning — isinya kosong atau
+  // terpotong dan JSON-nya tidak utuh.
+  if (pilihan?.finish_reason === 'length') {
+    await catatPemakaian(sbSrv, { ...pakai, berhasil: false, keterangan: 'length' + biaya });
+    return jawab({ error: 'Struk terlalu panjang untuk dibaca sekaligus. Potret per bagian.' }, 422, asal);
+  }
+
+  const teks = typeof pilihan?.message?.content === 'string' ? pilihan.message.content : '';
+  let hasil: unknown;
+  try {
+    hasil = JSON.parse(teks);
+  } catch {
+    await catatPemakaian(sbSrv, { ...pakai, berhasil: false, keterangan: 'json tidak sah' + biaya });
+    return jawab({ error: 'Hasil bacaan tidak dapat diolah. Coba lagi.' }, 502, asal);
+  }
+
+  await catatPemakaian(sbSrv, { ...pakai, berhasil: true, keterangan: biaya.trim() || null });
+  return jawab({ hasil, sisa_hari_ini: Math.max(0, BATAS_HARIAN - (dipakai ?? 0) - 1) }, 200, asal);
 });

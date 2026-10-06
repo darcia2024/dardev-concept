@@ -3103,9 +3103,16 @@
       document.getElementById('formPengeluaranJudul').textContent =
         sumber === 'struk_ai' ? 'Periksa hasil bacaan struk' : 'Pengeluaran baru';
       document.getElementById('inpPengToko').value = hasil.toko || '';
-      document.getElementById('inpPengTanggal').value = hasil.tanggal || sbJakartaToday();
+      // AI menulis tanggal yang tidak terbaca sebagai teks kosong, tetapi bisa
+      // juga mengembalikan bentuk lain ("12/10/26"). <input type=date> hanya
+      // menerima YYYY-MM-DD dan diam-diam mengosongkan selainnya, jadi bentuk
+      // lain diganti hari ini — owner tetap melihat dan dapat membetulkannya.
+      const tgl = /^\d{4}-\d{2}-\d{2}$/.test(hasil.tanggal || '') ? hasil.tanggal : sbJakartaToday();
+      document.getElementById('inpPengTanggal').value = tgl;
       document.getElementById('inpPengTanggal').max = sbJakartaToday();
-      document.getElementById('inpPengTotal').value = hasil.total ?? '';
+      // 0 berarti "tidak terbaca" — dikosongkan, supaya owner mengisinya atau
+      // membiarkannya dihitung dari jumlah baris saat menyimpan.
+      document.getElementById('inpPengTotal').value = hasil.total ? hasil.total : '';
       document.getElementById('inpPengCatatan').value = '';
       const items = (hasil.items && hasil.items.length) ? hasil.items : [{}];
       document.getElementById('pengItemBody').innerHTML = items.map(barisPengeluaran).join('');
