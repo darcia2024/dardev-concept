@@ -89,7 +89,8 @@ const INSTRUKSI = `Anda asisten internal pemilik Underrated Barbershop. Pemilik 
 SATU-SATUNYA SUMBER FAKTA adalah DATA TOKO di bawah (JSON). Aturannya:
 - Setiap angka di jawaban harus berasal dari DATA TOKO, atau dihitung langsung darinya (menjumlah, mengurangi, membandingkan, merata-rata). Bila Anda menghitung, sebutkan dasarnya singkat.
 - Bila jawabannya tidak ada di DATA TOKO, katakan terus terang bahwa datanya tidak tersedia di asisten ini, sebutkan data apa yang tersedia, dan isi data_cukup: false. JANGAN mengarang, memperkirakan, atau menebak angka.
-- DATA TOKO hanya mencakup: ringkasan per bulan untuk tiga bulan terakhir (bulan berjalan sampai hari ini), omzet harian 60 hari terakhir, stok produk saat ini, 15 pengeluaran terakhir, absensi bulan ini, jumlah member, booking 7 hari ke depan, dan daftar karyawan aktif. Data lain (nama atau nomor pelanggan, transaksi satu per satu, gaji, data lebih lama) tidak tersedia.
+- DATA TOKO hanya mencakup: ringkasan per bulan untuk tiga bulan terakhir (bulan berjalan sampai hari ini), omzet harian 60 hari terakhir, rincian tiap transaksi 60 hari terakhir (transaksi_60_hari: nota, jam, metode bayar, total, diskon, kapster, isi nota), stok produk saat ini, 15 pengeluaran terakhir, absensi bulan ini, jumlah member, booking 7 hari ke depan, dan daftar karyawan aktif. Data lain (nama atau nomor pelanggan, gaji, transaksi lebih lama dari 60 hari) tidak tersedia.
+- Untuk "detail transaksi" pada suatu tanggal, daftarkan transaksi itu dari transaksi_60_hari: jam, isi nota, metode bayar, total, kapster. Bila transaksi_60_hari tidak ada di DATA TOKO, rincian per transaksi belum tersedia — katakan itu.
 - Hari tanpa baris di harian_60_hari berarti tidak ada transaksi (omzet 0).
 - "Minggu ini" berarti Senin sampai hari ini. "Kemarin", "minggu lalu", dan sejenisnya dihitung dari hari_ini.
 - omzet adalah jumlah yang benar-benar dibayar pelanggan, sesudah diskon. nilai di kapster, layanan_teratas, dan produk_terjual adalah harga sebelum diskon nota.
@@ -179,7 +180,14 @@ Deno.serve(async (req: Request) => {
     return jawab({ error: 'Kunci AI belum dipasang (secret OPENROUTER_API_KEY). Hubungi pengembang.' }, 503, asal);
   }
 
-  const sistem = `${INSTRUKSI}\n\nHari ini ${namaHari}, ${hariIni}.\n\nDATA TOKO\n${JSON.stringify(ringkasan)}`;
+  /* Rincian transaksi (migrasi 59) sengaja opsional: bila migrasinya belum
+     dijalankan, asisten tetap menjawab dari ringkasan dan mengatakan terus
+     terang bahwa rinciannya belum ada. */
+  const { data: transaksi, error: galatTransaksi } = await sbSrv.rpc('transaksi_asisten', { p_hari_ini: hariIni });
+  if (galatTransaksi) console.error('ai-asisten: transaksi_asisten', galatTransaksi.message);
+  const dataToko = galatTransaksi ? ringkasan : { ...ringkasan, transaksi_60_hari: transaksi ?? [] };
+
+  const sistem = `${INSTRUKSI}\n\nHari ini ${namaHari}, ${hariIni}.\n\nDATA TOKO\n${JSON.stringify(dataToko)}`;
   const pakaiDasar = { fitur: 'asisten', pemanggil: pengguna.user.id };
 
   let res: Response;
