@@ -126,4 +126,31 @@ assert.match(rekap, /window\.visualViewport\.addEventListener\('resize', selaras
 assert.match(rekap, /\.ai-sheet \{ overflow-y: auto; \}/, 'isi yang melebihi lembar menggulir, tidak meluber');
 assert.match(rekap, /main\.rekap-container \{ margin-bottom: 76px; \}/, 'tombol melayang tidak menutupi baris terakhir');
 
+/* ── Rincian transaksi (migrasi 59) ──────────────────────────────────────
+   Owner bertanya "6 transaksi itu detailnya bagaimana" dan asisten menjawab
+   datanya tidak tersedia. Rinciannya kini ikut, tanpa data pelanggan, lewat
+   fungsi terpisah yang tidak menimpa ringkasan_asisten. */
+const m59 = baca('supabase_migration_59_transaksi_asisten.sql');
+const transaksi = definisiTerakhir('transaksi_asisten');
+assert.equal(transaksi.dari, 'supabase_migration_59_transaksi_asisten.sql');
+assert.match(m59, /REVOKE EXECUTE ON FUNCTION transaksi_asisten\(DATE\) FROM PUBLIC, anon, authenticated;/);
+assert.match(m59, /GRANT  EXECUTE ON FUNCTION transaksi_asisten\(DATE\) TO service_role;/);
+assert.doesNotMatch(m59, /GRANT\s+EXECUTE ON FUNCTION transaksi_asisten\(DATE\) TO (authenticated|anon|PUBLIC)/);
+assert.doesNotMatch(transaksi.badan, /SECURITY DEFINER|EXECUTE\s/);
+assert.match(transaksi.badan, /LIMIT 500\b/, 'ukuran permintaan ke model dibatasi');
+assert.match(transaksi.badan, /p_hari_ini - 59 AND p_hari_ini/, 'jendela sama dengan harian_60_hari');
+for (const kolom of ['phone_wa', 'member_phone', 'member_name', 'telepon', 'm.name', 'customer']) {
+  assert.ok(!transaksi.badan.includes(kolom), `rincian transaksi tidak boleh memuat ${kolom}`);
+}
+assert.equal(definisiTerakhir('ringkasan_asisten').dari, 'supabase_migration_58_ringkasan_asisten.sql',
+  'ringkasan_asisten tidak ditulis ulang oleh migrasi 59');
+// Opsional: migrasi 59 belum dijalankan tidak boleh mematikan asisten.
+assert.match(fn, /rpc\('transaksi_asisten', \{ p_hari_ini: hariIni \}\)/);
+assert.match(fn, /galatTransaksi \? ringkasan : \{ \.\.\.ringkasan, transaksi_60_hari/);
+assert.ok(fn.indexOf("profil?.role !== 'owner'") < fn.indexOf("rpc('transaksi_asisten'"), 'owner diperiksa sebelum rincian dibaca');
+assert.doesNotMatch(rekap, /rpc\('transaksi_asisten'/, 'peramban tidak boleh memanggil rincian');
+const instr = fn.slice(fn.indexOf('const INSTRUKSI'), fn.indexOf('async function catatPemakaian'));
+assert.match(instr, /transaksi_60_hari/);
+assert.doesNotMatch(instr, /transaksi satu per satu, gaji/, 'instruksi tidak boleh lagi melarang rincian transaksi');
+
 console.log('ai-asisten: semua pemeriksaan lolos');
