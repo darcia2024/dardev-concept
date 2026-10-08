@@ -993,17 +993,38 @@
     .asisten-gelembung.ai { align-self: flex-start; background: var(--ink-inset); color: var(--fg); border-bottom-left-radius: 4px; }
     .asisten-gelembung.ai.kurang { border: 1px dashed var(--line); }
     .asisten-gelembung.mengetik { color: var(--fg-dim); font-style: italic; }
-    /* Jawaban terformat: paragraf dan daftar dipisah jelas, bukan satu blok. */
+    /* Jawaban terformat: judul, paragraf, daftar, dan tabel dipisah jelas. */
     .asisten-gelembung.ai { white-space: normal; }
-    .asisten-gelembung.ai p { margin: 0; }
-    .asisten-gelembung.ai p + p, .asisten-gelembung.ai p + ul, .asisten-gelembung.ai ul + p { margin-top: 8px; }
-    .asisten-gelembung.ai ul { margin: 0; padding: 0; list-style: none; }
-    .asisten-gelembung.ai li {
-      position: relative; padding: 6px 0 6px 14px; border-top: 1px solid var(--line);
-    }
-    .asisten-gelembung.ai li:first-child { border-top: 0; }
-    .asisten-gelembung.ai li::before { content: ''; position: absolute; left: 2px; top: 14px; width: 5px; height: 5px; border-radius: 50%; background: var(--fg-dim); }
+    .asisten-gelembung.ai.ada-tabel { max-width: 100%; align-self: stretch; }
+    .asisten-gelembung.ai > * { margin: 0; }
+    .asisten-gelembung.ai > * + * { margin-top: 8px; }
+    .asisten-gelembung.ai h4 { font-size: 13.5px; font-weight: 600; margin-top: 12px; }
+    .asisten-gelembung.ai > h4:first-child { margin-top: 0; }
     .asisten-gelembung.ai strong { font-weight: 600; }
+    .asisten-gelembung.ai code {
+      font-family: var(--mono); font-size: 12px; padding: 1px 5px; border-radius: 4px;
+      background: var(--surface); border: 1px solid var(--line);
+    }
+    .asisten-gelembung.ai hr { border: 0; border-top: 1px solid var(--line); }
+    .asisten-gelembung.ai ul, .asisten-gelembung.ai ol { padding-left: 20px; }
+    .asisten-gelembung.ai li { padding: 2px 0; }
+    .asisten-gelembung.ai li::marker { color: var(--fg-dim); }
+    .asisten-gelembung.ai .rapi-tabel {
+      overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+    }
+    .asisten-gelembung.ai table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    /* Teks panjang (nama layanan) boleh turun baris supaya kolom terakhir tetap
+       terlihat di lembar 400px; angka dan judul kolom tidak dipotong. */
+    .asisten-gelembung.ai th, .asisten-gelembung.ai td {
+      padding: 6px 7px; text-align: left; vertical-align: top; border-top: 1px solid var(--line);
+    }
+    .asisten-gelembung.ai th, .asisten-gelembung.ai td.kanan, .asisten-gelembung.ai td.tengah { white-space: nowrap; }
+    .asisten-gelembung.ai thead th {
+      border-top: 0; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--fg-dim); background: var(--ink-inset);
+    }
+    .asisten-gelembung.ai th.kanan, .asisten-gelembung.ai td.kanan { text-align: right; font-variant-numeric: tabular-nums; }
+    .asisten-gelembung.ai th.tengah, .asisten-gelembung.ai td.tengah { text-align: center; }
     .asisten-saran { display: flex; gap: 8px; flex-wrap: wrap; }
     .asisten-saran[hidden] { display: none; }
     .asisten-saran .btn-hdr { font-size: 12.5px; }
@@ -4684,40 +4705,118 @@
 
     /* Merapikan jawaban AI tanpa innerHTML.
 
-       Model diminta menulis teks biasa dengan dua tanda saja: baris yang
-       diawali "- " (daftar) dan **tebal**. Di sini keduanya dibentuk menjadi
-       elemen lewat createElement dan textContent, jadi teks apa pun dari model
-       tidak pernah ditafsirkan sebagai HTML. Selain dua tanda itu, teks
-       ditampilkan apa adanya. */
+       Model boleh menulis sebagian kecil markdown: judul (#, ##, ###),
+       paragraf, daftar ("- " dan "1."), tabel berpipa, garis pemisah,
+       **tebal**, *miring*, dan `kode`. Semuanya dibentuk di sini lewat
+       createElement dan textContent, jadi teks apa pun dari model tidak
+       pernah ditafsirkan sebagai HTML. Tautan, gambar, dan blok kode sengaja
+       tidak didukung: tandanya tampil apa adanya sebagai teks. */
     function isiRapiAsisten(el, teks) {
-      function isiBaris(induk, baris) {
-        baris.split(/\*\*(.+?)\*\*/).forEach(function (bagian, i) {
-          if (!bagian) return;
-          if (i % 2 === 1) {
-            const t = document.createElement('strong');
-            t.textContent = bagian;
-            induk.appendChild(t);
-          } else {
-            induk.appendChild(document.createTextNode(bagian));
-          }
-        });
-      }
-      let daftar = null;
-      String(teks || '').replace(/\r/g, '').split('\n').forEach(function (baris) {
-        const butir = baris.match(/^\s*[-•]\s+(.*)$/);
-        if (butir) {
-          if (!daftar) { daftar = document.createElement('ul'); el.appendChild(daftar); }
-          const li = document.createElement('li');
-          isiBaris(li, butir[1]);
-          daftar.appendChild(li);
-          return;
+      const POLA_INLINE = /\*\*(.+?)\*\*|`([^`]+)`|\*([^*\s][^*]*?)\*/g;
+      function inline(induk, s) {
+        let akhir = 0, m;
+        POLA_INLINE.lastIndex = 0;
+        while ((m = POLA_INLINE.exec(s)) !== null) {
+          if (m.index > akhir) induk.appendChild(document.createTextNode(s.slice(akhir, m.index)));
+          const t = document.createElement(m[1] !== undefined ? 'strong' : m[2] !== undefined ? 'code' : 'em');
+          t.textContent = m[1] !== undefined ? m[1] : m[2] !== undefined ? m[2] : m[3];
+          induk.appendChild(t);
+          akhir = m.index + m[0].length;
         }
-        daftar = null;
-        if (!baris.trim()) return;
+        if (akhir < s.length) induk.appendChild(document.createTextNode(s.slice(akhir)));
+      }
+
+      const SEKAT_TABEL = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
+      const sel = function (baris) {
+        let b = baris.trim();
+        if (b.charAt(0) === '|') b = b.slice(1);
+        if (b.charAt(b.length - 1) === '|') b = b.slice(0, -1);
+        return b.split('|').map(function (c) { return c.trim(); });
+      };
+      const butirUl = /^\s*[-*•]\s+(.*)$/;
+      const butirOl = /^\s*\d+[.)]\s+(.*)$/;
+      const garis = /^\s*(-{3,}|\*{3,}|_{3,})\s*$/;
+      const judul = /^\s*#{1,6}\s+(.*)$/;
+
+      const baris = String(teks || '').replace(/\r/g, '').split('\n');
+      let i = 0;
+      while (i < baris.length) {
+        const b = baris[i];
+        if (!b.trim()) { i++; continue; }
+
+        // Tabel: baris berpipa yang diikuti baris sekat (---|---).
+        if (b.indexOf('|') >= 0 && i + 1 < baris.length && SEKAT_TABEL.test(baris[i + 1]) && baris[i + 1].indexOf('-') >= 0) {
+          const kepala = sel(b);
+          const rata = sel(baris[i + 1]).map(function (c) {
+            return /:$/.test(c) ? (/^:/.test(c) ? 'tengah' : 'kanan') : '';
+          });
+          const bungkus = document.createElement('div');
+          bungkus.className = 'rapi-tabel';
+          const tabel = document.createElement('table');
+          const thead = document.createElement('thead');
+          const trh = document.createElement('tr');
+          kepala.forEach(function (c, k) {
+            const th = document.createElement('th');
+            if (rata[k]) th.className = rata[k];
+            inline(th, c);
+            trh.appendChild(th);
+          });
+          thead.appendChild(trh);
+          tabel.appendChild(thead);
+          const tbody = document.createElement('tbody');
+          i += 2;
+          while (i < baris.length && baris[i].trim() && baris[i].indexOf('|') >= 0) {
+            const tr = document.createElement('tr');
+            const isi = sel(baris[i]);
+            // Jumlah kolom mengikuti kepala; kelebihan dibuang, kekurangan dikosongkan.
+            for (let k = 0; k < kepala.length; k++) {
+              const td = document.createElement('td');
+              if (rata[k]) td.className = rata[k];
+              inline(td, isi[k] || '');
+              tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+            i++;
+          }
+          tabel.appendChild(tbody);
+          bungkus.appendChild(tabel);
+          el.appendChild(bungkus);
+          el.className += ' ada-tabel';
+          continue;
+        }
+
+        if (garis.test(b)) { el.appendChild(document.createElement('hr')); i++; continue; }
+
+        let m = b.match(judul);
+        if (m) {
+          const h = document.createElement('h4');
+          inline(h, m[1].trim());
+          el.appendChild(h);
+          i++;
+          continue;
+        }
+
+        m = b.match(butirUl) || b.match(butirOl);
+        if (m) {
+          const urut = !butirUl.test(b);
+          const daftar = document.createElement(urut ? 'ol' : 'ul');
+          while (i < baris.length) {
+            const mm = (urut ? butirOl : butirUl).exec(baris[i]);
+            if (!mm) break;
+            const li = document.createElement('li');
+            inline(li, mm[1].trim());
+            daftar.appendChild(li);
+            i++;
+          }
+          el.appendChild(daftar);
+          continue;
+        }
+
         const p = document.createElement('p');
-        isiBaris(p, baris.trim());
+        inline(p, b.trim());
         el.appendChild(p);
-      });
+        i++;
+      }
       if (!el.firstChild) el.textContent = String(teks || '');
     }
 

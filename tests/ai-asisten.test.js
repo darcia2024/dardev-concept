@@ -162,7 +162,7 @@ assert.doesNotMatch(rapi.replace(/\/\*[\s\S]*?\*\//g, ''), /innerHTML|insertAdja
 
 function simpul(tag) {
   return {
-    tag, anak: [], teks: '',
+    tag, anak: [], teks: '', className: '',
     appendChild(c) { this.anak.push(c); return c; },
     set textContent(v) { this.teks = v; this.anak = []; },
     get firstChild() { return this.anak[0] || null; },
@@ -175,11 +175,39 @@ function ratakan(n) {
   return '<' + n.tag + '>' + (n.anak.length ? n.anak.map(ratakan).join('') : n.teks) + '</' + n.tag + '>';
 }
 function render(teks) { const el = simpul('div'); rapiFn(el, teks); return el.anak.map(ratakan).join(''); }
+function bungkus(teks) { const el = simpul('div'); rapiFn(el, teks); return el; }
 
+// Paragraf, daftar, tebal.
 assert.equal(
   render('Omzet **12 September** **Rp 378.000**.\n\n- 07:30 · Haircut · Rp 59.500\n- 14:46 · Haircut + Hairwash · Rp 70.000\nTotal enam.'),
   '<p>Omzet <strong>12 September</strong> <strong>Rp 378.000</strong>.</p><ul><li>07:30 · Haircut · Rp 59.500</li><li>14:46 · Haircut + Hairwash · Rp 70.000</li></ul><p>Total enam.</p>',
   'satu butir per baris menjadi satu <li>, kalimat biasa menjadi paragraf');
+// Judul, miring, kode inline, daftar bernomor, garis.
+assert.equal(
+  render('### Ringkasan\nIni *penting* dan `INV-001`.\n---\n1. Satu\n2) Dua'),
+  '<h4>Ringkasan</h4><p>Ini <em>penting</em> dan <code>INV-001</code>.</p><hr></hr><ol><li>Satu</li><li>Dua</li></ol>',
+  'judul, miring, kode, garis, dan daftar bernomor');
+// Tabel: kepala, sekat dengan perataan, baris data; kolom kurang diisi kosong.
+const tabel = bungkus('| Jam | Layanan | Total |\n|---|:---:|---:|\n| 14:46 | **Haircut** | Rp 70.000 |\n| 15:52 | Haircut |\n\nSudah.');
+assert.equal(
+  tabel.anak.map(ratakan).join(''),
+  '<div><table><thead><tr><th>Jam</th><th>Layanan</th><th>Total</th></tr></thead>'
+  + '<tbody><tr><td>14:46</td><td><strong>Haircut</strong></td><td>Rp 70.000</td></tr>'
+  + '<tr><td>15:52</td><td>Haircut</td><td></td></tr></tbody></table></div><p>Sudah.</p>',
+  'tabel berpipa menjadi table; baris pendek dilengkapi sel kosong; teks sesudahnya tetap paragraf');
+assert.match(tabel.className, /ada-tabel/, 'gelembung bertabel dilebarkan lewat kelas ada-tabel');
+const sel = tabel.anak[0].anak[0].anak[1].anak[0].anak; // table > tbody > tr > sel
+assert.equal(sel[2].className, 'kanan', 'sekat ---: merataankan kolom ke kanan');
+assert.equal(sel[1].className, 'tengah', 'sekat :---: memusatkan kolom');
+assert.equal(sel[0].className, '');
+// Judul kolom ikut rata dengan isinya; kepala yang tidak rata dengan angkanya terlihat salah.
+const kepalaSel = tabel.anak[0].anak[0].anak[0].anak[0].anak; // table > thead > tr > th
+assert.equal(kepalaSel[2].className, 'kanan', 'judul kolom angka ikut rata kanan');
+assert.equal(kepalaSel[1].className, 'tengah');
+// Baris berpipa tanpa sekat BUKAN tabel.
+assert.equal(render('a | b'), '<p>a | b</p>', 'tabel hanya bila ada baris sekat');
+// Tabel tidak menelan teks tak berpipa di bawahnya, dan tidak berhenti di baris kosong salah.
+assert.equal(bungkus('| A |\n|---|\n| 1 |\n\n| B |\n|---|\n| 2 |').anak.length, 2, 'dua tabel terpisah baris kosong');
 assert.equal(render('<img src=x onerror=alert(1)>'), '<p><img src=x onerror=alert(1)></p>',
   'tag HTML dari model hanya menjadi teks, bukan elemen');
 assert.equal(render('Satu\r\nDua'), '<p>Satu</p><p>Dua</p>');
@@ -187,7 +215,13 @@ assert.equal(render(''), '', 'jawaban kosong tidak melempar galat');
 assert.match(gel, /isiRapiAsisten\(el, teks\)/, 'gelembung AI memakai pemformat');
 assert.match(gel, /else el\.textContent = teks;/, 'pertanyaan owner dan teks tunggu tetap lewat textContent');
 const instr2 = fn.slice(fn.indexOf('const INSTRUKSI'), fn.indexOf('async function catatPemakaian'));
-assert.match(instr2, /SATU butir per baris/, 'model diminta satu butir per baris');
-assert.doesNotMatch(fn, /teks biasa tanpa markdown/, 'skema tidak boleh lagi melarang daftar');
+assert.match(instr2, /Satu butir per baris/, 'model diminta satu butir per baris');
+assert.match(instr2, /pakai TABEL/, 'model diminta memakai tabel untuk data berkolom');
+assert.match(instr2, /\|---\|---\|---\|---:\|---\|/, 'model diberi contoh baris sekat tabel');
+assert.doesNotMatch(fn, /teks biasa tanpa markdown/, 'skema tidak boleh lagi melarang format');
+// INSTRUKSI adalah template literal: satu backtick nyasar di dalamnya memutus
+// string dan seluruh fungsi gagal dimuat. Hanya pembuka dan penutup yang boleh ada.
+assert.equal((instr2.match(/`/g) || []).length, 2, 'INSTRUKSI tidak boleh memuat backtick di dalam teksnya');
+assert.doesNotMatch(instr2, /\$\{(?!INSTRUKSI)/, 'INSTRUKSI tidak boleh memuat interpolasi liar');
 
 console.log('ai-asisten: semua pemeriksaan lolos');

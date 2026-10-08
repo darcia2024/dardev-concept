@@ -78,7 +78,7 @@ const SKEMA_JAWABAN = {
   type: 'object',
   properties: {
     data_cukup: { type: 'boolean', description: 'false bila jawabannya tidak ada di DATA TOKO' },
-    jawaban: { type: 'string', description: 'Jawaban singkat, bahasa Indonesia sehari-hari. Kalimat pembuka, baris kosong, lalu daftar satu butir per baris diawali "- ". Hanya boleh **tebal** dan daftar; tanpa tabel, judul, atau blok kode' },
+    jawaban: { type: 'string', description: 'Jawaban singkat, bahasa Indonesia sehari-hari, boleh markdown terbatas: judul ###, daftar, tabel berpipa, **tebal**, *miring*. Tanpa blok kode, tautan, atau HTML' },
   },
   required: ['data_cukup', 'jawaban'],
   additionalProperties: false,
@@ -95,9 +95,13 @@ SATU-SATUNYA SUMBER FAKTA adalah DATA TOKO di bawah (JSON). Aturannya:
 - "Minggu ini" berarti Senin sampai hari ini. "Kemarin", "minggu lalu", dan sejenisnya dihitung dari hari_ini.
 - omzet adalah jumlah yang benar-benar dibayar pelanggan, sesudah diskon. nilai di kapster, layanan_teratas, dan produk_terjual adalah harga sebelum diskon nota.
 - Rupiah ditulis "Rp 1.250.000". Tanggal ditulis "6 Oktober".
-- Jawab singkat dan langsung ke angkanya. Tanpa tabel, tanpa judul "#", tanpa blok kode. Hanya dua tanda format yang dipakai layar: baris yang diawali "- " untuk daftar, dan **tebal** untuk angka atau nama penting.
-- Bentuk jawaban agar enak dibaca: kalimat pembuka satu baris yang memuat angka intinya (misalnya "Omzet **12 September** **Rp 378.000** dari **6 transaksi**."), baris kosong, lalu daftar dengan SATU butir per baris. Jangan pernah menyambung banyak butir dalam satu paragraf.
-- Butir rincian transaksi ditulis ringkas: "- 14:46 · Haircut + Hairwash · Rp 70.000 · QRIS · Wanda". Urutkan dari jam paling pagi. Nomor nota tidak ditulis kecuali ditanya. Tutup dengan satu baris ringkasan bila perlu (total, atau kapster paling banyak mengerjakan).
+- Jawab singkat dan langsung ke angkanya. Layar menampilkan format markdown yang terbatas: judul "### Judul", paragraf, daftar ("- butir" dan "1. butir"), tabel berpipa, garis "---", **tebal**, dan *miring*. Jangan memakai blok kode, tautan, gambar, atau HTML.
+- Susun jawaban agar enak dibaca: satu kalimat pembuka yang memuat angka intinya (misalnya "Omzet **12 September** **Rp 378.000** dari **6 transaksi**."), baris kosong, lalu isinya. Satu butir per baris; jangan pernah menyambung banyak butir dalam satu paragraf. Jawaban yang panjang dibagi dengan judul "###".
+- Bila isinya berupa banyak baris data dengan kolom yang sama (rincian transaksi, perbandingan antar bulan, daftar stok, absensi), pakai TABEL: baris kepala, baris sekat "|---|---:|", lalu satu baris data per baris. Kolom angka rupiah dirataskan kanan dengan "---:". Contoh:
+| Jam | Layanan | Metode | Total | Kapster |
+|---|---|---|---:|---|
+| 14:46 | Haircut + Hairwash | QRIS | Rp 70.000 | Wanda |
+  Urutkan rincian transaksi dari jam paling pagi. Nomor nota tidak ditulis kecuali ditanya. Tutup dengan satu baris ringkasan bila perlu (total, atau kapster paling banyak mengerjakan). Untuk jawaban satu atau dua angka saja, tidak perlu tabel.
 - Hanya soal operasional toko ini. Pertanyaan di luar itu dijawab bahwa Anda hanya membantu soal data toko.`;
 
 async function catatPemakaian(
