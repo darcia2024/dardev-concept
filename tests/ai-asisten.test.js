@@ -153,4 +153,41 @@ const instr = fn.slice(fn.indexOf('const INSTRUKSI'), fn.indexOf('async function
 assert.match(instr, /transaksi_60_hari/);
 assert.doesNotMatch(instr, /transaksi satu per satu, gaji/, 'instruksi tidak boleh lagi melarang rincian transaksi');
 
+/* ── Jawaban rapi ─────────────────────────────────────────────────────────
+   Jawaban rincian transaksi tampil sebagai satu blok teks yang sulit dibaca.
+   Layar kini membentuk paragraf dan daftar, tanpa innerHTML. */
+const rapi = js.slice(js.indexOf('function isiRapiAsisten'), js.indexOf('function gelembungAsisten'));
+assert.ok(rapi.length > 200, 'pemformat jawaban harus ditemukan');
+assert.doesNotMatch(rapi.replace(/\/\*[\s\S]*?\*\//g, ''), /innerHTML|insertAdjacentHTML/, 'pemformat tidak boleh memakai innerHTML');
+
+function simpul(tag) {
+  return {
+    tag, anak: [], teks: '',
+    appendChild(c) { this.anak.push(c); return c; },
+    set textContent(v) { this.teks = v; this.anak = []; },
+    get firstChild() { return this.anak[0] || null; },
+  };
+}
+const doc = { createElement: simpul, createTextNode: (t) => ({ tag: '#teks', teks: t, anak: [] }) };
+const rapiFn = new Function('document', rapi + '; return isiRapiAsisten;')(doc);
+function ratakan(n) {
+  if (n.tag === '#teks') return n.teks;
+  return '<' + n.tag + '>' + (n.anak.length ? n.anak.map(ratakan).join('') : n.teks) + '</' + n.tag + '>';
+}
+function render(teks) { const el = simpul('div'); rapiFn(el, teks); return el.anak.map(ratakan).join(''); }
+
+assert.equal(
+  render('Omzet **12 September** **Rp 378.000**.\n\n- 07:30 · Haircut · Rp 59.500\n- 14:46 · Haircut + Hairwash · Rp 70.000\nTotal enam.'),
+  '<p>Omzet <strong>12 September</strong> <strong>Rp 378.000</strong>.</p><ul><li>07:30 · Haircut · Rp 59.500</li><li>14:46 · Haircut + Hairwash · Rp 70.000</li></ul><p>Total enam.</p>',
+  'satu butir per baris menjadi satu <li>, kalimat biasa menjadi paragraf');
+assert.equal(render('<img src=x onerror=alert(1)>'), '<p><img src=x onerror=alert(1)></p>',
+  'tag HTML dari model hanya menjadi teks, bukan elemen');
+assert.equal(render('Satu\r\nDua'), '<p>Satu</p><p>Dua</p>');
+assert.equal(render(''), '', 'jawaban kosong tidak melempar galat');
+assert.match(gel, /isiRapiAsisten\(el, teks\)/, 'gelembung AI memakai pemformat');
+assert.match(gel, /else el\.textContent = teks;/, 'pertanyaan owner dan teks tunggu tetap lewat textContent');
+const instr2 = fn.slice(fn.indexOf('const INSTRUKSI'), fn.indexOf('async function catatPemakaian'));
+assert.match(instr2, /SATU butir per baris/, 'model diminta satu butir per baris');
+assert.doesNotMatch(fn, /teks biasa tanpa markdown/, 'skema tidak boleh lagi melarang daftar');
+
 console.log('ai-asisten: semua pemeriksaan lolos');

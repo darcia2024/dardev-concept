@@ -993,6 +993,17 @@
     .asisten-gelembung.ai { align-self: flex-start; background: var(--ink-inset); color: var(--fg); border-bottom-left-radius: 4px; }
     .asisten-gelembung.ai.kurang { border: 1px dashed var(--line); }
     .asisten-gelembung.mengetik { color: var(--fg-dim); font-style: italic; }
+    /* Jawaban terformat: paragraf dan daftar dipisah jelas, bukan satu blok. */
+    .asisten-gelembung.ai { white-space: normal; }
+    .asisten-gelembung.ai p { margin: 0; }
+    .asisten-gelembung.ai p + p, .asisten-gelembung.ai p + ul, .asisten-gelembung.ai ul + p { margin-top: 8px; }
+    .asisten-gelembung.ai ul { margin: 0; padding: 0; list-style: none; }
+    .asisten-gelembung.ai li {
+      position: relative; padding: 6px 0 6px 14px; border-top: 1px solid var(--line);
+    }
+    .asisten-gelembung.ai li:first-child { border-top: 0; }
+    .asisten-gelembung.ai li::before { content: ''; position: absolute; left: 2px; top: 14px; width: 5px; height: 5px; border-radius: 50%; background: var(--fg-dim); }
+    .asisten-gelembung.ai strong { font-weight: 600; }
     .asisten-saran { display: flex; gap: 8px; flex-wrap: wrap; }
     .asisten-saran[hidden] { display: none; }
     .asisten-saran .btn-hdr { font-size: 12.5px; }
@@ -4671,10 +4682,50 @@
        ═══════════════════════════════════════════════════════════════════════ */
     let asistenRiwayat = [];
 
+    /* Merapikan jawaban AI tanpa innerHTML.
+
+       Model diminta menulis teks biasa dengan dua tanda saja: baris yang
+       diawali "- " (daftar) dan **tebal**. Di sini keduanya dibentuk menjadi
+       elemen lewat createElement dan textContent, jadi teks apa pun dari model
+       tidak pernah ditafsirkan sebagai HTML. Selain dua tanda itu, teks
+       ditampilkan apa adanya. */
+    function isiRapiAsisten(el, teks) {
+      function isiBaris(induk, baris) {
+        baris.split(/\*\*(.+?)\*\*/).forEach(function (bagian, i) {
+          if (!bagian) return;
+          if (i % 2 === 1) {
+            const t = document.createElement('strong');
+            t.textContent = bagian;
+            induk.appendChild(t);
+          } else {
+            induk.appendChild(document.createTextNode(bagian));
+          }
+        });
+      }
+      let daftar = null;
+      String(teks || '').replace(/\r/g, '').split('\n').forEach(function (baris) {
+        const butir = baris.match(/^\s*[-•]\s+(.*)$/);
+        if (butir) {
+          if (!daftar) { daftar = document.createElement('ul'); el.appendChild(daftar); }
+          const li = document.createElement('li');
+          isiBaris(li, butir[1]);
+          daftar.appendChild(li);
+          return;
+        }
+        daftar = null;
+        if (!baris.trim()) return;
+        const p = document.createElement('p');
+        isiBaris(p, baris.trim());
+        el.appendChild(p);
+      });
+      if (!el.firstChild) el.textContent = String(teks || '');
+    }
+
     function gelembungAsisten(kelas, teks) {
       const el = document.createElement('div');
       el.className = 'asisten-gelembung ' + kelas;
-      el.textContent = teks;
+      if (/^ai(\s|$)/.test(kelas) && !/mengetik/.test(kelas)) isiRapiAsisten(el, teks);
+      else el.textContent = teks;
       const log = document.getElementById('asistenLog');
       log.appendChild(el);
       log.scrollTop = log.scrollHeight;
