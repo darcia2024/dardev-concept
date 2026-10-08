@@ -1013,12 +1013,17 @@
       overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
     }
     .asisten-gelembung.ai table { border-collapse: collapse; width: 100%; font-size: 12px; }
-    /* Teks panjang (nama layanan) boleh turun baris supaya kolom terakhir tetap
-       terlihat di lembar 400px; angka dan judul kolom tidak dipotong. */
+    /* Sel tidak pernah dipotong di tengah ("11:1" / "2" itu jelek dan menyesatkan).
+       Hanya sel berteks panjang (nama layanan) yang boleh turun baris; sisanya
+       selalu satu baris, dan tabel menggulir bila memang terlalu lebar. */
     .asisten-gelembung.ai th, .asisten-gelembung.ai td {
-      padding: 6px 7px; text-align: left; vertical-align: top; border-top: 1px solid var(--line);
+      padding: 7px 8px; text-align: left; vertical-align: top; white-space: nowrap;
+      border-top: 1px solid var(--line); font-variant-numeric: tabular-nums;
     }
-    .asisten-gelembung.ai th, .asisten-gelembung.ai td.kanan, .asisten-gelembung.ai td.tengah { white-space: nowrap; }
+    .asisten-gelembung.ai td.panjang { white-space: normal; min-width: 96px; }
+    .asisten-gelembung.ai tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--ink-inset) 55%, transparent); }
+    .asisten-gelembung.ai tbody tr:last-child td { border-top-color: var(--fg-dim); }
+    .asisten-gelembung.ai td strong { font-weight: 600; }
     .asisten-gelembung.ai thead th {
       border-top: 0; font-size: 11px; font-weight: 600; letter-spacing: .04em;
       text-transform: uppercase; color: var(--fg-dim); background: var(--ink-inset);
@@ -1051,7 +1056,7 @@
     .ai-fab[aria-expanded="true"] { display: none; }
     .ai-sheet {
       position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 70;
-      width: 400px; max-width: calc(100vw - 32px);
+      width: 460px; max-width: calc(100vw - 32px);
       height: min(640px, calc(100vh - 96px)); height: min(640px, calc(100dvh - 96px));
       display: flex; flex-direction: column; gap: 10px; padding: 14px;
       background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
@@ -4771,8 +4776,11 @@
             // Jumlah kolom mengikuti kepala; kelebihan dibuang, kekurangan dikosongkan.
             for (let k = 0; k < kepala.length; k++) {
               const td = document.createElement('td');
-              if (rata[k]) td.className = rata[k];
-              inline(td, isi[k] || '');
+              const nilai = isi[k] || '';
+              // Teks panjang boleh turun baris; angka, jam, dan nama pendek tidak.
+              const kelas = [rata[k], nilai.length > 18 ? 'panjang' : ''].filter(Boolean).join(' ');
+              if (kelas) td.className = kelas;
+              inline(td, nilai);
               tr.appendChild(td);
             }
             tbody.appendChild(tr);

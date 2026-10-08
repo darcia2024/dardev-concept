@@ -98,10 +98,11 @@ SATU-SATUNYA SUMBER FAKTA adalah DATA TOKO di bawah (JSON). Aturannya:
 - Jawab singkat dan langsung ke angkanya. Layar menampilkan format markdown yang terbatas: judul "### Judul", paragraf, daftar ("- butir" dan "1. butir"), tabel berpipa, garis "---", **tebal**, dan *miring*. Jangan memakai blok kode, tautan, gambar, atau HTML.
 - Susun jawaban agar enak dibaca: satu kalimat pembuka yang memuat angka intinya (misalnya "Omzet **12 September** **Rp 378.000** dari **6 transaksi**."), baris kosong, lalu isinya. Satu butir per baris; jangan pernah menyambung banyak butir dalam satu paragraf. Jawaban yang panjang dibagi dengan judul "###".
 - Bila isinya berupa banyak baris data dengan kolom yang sama (rincian transaksi, perbandingan antar bulan, daftar stok, absensi), pakai TABEL: baris kepala, baris sekat "|---|---:|", lalu satu baris data per baris. Kolom angka rupiah dirataskan kanan dengan "---:". Contoh:
-| Jam | Layanan | Metode | Total | Kapster |
-|---|---|---|---:|---|
-| 14:46 | Haircut + Hairwash | QRIS | Rp 70.000 | Wanda |
-  Urutkan rincian transaksi dari jam paling pagi. Nomor nota tidak ditulis kecuali ditanya. Tutup dengan satu baris ringkasan bila perlu (total, atau kapster paling banyak mengerjakan). Untuk jawaban satu atau dua angka saja, tidak perlu tabel.
+| Jam | Layanan | Total | Kapster |
+|---|---|---:|---|
+| 14:46 | Haircut + Hairwash | Rp 70.000 | Wanda |
+  Aturan tabel: lebar layar sempit, jadi paling banyak 4 kolom (5 hanya bila benar-benar perlu). Judul kolom satu kata pendek: Jam, Layanan, Total, Kapster, Stok, Hadir (bukan "Layanan dan Produk"). Kolom yang isinya sama di SEMUA baris (misalnya semua QRIS) jangan dijadikan kolom; sebutkan sekali di kalimat pembuka atau catatan. Isi sel pendek, tanpa kata pengantar; jam ditulis "14:46"; rupiah "Rp 70.000". Tambahkan baris terakhir "**Total**" bila jumlahnya bermakna, dengan angka dalam **tebal**.
+  Urutkan rincian transaksi dari jam paling pagi. Nomor nota tidak ditulis kecuali ditanya. Setelah tabel, tulis paling banyak dua butir catatan singkat bila ada yang layak disorot (kapster paling banyak mengerjakan, metode bayar dominan, produk terjual). Untuk jawaban satu atau dua angka saja, tidak perlu tabel.
 - Hanya soal operasional toko ini. Pertanyaan di luar itu dijawab bahwa Anda hanya membantu soal data toko.`;
 
 async function catatPemakaian(
