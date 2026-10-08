@@ -217,7 +217,23 @@ assert.match(gel, /else el\.textContent = teks;/, 'pertanyaan owner dan teks tun
 const instr2 = fn.slice(fn.indexOf('const INSTRUKSI'), fn.indexOf('async function catatPemakaian'));
 assert.match(instr2, /Satu butir per baris/, 'model diminta satu butir per baris');
 assert.match(instr2, /pakai TABEL/, 'model diminta memakai tabel untuk data berkolom');
-assert.match(instr2, /\|---\|---\|---\|---:\|---\|/, 'model diberi contoh baris sekat tabel');
+assert.match(instr2, /\|---\|---\|---:\|---\|/, 'model diberi contoh baris sekat tabel');
+// Layar sempit: tabel lima kolom dengan kolom seragam (semua QRIS) membuat kolom
+// terakhir terpotong. Model harus diminta meringkas, bukan hanya diberi contoh.
+assert.match(instr2, /paling banyak 4 kolom/, 'jumlah kolom dibatasi');
+assert.match(instr2, /isinya sama di SEMUA baris[\s\S]{0,40}jangan dijadikan kolom/, 'kolom seragam tidak dijadikan kolom');
+assert.match(instr2, /Judul kolom satu kata pendek/, 'judul kolom pendek');
+
+// Sel berteks panjang boleh turun baris; jam dan angka tidak pernah dipotong.
+const panjang = bungkus('| Jam | Layanan | Total |\n|---|---|---:|\n| 14:46 | Haircut + Hairwash + Creambath | Rp 70.000 |');
+const selBaris = panjang.anak[0].anak[0].anak[1].anak[0].anak;
+assert.equal(selBaris[0].className, '', 'jam pendek tidak boleh dibungkus');
+assert.equal(selBaris[1].className, 'panjang', 'nama layanan panjang boleh turun baris');
+assert.equal(selBaris[2].className, 'kanan', 'angka rupiah tidak dibungkus dan rata kanan');
+// CSS: bawaan sel adalah satu baris; hanya .panjang yang boleh membungkus.
+const cssTabel = rekap.slice(rekap.indexOf('.asisten-gelembung.ai th, .asisten-gelembung.ai td {'));
+assert.match(cssTabel.slice(0, 400), /white-space: nowrap/, 'sel tabel secara bawaan tidak dibungkus');
+assert.match(rekap, /\.asisten-gelembung\.ai td\.panjang \{ white-space: normal;/, 'hanya .panjang yang membungkus');
 assert.doesNotMatch(fn, /teks biasa tanpa markdown/, 'skema tidak boleh lagi melarang format');
 // INSTRUKSI adalah template literal: satu backtick nyasar di dalamnya memutus
 // string dan seluruh fungsi gagal dimuat. Hanya pembuka dan penutup yang boleh ada.
