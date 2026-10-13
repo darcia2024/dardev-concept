@@ -93,7 +93,7 @@ assert.equal(pos.indexOf('selectedServices.find(x => String(x.id)'), -1,
 
 // Klik pada katalog menambah, tidak lagi menyalakan-mematikan.
 assert.equal(pos.indexOf('toggleServiceSelection'), -1, 'penyalaan-pematian lama harus hilang');
-assert.match(pos, /card\.onclick = \(\) => \{\s*tambahLayanan\(s\);/);
+assert.match(pos, /card\.onclick = \(\) => \{\s*if \(ketukTerlaluCepat\(s\.id\)\) return;\s*tambahLayanan\(s\);/);
 
 // Membatalkan harus tetap mungkin: tombol pada barisnya.
 assert.match(pos, /class="item-hapus" data-idx="\$\{i\}"/,

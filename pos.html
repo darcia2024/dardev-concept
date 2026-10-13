@@ -352,12 +352,33 @@
       color: var(--fg);
     }
 
+    /* Pengatur jumlah pada kartu yang sudah terpilih. Tinggi 44px: dipakai
+       kapster dengan tangan basah dan terburu-buru. */
+    .service-stepper {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      background: #fff; border: 1px solid var(--line);
+      border-radius: 12px; padding: 2px;
+    }
+    .service-stepper button {
+      width: 44px; height: 40px; border: none; border-radius: 10px;
+      background: transparent; color: var(--fg); font-size: 22px; line-height: 1;
+      font-family: inherit; cursor: pointer; touch-action: manipulation;
+    }
+    .service-stepper button:active { background: var(--brand-wash, rgba(190,0,0,.1)); }
+    .service-stepper .step-tambah { color: var(--brand, #BE0000); font-weight: 600; }
+    .service-stepper .step-jml {
+      flex: 1; text-align: center; font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--fg);
+    }
+
+    /* Di pojok LUAR kartu, bukan di dalamnya: di dalam, lencana ini menimpa
+       teks durasi ("45 mnt" terbaca "45 m…") begitu layanan terpilih. */
     .check-indicator {
       position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 18px;
-      height: 18px;
+      top: -7px;
+      right: -7px;
+      width: 22px;
+      height: 22px;
+      border: 2px solid #fff;
       border-radius: 50%;
       background: var(--brass);
       color: var(--ink);
@@ -2653,8 +2674,23 @@
             <span class="service-dur">${s.item_type === 'produk' ? 'produk' : s.duration + ' mnt'}</span>
           </div>
           <div class="service-price">${formatRupiah(s.price)}</div>
+          ${jml > 0 ? `
+          <div class="service-stepper" role="group" aria-label="Jumlah ${escapeHtml(s.name)}">
+            <button type="button" class="step-kurang" aria-label="Kurangi ${escapeHtml(s.name)}">&minus;</button>
+            <span class="step-jml" aria-live="polite">${jml}</span>
+            <button type="button" class="step-tambah" aria-label="Tambah ${escapeHtml(s.name)}">+</button>
+          </div>` : ''}
         `;
+        // Tombol − dan + tidak boleh ikut memicu penangan kartunya: tanpa
+        // stopPropagation, menekan − membatalkan satu baris lalu kartunya
+        // langsung menambahkannya kembali.
+        const kurang = card.querySelector('.step-kurang');
+        if (kurang) {
+          kurang.onclick = (e) => { e.stopPropagation(); urungkanLayanan(s.id); };
+          card.querySelector('.step-tambah').onclick = (e) => { e.stopPropagation(); tambahLayanan(s); };
+        }
         card.onclick = () => {
+          if (ketukTerlaluCepat(s.id)) return;
           tambahLayanan(s);
         };
         container.appendChild(card);
@@ -2687,6 +2723,36 @@
       selectedServices.splice(indeks, 1);
       renderServices(currentFilterCat);
       updateCartView();
+    }
+
+    /* Tombol − pada kartu layanan membatalkan yang TERAKHIR ditambahkan untuk
+       layanan itu, bukan yang pertama: kapster yang kepencet dua kali ingin
+       menarik kembali ketukan terakhirnya, dan baris pertama mungkin sudah
+       diberi kapster lain. Mengembalikan false bila layanan itu tidak ada di
+       keranjang. */
+    function urungkanLayanan(id) {
+      for (let i = selectedServices.length - 1; i >= 0; i--) {
+        if (selectedServices[i].id === id) {
+          hapusBarisLayanan(i);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /* Kapster sering kepencet dua kali, dan satu nota dengan dua Haircut yang
+       tidak disengaja baru ketahuan di struk. Ketukan kedua pada kartu yang
+       sama dalam jeda sesingkat ini dianggap kepencet dan diabaikan. Dua
+       potong yang disengaja tetap mudah: tombol + pada kartunya tidak dijaga.
+       Waktu hanya dicatat untuk ketukan yang DITERIMA, supaya rentetan ketukan
+       tidak terus memperpanjang jedanya. */
+    const JEDA_KETUK_GANDA_MS = 450;
+    const ketukTerakhir = {};
+    function ketukTerlaluCepat(id) {
+      const sekarang = Date.now();
+      const terlalu = ketukTerakhir[id] !== undefined && sekarang - ketukTerakhir[id] < JEDA_KETUK_GANDA_MS;
+      if (!terlalu) ketukTerakhir[id] = sekarang;
+      return terlalu;
     }
 
     let currentFilterCat = 'ALL';
