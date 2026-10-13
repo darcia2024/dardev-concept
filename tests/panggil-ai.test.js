@@ -56,7 +56,8 @@ function sbPalsu({ sesi, balasan, getUserError }) {
   // 3 · 401 dan Auth sendiri menolak sesinya: sebabnya sesi yang habis.
   {
     const t = sbPalsu({ balasan: { data: null, error: galat(401, { error: 'Sesi tidak dikenali. Masuk lagi lalu coba ulang.' }) }, getUserError: { message: 'invalid claim' } });
-    await assert.rejects(buat(t.sb)('ai-struk', {}), /Sesi login sudah habis\. Tekan Keluar, lalu masuk lagi\./);
+    await assert.rejects(buat(t.sb)('ai-struk', {}), /Sesi login sudah habis\. Tekan Keluar \(hanya perangkat ini\), lalu masuk lagi\. \[invalid claim\]/,
+      'alasan dari Auth ikut tampil, supaya sesi dicabut dan kedaluwarsa dapat dibedakan');
     assert.equal(t.catatan.getUser, 1);
   }
   // 4 · 401 tetapi Auth menerima sesinya: sebabnya di server; alasannya ditampilkan.

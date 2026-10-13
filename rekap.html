@@ -4039,7 +4039,11 @@
       let teks = (b && b.error) || error.message || String(error);
       if (status === 401) {
         const { error: galatAuth } = await sb.auth.getUser();
-        if (galatAuth) teks = 'Sesi login sudah habis. Tekan Keluar, lalu masuk lagi.';
+        // Alasan dari Auth ikut ditampilkan ("Session from session_id claim in
+        // JWT does not exist" = dicabut dari perangkat lain; "token is expired"
+        // = kedaluwarsa). Tanpa itu dua keadaan yang berbeda tampak sama.
+        if (galatAuth) teks = 'Sesi login sudah habis. Tekan Keluar (hanya perangkat ini), lalu masuk lagi. ['
+          + String(galatAuth.message || galatAuth.code || 'ditolak Auth').slice(0, 120) + ']';
         else if (b && b.alasan) teks += ' [' + b.alasan + ']';
       }
       throw new Error(teks);
