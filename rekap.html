@@ -6446,13 +6446,18 @@
         // Disimpan supaya tombol Ubah dapat mengisi formulir tanpa memanggil
         // server lagi. Baris yang sama sudah ada di tangan.
         daftarKaryawan = staf.data || [];
-        gc.innerHTML = daftarKaryawan.map(function (c) {
+
+        function susunKartuKaryawan(c) {
           const bisa = c.punya_akun;
           // ikut_pos dibandingkan !== false, bukan === true: sebelum migrasi
           // 47 terpasang kolomnya belum ada, dan daftar yang datang tanpa
           // kolom itu harus tetap terbaca sebagai kapster seperti sediakala.
           const mencukur = c.ikut_pos !== false;
-          return '<div class="kelola-kartu">'
+          // Karyawan yang sudah punya riwayat absen/cuti tidak boleh dihapus
+          // permanen agar integritas audit tidak rusak. Sembunyikan tombol hapus
+          // agar owner tidak memicu error penolakan database yang sudah pasti terjadi.
+          const punyaRiwayat = Number(c.jml_absen || 0) > 0;
+          return '<div class="kelola-kartu' + (c.is_active ? '' : ' mati') + '">'
             + '<div><div class="kelola-nama">' + escapeHtml(c.name) + '</div>'
             + '<div class="kelola-sub">' + escapeHtml(c.email || 'belum punya akun') + '</div>'
             + '<div class="kelola-tags" style="margin-top:7px;">'
@@ -6471,7 +6476,9 @@
             + '</div></div>'
             + '<div class="kelola-aksi">'
             +   '<button class="btn-hdr" data-kar-ubah="' + c.capster_id + '">Ubah</button>'
-            +   '<button class="btn-hdr" data-kar-hapus="' + c.capster_id + '">Hapus</button>'
+            +   (punyaRiwayat
+                  ? ''
+                  : '<button class="btn-hdr" data-kar-hapus="' + c.capster_id + '">Hapus</button>')
             + '</div>'
             + '<div class="kelola-pesan" data-kar-pesan="' + c.capster_id + '"></div>'
             + '<div class="kelola-label">Nomor WhatsApp</div>'
@@ -6513,13 +6520,47 @@
                 + '<div class="kelola-pesan">Sesudah dibuat, kapster dapat mengganti sendiri sandinya dari halamannya.</div>')
             + '<div class="kelola-pesan" data-sandi-pesan="' + c.capster_id + '"></div>'
             + '</div>';
+        }
+
+        const stafAktif = daftarKaryawan.filter(function (c) { return c.is_active !== false; });
+        const stafNonaktif = daftarKaryawan.filter(function (c) { return c.is_active === false; });
+
+        let htmlStaf = stafAktif.map(function (c) {
+          const bisa = c.punya_akun;
+          return susunKartuKaryawan(c);
         }).join('') || '<div class="kelola-pesan">Belum ada kapster.</div>';
+
+        if (stafNonaktif.length > 0) {
+          htmlStaf += '<div style="grid-column: 1 / -1; margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 12px;">'
+            + '<details style="font-size:12px;">'
+            + '<summary style="cursor:pointer; color:var(--fg-dim); font-weight:500; display:inline-flex; align-items:center; gap:6px; user-select:none; padding:4px 0;">'
+            + '<span>📁 Karyawan nonaktif / diarsipkan (' + stafNonaktif.length + ')</span>'
+            + '<span style="font-size:11px; color:var(--fg-dim); opacity:.8;">(klik untuk melihat)</span>'
+            + '</summary>'
+            + '<div class="kelola-grid" style="margin-top:10px;">'
+            + stafNonaktif.map(susunKartuKaryawan).join('')
+            + '</div>'
+            + '</details>'
+            + '</div>';
+        }
+
+        gc.innerHTML = htmlStaf;
       }
 
       if (kasir.error) {
         gk.innerHTML = '<div class="kelola-pesan bad">Gagal memuat kasir: ' + escapeHtml(kasir.error.message) + '</div>';
       } else {
-        gk.innerHTML = (kasir.data || []).map(function (k) {
+        const daftarKasir = kasir.data || [];
+        const kasirAktif = daftarKasir.filter(function (k) {
+          const st = daftarKaryawan.find(function (c) { return c.name.toLowerCase() === k.name.toLowerCase(); });
+          return k.is_active !== false && (!st || st.is_active !== false);
+        });
+        const kasirNonaktif = daftarKasir.filter(function (k) {
+          const st = daftarKaryawan.find(function (c) { return c.name.toLowerCase() === k.name.toLowerCase(); });
+          return k.is_active === false || (st && st.is_active === false);
+        });
+
+        function renderKartuKasir(k) {
           return '<div class="kelola-kartu">'
             + '<div><div class="kelola-nama">' + escapeHtml(k.name) + (k.is_active ? '' : ' <span style="font-size:11px;color:var(--fg-dim);">(nonaktif)</span>') + '</div>'
             + '<div class="kelola-sub">PIN tersimpan terenkripsi &mdash; tidak dapat dilihat, hanya diganti</div></div>'
@@ -6529,7 +6570,23 @@
             + '</div>'
             + '<div class="kelola-pesan" data-pin-pesan="' + k.cashier_id + '"></div>'
             + '</div>';
-        }).join('') || '<div class="kelola-pesan">Belum ada kasir.</div>';
+        }
+
+        let htmlKasir = kasirAktif.map(renderKartuKasir).join('') || '<div class="kelola-pesan">Belum ada kasir.</div>';
+        if (kasirNonaktif.length > 0) {
+          htmlKasir += '<div style="grid-column: 1 / -1; margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 12px;">'
+            + '<details style="font-size:12px;">'
+            + '<summary style="cursor:pointer; color:var(--fg-dim); font-weight:500; display:inline-flex; align-items:center; gap:6px; user-select:none; padding:4px 0;">'
+            + '<span>📁 Kasir nonaktif (' + kasirNonaktif.length + ')</span>'
+            + '</summary>'
+            + '<div class="kelola-grid" style="margin-top:10px;">'
+            + kasirNonaktif.map(renderKartuKasir).join('')
+            + '</div>'
+            + '</details>'
+            + '</div>';
+        }
+
+        gk.innerHTML = htmlKasir;
       }
     }
 
