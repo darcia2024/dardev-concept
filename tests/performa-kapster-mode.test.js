@@ -95,6 +95,7 @@ function gambar(mode) {
     const escapeHtml = s => String(s).replace(/[&<>"]/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
     const wadah = { innerHTML: '' };
+    const capstersData = [];
     const document = {
       getElementById: (id) => (id === 'capsterPerfContainer' ? wadah : null),
       querySelectorAll: () => [],
@@ -130,6 +131,7 @@ const jahat = new Function(`
   const escapeHtml = s => String(s).replace(/[&<>"]/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const wadah = { innerHTML: '' };
+  const capstersData = [];
   const document = {
     getElementById: (id) => (id === 'capsterPerfContainer' ? wadah : null),
     querySelectorAll: () => [], querySelector: () => null

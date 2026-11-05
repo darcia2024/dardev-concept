@@ -13,6 +13,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { definisiTerakhir } = require('./_migrasi');
 
 const root = path.resolve(__dirname, '..');
 const landing = fs.readFileSync(path.join(root, 'landing.html'), 'utf8');
@@ -42,24 +43,25 @@ function potongFungsi(sumber, nama) {
 const esc = s => String(s).replace(/[&<>"']/g, c => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-function pasangDom(kapster) {
+function pasangDom(kapster, kapsterId) {
   const el = {
     tim: { hidden: true },
     kapsterDaftar: { innerHTML: '', _simak: [],
       addEventListener(_, f) { this._simak.push(f); },
-      querySelectorAll() { return []; } },
+      querySelectorAll() { return []; },
+      classList: { toggle() {} } },
     bkCatatan: { value: '' },
     booking: { scrollIntoView() {} }
   };
   return {
     $: id => el[id],
-    ISI: { kapster },
+    ISI: { kapster, kapster_id: kapsterId },
     el
   };
 }
 
-function jalankanIsiKapster(kapster) {
-  const dom = pasangDom(kapster);
+function jalankanIsiKapster(kapster, kapsterId) {
+  const dom = pasangDom(kapster, kapsterId);
   const peta = landing.slice(landing.indexOf('const FOTO_KAPSTER'));
   const src = peta.slice(0, peta.indexOf('};') + 2)
             + '\n' + potongFungsi(landing, 'isiKapster')
@@ -83,13 +85,21 @@ assert.doesNotMatch(markah, /6281297754581/,
 // terunduh tidak jatuh saat balasan servernya berubah bentuk.
 assert.match(jalankanIsiKapster(['Lukman']), /Pilih Lukman/);
 
-// public_landing hanya boleh mengembalikan id dan nama.
-const landingSql = m40.slice(m40.indexOf('FUNCTION public.public_landing'));
-const blokKapster = landingSql.slice(landingSql.indexOf("'kapster'"),
-                                     landingSql.indexOf("'kapster'") + 400);
-assert.match(blokKapster, /jsonb_build_object\('id', c\.id, 'nama', c\.name\)/);
-assert.doesNotMatch(blokKapster, /c\.phone/,
-  'public_landing tidak boleh menyertakan nomor capster');
+// Bentuk yang benar-benar dikirim server: daftar nama ditambah peta id. Inilah
+// yang harus berujung pada id di tombol, sebab tanpa id booking tersimpan tanpa
+// kapster dan notifikasinya berhenti di 'tanpa_capster'.
+const markahPeta = jalankanIsiKapster(['Cena'], { Cena: '5f331709-bfea-4c19-9b7c-01ed75210d15' });
+assert.match(markahPeta, /data-kapster-id="5f331709-bfea-4c19-9b7c-01ed75210d15"/);
+
+// Definisi TERAKHIR, bukan migrasi 40. Tes ini dulu memeriksa salinan migrasi 40,
+// jadi tetap hijau ketika migrasi 48 menghilangkan id dari fungsi yang berjalan.
+const { badan: landingSql, dari: landingDari } = definisiTerakhir('public_landing');
+assert.match(landingSql, /'kapster_id', COALESCE\(\(\s*SELECT jsonb_object_agg\(c\.name, c\.id\)/,
+  `public_landing (${landingDari}) harus mengirim id kapster`);
+assert.match(landingSql, /'kapster', COALESCE\(\(\s*SELECT jsonb_agg\(c\.name ORDER BY c\.name\)/,
+  'kunci kapster harus tetap daftar nama karena ai-tanya membacanya sebagai untai');
+assert.doesNotMatch(landingSql, /c\.phone|auth_user_id/,
+  'public_landing tidak boleh menyertakan nomor atau akun capster');
 
 /* ── 2 · Tujuan ditentukan server, bukan peramban ─────────────────────────
    Yang dikirim halaman depan hanyalah id capster. Nomornya dicari server

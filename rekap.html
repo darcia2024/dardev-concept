@@ -769,6 +769,16 @@
       background: var(--ink-card); padding: 15px 16px;
       display: flex; flex-direction: column; gap: 10px;
     }
+    /* Rasio 4:5 sama dengan kotak foto di halaman booking, supaya pemilik
+       melihat potongan yang sama dengan yang dilihat pelanggan. */
+    .kelola-foto { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
+    .kelola-foto-kotak {
+      width: 64px; aspect-ratio: 4 / 5; border-radius: 8px; overflow: hidden;
+      display: grid; place-items: center; background: var(--line);
+      font-size: 20px; font-weight: 600;
+    }
+    .kelola-foto-kotak picture { display: contents; }
+    .kelola-foto-kotak img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
     .kelola-nama { font-size: 14.5px; font-weight: 600; }
     .kelola-sub { font-size: 12px; color: var(--fg-dim); overflow-wrap: anywhere; }
     .kelola-baris { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
@@ -2543,7 +2553,9 @@
 
       const [txRes, capRes, memRes] = await Promise.all([
         qTx,
-        sb.from('capsters').select('id, name, is_active, ikut_pos'),
+        // Bintang, bukan daftar kolom: foto_path baru ada sesudah migrasi 60, dan
+        // meminta kolom yang belum ada membuat seluruh daftar ini gagal dimuat.
+        sb.from('capsters').select('*'),
         sb.from('members').select('phone_wa, name, tier, visit_count, total_spend')
       ]);
 
@@ -5517,7 +5529,20 @@
         : salinan.sort((a, b) => b[1].omzet - a[1].omzet);
     }
 
-    function avatarKapster(name) {
+    const BUCKET_FOTO_KAPSTER = 'foto-kapster';
+
+    function urlFotoKapster(jalur) {
+      return sb.storage.from(BUCKET_FOTO_KAPSTER).getPublicUrl(jalur).data.publicUrl;
+    }
+
+    /* Foto unggahan menang atas foto bawaan di assets/. jalur undefined berarti
+       pemanggil tidak memegang datanya, jadi dicari dari daftar kapster. */
+    function avatarKapster(name, jalur) {
+      const unggahan = jalur !== undefined ? jalur
+        : ((capstersData || []).find(c => (c.name || '').toLowerCase().trim() === (name || '').toLowerCase().trim()) || {}).foto_path;
+      if (unggahan) {
+        return '<img src="' + escapeHtml(urlFotoKapster(unggahan)) + '" alt="' + escapeHtml(name) + '" loading="lazy" />';
+      }
       const foto = { cena: 'assets/cena', lukman: 'assets/lukman', wanda: 'assets/wanda' }[(name || '').toLowerCase().trim()];
       return foto
         ? `<picture><source srcset="${foto}.webp?v=8" type="image/webp" /><img src="${foto}.png?v=8" alt="${escapeHtml(name)}" loading="lazy" /></picture>`
@@ -6481,6 +6506,16 @@
                   : '<button class="btn-hdr" data-kar-hapus="' + c.capster_id + '">Hapus</button>')
             + '</div>'
             + '<div class="kelola-pesan" data-kar-pesan="' + c.capster_id + '"></div>'
+            + '<div class="kelola-label">Foto</div>'
+            + '<div class="kelola-foto">'
+            +   '<div class="kelola-foto-kotak">' + avatarKapster(c.name, c.foto_path || null) + '</div>'
+            +   '<div class="kelola-aksi">'
+            +     '<input type="file" accept="image/*" hidden data-foto-input="' + c.capster_id + '" />'
+            +     '<button class="btn-hdr" data-foto-pilih="' + c.capster_id + '">' + (c.foto_path ? 'Ganti foto' : 'Unggah foto') + '</button>'
+            +     (c.foto_path ? '<button class="btn-hdr" data-foto-hapus="' + c.capster_id + '">Hapus foto</button>' : '')
+            +   '</div>'
+            + '</div>'
+            + '<div class="kelola-pesan" data-foto-pesan="' + c.capster_id + '"></div>'
             + '<div class="kelola-label">Nomor WhatsApp</div>'
             + '<div class="kelola-baris">'
             + '<input type="text" inputmode="tel" placeholder="081297754581" value="'
@@ -6590,6 +6625,120 @@
       }
     }
 
+    /* Foto dari kamera ponsel bisa belasan megabita, sedangkan di halaman booking
+       tampil selebar 148 piksel. Dikecilkan di sini supaya pemilik tidak perlu
+       menyiapkan apa pun dan pengunjung tidak mengunduh berkas sebesar itu. */
+    const BATAS_BERKAS_FOTO = 15 * 1024 * 1024;
+
+    function kanvasKeBerkas(kanvas, jenis) {
+      return new Promise(function (selesai) { kanvas.toBlob(selesai, jenis, 0.85); });
+    }
+
+    async function siapkanFotoKapster(berkas) {
+      if (berkas.size > BATAS_BERKAS_FOTO) {
+        throw new Error('Ukuran foto lebih dari 15 MB. Pilih foto yang lebih kecil.');
+      }
+      const alamat = URL.createObjectURL(berkas);
+      try {
+        const gambar = new Image();
+        await new Promise(function (selesai, gagal) {
+          gambar.onload = selesai;
+          gambar.onerror = function () {
+            gagal(new Error('Berkas ini tidak bisa dibuka. Gunakan foto JPG atau PNG.'));
+          };
+          gambar.src = alamat;
+        });
+        if (Math.min(gambar.naturalWidth, gambar.naturalHeight) < 240) {
+          throw new Error('Foto terlalu kecil dan akan tampak buram. Gunakan foto minimal 240 piksel.');
+        }
+        const skala = Math.min(1, 960 / gambar.naturalWidth, 1200 / gambar.naturalHeight);
+        const kanvas = document.createElement('canvas');
+        kanvas.width = Math.round(gambar.naturalWidth * skala);
+        kanvas.height = Math.round(gambar.naturalHeight * skala);
+        const ctx = kanvas.getContext('2d');
+        // JPEG tidak mengenal transparansi; tanpa alas putih latarnya jadi hitam.
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, kanvas.width, kanvas.height);
+        ctx.drawImage(gambar, 0, 0, kanvas.width, kanvas.height);
+
+        // Safari tidak bisa menyimpan WebP dari kanvas dan diam-diam memberi PNG.
+        let hasil = await kanvasKeBerkas(kanvas, 'image/webp');
+        if (!hasil || hasil.type !== 'image/webp') hasil = await kanvasKeBerkas(kanvas, 'image/jpeg');
+        if (!hasil) throw new Error('Foto gagal diproses. Coba foto lain.');
+        return { berkas: hasil, akhiran: hasil.type === 'image/webp' ? 'webp' : 'jpg' };
+      } finally {
+        URL.revokeObjectURL(alamat);
+      }
+    }
+
+    function namaBerkasFotoAcak(akhiran) {
+      const acak = crypto.getRandomValues(new Uint8Array(16));
+      return Array.from(acak, function (b) { return b.toString(16).padStart(2, '0'); }).join('')
+        + '.' + akhiran;
+    }
+
+    // Berkas yang tertinggal hanya memakan ruang, jadi kegagalannya tidak
+    // diperlakukan sebagai gagalnya penggantian foto.
+    async function buangBerkasFoto(jalur) {
+      if (!jalur) return;
+      const { error } = await sb.storage.from(BUCKET_FOTO_KAPSTER).remove([jalur]);
+      if (error) console.warn('Berkas foto lama tidak terhapus:', jalur, error.message);
+    }
+
+    function pesanGalatFoto(err) {
+      const teks = (err && err.message) || String(err);
+      return /bucket not found/i.test(teks)
+        ? 'Penyimpanan foto belum disiapkan. Jalankan migrasi 60 lebih dulu.'
+        : teks;
+    }
+
+    // Kartu performa di tab lain memakai daftar yang dimuat terpisah.
+    function segarkanFotoPerforma(id, jalur) {
+      const baris = (capstersData || []).find(function (c) { return c.id === id; });
+      if (baris) baris.foto_path = jalur;
+      renderPerformaKapster();
+    }
+
+    async function unggahFotoKaryawan(id, berkas) {
+      const { berkas: hasil, akhiran } = await siapkanFotoKapster(berkas);
+      const jalur = namaBerkasFotoAcak(akhiran);
+      const unggah = await sb.storage.from(BUCKET_FOTO_KAPSTER).upload(jalur, hasil, {
+        contentType: hasil.type, cacheControl: '31536000', upsert: false
+      });
+      if (unggah.error) throw unggah.error;
+
+      const { data, error } = await sb.rpc('owner_set_foto_karyawan', { p_id: id, p_foto_path: jalur });
+      if (error) {
+        await buangBerkasFoto(jalur);
+        throw error;
+      }
+      const baris = Array.isArray(data) ? data[0] : data;
+      await buangBerkasFoto(baris && baris.foto_lama);
+      return jalur;
+    }
+
+    document.addEventListener('change', async function (e) {
+      const inp = e.target.closest('[data-foto-input]');
+      if (!inp || !inp.files || !inp.files[0]) return;
+      const id  = inp.dataset.fotoInput;
+      const msg = document.querySelector('[data-foto-pesan="' + id + '"]');
+      const btn = document.querySelector('[data-foto-pilih="' + id + '"]');
+      btn.disabled = true;
+      btn.textContent = 'Mengunggah…';
+      try {
+        const jalur = await unggahFotoKaryawan(id, inp.files[0]);
+        await muatKelolaAkun();
+        segarkanFotoPerforma(id, jalur);
+        const baru = document.querySelector('[data-foto-pesan="' + id + '"]');
+        if (baru) kelolaPesan(baru, 'Foto tersimpan.', true);
+      } catch (err) {
+        kelolaPesan(msg, 'Gagal mengunggah: ' + pesanGalatFoto(err), false);
+        btn.disabled = false;
+        btn.textContent = inp.closest('.kelola-foto').querySelector('[data-foto-hapus]') ? 'Ganti foto' : 'Unggah foto';
+        inp.value = '';
+      }
+    });
+
     document.getElementById('btnTambahKaryawan').addEventListener('click', function () {
       bukaFormKaryawan(null);
     });
@@ -6654,6 +6803,32 @@
       const bHapus = e.target.closest('[data-kar-hapus]');
       const bAkun  = e.target.closest('[data-akun-buat]');
       const bLepas = e.target.closest('[data-akun-lepas]');
+      const bFotoPilih = e.target.closest('[data-foto-pilih]');
+      const bFotoHapus = e.target.closest('[data-foto-hapus]');
+
+      if (bFotoPilih) {
+        document.querySelector('[data-foto-input="' + bFotoPilih.dataset.fotoPilih + '"]').click();
+        return;
+      }
+
+      if (bFotoHapus) {
+        const id  = bFotoHapus.dataset.fotoHapus;
+        const kar = daftarKaryawan.find(k => k.capster_id === id);
+        const msg = document.querySelector('[data-foto-pesan="' + id + '"]');
+        if (!kar || !confirm('Hapus foto ' + kar.name + '?')) return;
+        bFotoHapus.disabled = true;
+        try {
+          const { error } = await sb.rpc('owner_set_foto_karyawan', { p_id: id, p_foto_path: null });
+          if (error) throw error;
+          await buangBerkasFoto(kar.foto_path);
+          await muatKelolaAkun();
+          segarkanFotoPerforma(id, null);
+        } catch (err) {
+          kelolaPesan(msg, 'Gagal menghapus foto: ' + pesanGalatFoto(err), false);
+          bFotoHapus.disabled = false;
+        }
+        return;
+      }
 
       /* Membuat akun kapster. Server yang menegakkan seluruh aturannya —
          peran dipaku 'capster', kapster yang sudah punya akun ditolak, email
@@ -6761,6 +6936,7 @@
         try {
           const { error } = await sb.rpc('owner_hapus_karyawan', { p_id: id });
           if (error) throw error;
+          await buangBerkasFoto(kar.foto_path);
           await muatKelolaAkun();
         } catch (err) {
           if (msg) kelolaPesan(msg, 'Gagal menghapus: ' + (err.message || err), false);

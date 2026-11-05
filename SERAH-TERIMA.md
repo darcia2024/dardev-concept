@@ -155,6 +155,17 @@ tidak muncul sebagai pilihan di kasir maupun di halaman booking pelanggan.
 Menambah karyawan **belum** membuatkannya akun. Tanpa akun ia belum bisa absen,
 dan kartunya akan menulis "belum punya akun".
 
+### Foto kapster
+
+Owner mengunggahnya sendiri di `/rekap` → tab **Karyawan** → kartu karyawan →
+**Unggah foto**. Foto otomatis dikecilkan dan langsung tampil di halaman booking,
+kasir, dashboard, dan layar absen orang itu. Karyawan baru disimpan dulu, baru
+kartunya muncul dan fotonya bisa diunggah.
+
+Butuh `supabase_migration_60_foto_kapster.sql` sudah dijalankan di SQL Editor.
+Foto unggahan menang atas foto bawaan di `assets/`. Kalau foto unggahan Cena,
+Lukman, atau Wanda dihapus, foto bawaannya tampil lagi.
+
 ### Membuatkan akun karyawan
 
 Di kartu orangnya, bagian **Buatkan Akun**. Alamat emailnya sudah diisikan dari
@@ -305,6 +316,9 @@ periodenya dimulai dari tanggal pemasangan, bukan dari tanggal mereka
 bergabung. Tidak ada yang turun secara surut.
 
 ### Menyalakan notifikasi WhatsApp ke capster
+
+Pilihan kapster di halaman booking butuh `supabase_migration_61_id_kapster_booking.sql`.
+Tanpa migrasi itu booking tersimpan tanpa kapster dan statusnya `tanpa_capster`.
 
 Saat pelanggan memilih capster di halaman booking, capster itu dapat langsung
 dikabari lewat WhatsApp. Fiturnya sudah terpasang tetapi **sengaja dimatikan**

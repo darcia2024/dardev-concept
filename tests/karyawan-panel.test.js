@@ -149,7 +149,7 @@ assert.match(
    Nota yang pindah ke tukang bersih-bersih merusak laporan produktivitas,
    dan tidak ada layar yang akan memberitahu bahwa itu terjadi. */
 assert.match(
-  rekap, /sb\.from\('capsters'\)\.select\('id, name, is_active, ikut_pos'\)/,
+  rekap, /sb\.from\('capsters'\)\.select\('\*'\)/,
   'daftar kapster dashboard harus ikut mengambil ikut_pos'
 );
 assert.match(

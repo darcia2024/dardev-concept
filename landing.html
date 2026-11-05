@@ -587,10 +587,12 @@
       .picker { grid-template-columns: 1fr; }
       .slot-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
       .slot { font-size: 13px; padding: 10px 2px; }
-      /* Tiga kapster, tiga kolom: satu baris utuh tanpa sel yatim. Kotak
-         sedikit lebih pendek dari rasio fotonya, jadi object-fit memangkas
-         tepi bawah — bagian kaus hitam — sementara wajah tetap di atas. */
+      /* Tiga kolom, atau dua bila jumlahnya genap dan tidak habis dibagi tiga,
+         supaya empat kapster jadi 2x2 tanpa sel yatim. Kotak sedikit lebih
+         pendek dari rasio fotonya, jadi object-fit memangkas tepi bawah —
+         bagian kaus hitam — sementara wajah tetap di atas. */
       .kapster { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .kapster.kapster-dua { grid-template-columns: repeat(2, 1fr); }
       .avatar { max-width: 100%; aspect-ratio: 1 / 1.16; border-radius: 10px; font-size: 26px; }
       .kapster-nama { font-size: 14px; }
       .kapster-peran { font-size: 11.5px; }
@@ -943,6 +945,12 @@
            + '</picture>';
     }
 
+    /* Foto yang diunggah owner dari Rekap menang atas foto bawaan di assets/. */
+    function gambarUnggahan(jalur, nama) {
+      const alamat = sb.storage.from('foto-kapster').getPublicUrl(jalur).data.publicUrl;
+      return '<img src="' + esc(alamat) + '" alt="' + esc(nama) + '" loading="lazy" />';
+    }
+
     function cariFotoKapster(nama) {
       const n = String(nama || '').toLowerCase();
       if (n.indexOf('cena') !== -1) return FOTO_KAPSTER.cena;
@@ -959,14 +967,21 @@
       const bawaan = [{ nama: 'Cena' }, { nama: 'Lukman' }, { nama: 'Wanda' }];
       const daftar = (ISI && ISI.kapster && ISI.kapster.length)
         ? ISI.kapster.map(function (k) {
-            return typeof k === 'string' ? { nama: k } : k;
+            return typeof k === 'string'
+              ? { nama: k, id: (ISI.kapster_id || {})[k] }
+              : k;
           })
         : bawaan;
+      const fotoUnggahan = (ISI && ISI.kapster_foto) || {};
       $('tim').hidden = false;
+      $('kapsterDaftar').classList.toggle('kapster-dua',
+        daftar.length % 2 === 0 && daftar.length % 3 !== 0);
       $('kapsterDaftar').innerHTML = daftar.map(function (k) {
         const nama = k.nama;
         const foto = cariFotoKapster(nama);
-        const avatarKonten = foto
+        const avatarKonten = fotoUnggahan[nama]
+          ? gambarUnggahan(fotoUnggahan[nama], nama)
+          : foto
           ? gambarKapster(foto, nama)
           : esc(String(nama).slice(0, 1).toUpperCase());
         return '<div class="kapster-orang muncul">'

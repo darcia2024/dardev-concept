@@ -975,7 +975,12 @@
         'wanda': 'assets/wanda'
       };
       const capKey = (me.name || '').toLowerCase().trim();
-      if (FOTO_KAPSTER[capKey]) {
+      if (me.foto_path) {
+        const fotoSaya = document.createElement('img');
+        fotoSaya.src = sb.storage.from('foto-kapster').getPublicUrl(me.foto_path).data.publicUrl;
+        fotoSaya.alt = me.name || '';
+        $('avatar').replaceChildren(fotoSaya);
+      } else if (FOTO_KAPSTER[capKey]) {
         $('avatar').innerHTML = '<picture>'
           + '<source srcset="' + FOTO_KAPSTER[capKey] + '.webp?v=8" type="image/webp" />'
           + '<img src="' + FOTO_KAPSTER[capKey] + '.png?v=8" alt="' + (me.name || '') + '" />'

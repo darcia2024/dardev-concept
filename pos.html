@@ -2610,7 +2610,9 @@
         const initial = c.name.charAt(0).toUpperCase();
         /* WebP dulu, PNG sebagai cadangan: Safari baru mengenal WebP sejak
            iOS 14, dan iPad kasir yang lebih tua harus tetap melihat wajahnya. */
-        const avatarHtml = foto
+        const avatarHtml = c.foto_path
+          ? `<img src="${escapeHtml(sb.storage.from('foto-kapster').getPublicUrl(c.foto_path).data.publicUrl)}" alt="${escapeHtml(c.name)}" loading="lazy" />`
+          : foto
           ? `<picture><source srcset="${foto}.webp?v=8" type="image/webp" />`
             + `<img src="${foto}.png?v=8" alt="${escapeHtml(c.name)}" loading="lazy" /></picture>`
           : escapeHtml(initial);
