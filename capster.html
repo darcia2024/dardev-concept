@@ -275,6 +275,7 @@
       .kpi-row { grid-template-columns: 1fr; }
     }
   </style>
+  <link rel="stylesheet" href="payroll.css?v=1" />
 </head>
 <body>
   <header>
@@ -380,6 +381,20 @@
       <div class="rows" id="cutiList"></div>
     </div>
 
+    <div class="card" id="cashCard">
+      <div class="card-head"><h2>Kasbon</h2><button class="btn" id="cashApply" disabled style="font-size:11.5px; padding:5px 10px;">+ Ajukan</button></div>
+      <p class="payroll-note" id="cashPeriod"></p>
+      <p class="payroll-note">Hari kerja masuk bulan ini: <strong id="cashDays">—</strong></p>
+      <p class="payroll-note">Limit kasbon tersedia (Maks 30%): <strong id="cashAvailable">—</strong></p>
+      <form class="cuti-form" id="cashForm">
+        <label><span class="cuti-lbl">Nominal kasbon (Rp)</span><input id="cashAmount" inputmode="numeric" autocomplete="off" required /></label>
+        <label><span class="cuti-lbl">Alasan / catatan</span><textarea id="cashReason" maxlength="500" required></textarea></label>
+        <div style="display:grid; grid-template-columns:1fr auto; gap:8px;"><button class="btn-primary" id="cashSend" type="submit">Kirim pengajuan</button><button class="btn" id="cashCancel" type="button">Batal</button></div>
+      </form>
+      <div id="cashMessage" class="payroll-message" role="status"></div>
+      <div id="cashHistory" class="rows"></div>
+    </div>
+
     <div class="card" data-khusus-cukur>
       <div class="card-head">
         <h2>Layanan Hari Ini</h2>
@@ -425,6 +440,8 @@
 
   <script src="vendor/supabase.js"></script>
   <script src="sb-app.js"></script>
+  <script src="payroll.js?v=1"></script>
+  <script src="payroll-employee.js?v=1"></script>
 
   <script>
     /* =========================================================================
@@ -663,6 +680,7 @@
 
         if (res.error) { alert(res.error.message); return; }
         await muatAbsen();
+        await EmployeeCash.load();
       } catch (err) {
         // Foto sudah terunggah tetapi absen gagal tersimpan tidak menjadi
         // masalah: berkas yatim tidak dirujuk baris mana pun, dan menghapusnya
@@ -881,7 +899,7 @@
         const baris = !j.error && (Array.isArray(j.data) ? j.data[0] : j.data);
         jamKerjaSaya = baris && baris.jam_masuk ? baris : null;
       }
-      await Promise.all([muatAbsen(), muatCuti()]);
+      await Promise.all([muatAbsen(), muatCuti(), EmployeeCash.load()]);
     }
 
     function renderLayanan(rows) {

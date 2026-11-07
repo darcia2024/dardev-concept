@@ -1,0 +1,42 @@
+const assert = require('node:assert/strict');
+const P = require('../payroll');
+
+assert.equal(P.weekday('2026-11-01'), 'Min');
+assert.equal(P.weekday('2026-11-02'), 'Sen');
+assert.equal(P.weekday('2026-11-02T00:00:00.000Z'), 'Sen');
+assert.equal(P.weekday('2028-02-29'), 'Sel');
+assert.equal(P.requiredDays('2026-11', [1,2,3,4,5]), 21);
+assert.equal(P.requiredDays('2026-11', [1,2,3,4,5,6]), 25);
+assert.equal(P.requiredDays('2026-11', [1,2,3,4,5,6,7]), 30);
+assert.equal(P.requiredDays('2028-02', [1,2,3,4,5,6,7]), 29);
+assert.throws(() => P.requiredDays('2026-11', []));
+assert.throws(() => P.requiredDays('2026-11', [1,1]));
+assert.deepEqual(P.cashLimit(3000000, 21, 7, 100000, 50000), {
+  daily:3000000/21, accrued:1000000, limit:300000, available:150000
+});
+assert.equal(P.cashLimit(3000000, 21, 0).available, 0);
+assert.equal(P.cashLimit(3000001, 21, 1).limit, 42857);
+assert.equal(P.cashLimit(3000000, 21, 1, 100000).available, -57143);
+for (const bank of ['Mandiri','mandiri',' BANK MANDIRI ']) assert.equal(P.bankFee(bank),0);
+for (const bank of ['SeaBank','BCA','BRI','BNI','BSI','Jago','CIMB Niaga','Lainnya']) assert.equal(P.bankFee(bank),2500);
+assert.throws(()=>P.bankFee(''));
+assert.equal(P.terbilang(3197500),'Tiga juta seratus sembilan puluh tujuh ribu lima ratus rupiah');
+assert.equal(P.terbilang(0),'Nol rupiah');
+assert.equal(P.terbilang(1000),'Seribu rupiah');
+assert.equal(P.terbilang(1100000001),'Satu miliar seratus juta satu rupiah');
+for (const value of ['1.000','1,5','-1','Infinity','1e3','']) assert.throws(()=>P.parseMoney(value));
+const data={period:'2026-09',employee:{name:'Cena',jabatan:'Kapster',base_salary:3000000,bank_name:'SeaBank',bank_account_number:'00123456789',bank_account_holder:'Nama Uji'},attendance:{hadir:23,terlambat:0,menit_kerja:12296},izin_disetujui:2,haircut:22,hairwash:7,kasbon_dicairkan:300000};
+const input={paymentDate:'2026-09-25',additionalLabel:'Gaji prorata Agustus mulai 17 Agu 2026',additional:500000,tip:0,bonus:0,other:0};
+assert.equal(P.totals(data,input).net,3197500);
+assert.equal(P.totals({...data,employee:{...data.employee,bank_name:'Mandiri'}},input).net,3200000);
+const html=P.slip(data,input);
+assert.match(html,/UR\/SG\/2026\/09\/CENA/);
+assert.match(html,/204j 56m/);
+assert.match(html,/00123456789/);
+assert.match(html,/Rp 3\.197\.500/);
+assert.ok(html.indexOf('Diserahkan oleh')<html.indexOf('Diterima oleh'));
+const malicious=P.slip({...data,employee:{...data.employee,name:'<img src=x onerror=alert(1)>'}}, {...input,additionalLabel:'<script>alert(1)</script>'});
+assert.doesNotMatch(malicious,/<script>|<img /);
+assert.throws(()=>P.slip(data,{...input,other:10000000}),/potongan/);
+assert.throws(()=>P.slip(data,{...input,paymentDate:'2026-02-30'}),/tanggal bayar/);
+console.log('payroll: hari, limit, bank, terbilang, nominal, dan cetakan lolos');

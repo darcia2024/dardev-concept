@@ -1181,6 +1181,7 @@
       table.stok-list .empty-row { grid-column: 1 / -1; }
     }
   </style>
+  <link rel="stylesheet" href="payroll.css?v=1" />
 </head>
 <body>
 
@@ -1674,6 +1675,7 @@
         <div class="kal-grid" id="kalGrid"></div>
       </div>
       <div class="kal-legenda">
+        <span><i style="background:var(--surface-sunk); border-color:var(--border);"></i> Libur rutin (–)</span>
         <span><i style="background:var(--sage-wash); border-color:var(--sage);"></i> Hadir</span>
         <span><i style="background:var(--brass-wash); border-color:var(--brass);"></i> Terlambat</span>
         <span><i style="background:var(--surface); border-style:dashed; border-color:var(--fg-dim);"></i> Izin / Libur disetujui</span>
@@ -1681,7 +1683,7 @@
         <span><i style="background:var(--surface-sunk); border-color:var(--border); opacity:.38;"></i> Belum lewat</span>
       </div>
       <p style="font-size:11.5px; color:var(--fg-dim); padding:10px 2px 2px; line-height:1.55;">
-        Hari ini belum dihitung &mdash; selama harinya masih berjalan, orang yang belum absen
+        Hari libur rutin tidak dihitung sebagai tidak masuk. Hari ini belum dihitung &mdash; selama harinya masih berjalan, orang yang belum absen
         belum tentu tidak masuk. Hari sebelum seorang karyawan terdaftar juga dilewati.
       </p>
     </div>
@@ -1738,7 +1740,42 @@
       </div>
     </div>
 
-    <!-- Live Transaction Logs Table -->
+    <div class="table-panel" id="ownerCashPanel">
+      <div class="table-controls">
+        <div><h2 style="font-size:15px; font-weight:600;">Pengajuan Kasbon</h2>
+          <p class="payroll-note">Yang menunggu keputusan tampil paling atas</p></div>
+        <div class="bulan-pilih"><input type="month" class="inp-bulan" aria-label="Periode pengajuan kasbon" />
+          <button class="btn-hdr" id="ownerCashRefresh">Muat ulang</button></div>
+      </div>
+      <div class="table-scroll"><table class="tx-table"><thead><tr>
+        <th>Karyawan / Role</th><th>Tanggal pengajuan</th><th>Nominal</th><th>Alasan</th><th>Validasi</th><th>Status</th><th>Aksi</th>
+      </tr></thead><tbody id="ownerCashBody"></tbody></table></div>
+      <div id="ownerCashMessage" class="payroll-message" role="status"></div>
+      <p class="payroll-note">Kasbon disetujui tetap memakai kuota bulan pengajuan. Hanya kasbon yang sudah dicairkan dipotong dari slip, pada bulan pencairannya.</p>
+    </div>
+
+    <div class="table-panel" id="payrollPanel">
+      <div class="table-controls"><div><h2 style="font-size:15px; font-weight:600;">Slip Gaji Karyawan</h2>
+        <p class="payroll-note" id="payrollPeriodLabel"></p></div>
+        <div class="bulan-pilih"><input type="month" class="inp-bulan" aria-label="Periode slip gaji" /></div>
+      </div>
+      <div class="payroll-form" id="payrollForm">
+        <label>Karyawan<select id="payrollEmployee"><option value="">Pilih karyawan</option></select></label>
+        <label>Tanggal bayar<input type="date" id="payrollPayDate" /></label>
+        <label>Keterangan pendapatan tambahan / prorata<input id="payrollAdditionalLabel" maxlength="120" placeholder="Contoh: Gaji prorata Agustus mulai 17 Agu 2026" /></label>
+        <label>Pendapatan tambahan / prorata (Rp)<input id="payrollAdditional" inputmode="numeric" value="0" /></label>
+        <label>Tip pelanggan (Rp)<input id="payrollTip" inputmode="numeric" value="0" /></label>
+        <label>Bonus / insentif (Rp)<input id="payrollBonus" inputmode="numeric" value="0" /></label>
+        <label>Potongan lain (Rp)<input id="payrollOther" inputmode="numeric" value="0" /></label>
+        <p class="payroll-note">Gaji pokok dan rekening mengikuti kartu karyawan. Mandiri bebas biaya admin; bank lain Rp 2.500. Skema flat: alpha tidak otomatis memotong gaji pokok.</p>
+      </div>
+      <div class="payroll-actions"><button class="btn-hdr" id="payrollGenerate">Buat pratinjau slip</button>
+        <button class="btn-hdr" id="payrollPrint" disabled>Cetak / Simpan PDF</button></div>
+      <p class="payroll-note">Cetak A4 potret. Pilih Simpan sebagai PDF dan matikan header/footer bawaan browser untuk hasil seperti contoh.</p>
+      <div id="payrollMessage" class="payroll-message" role="status"></div>
+      <div id="payrollPreview" class="slip-preview" hidden></div>
+    </div>
+
     <!-- Foto selfie absensi -->
     <div class="table-panel">
       <div class="table-controls">
@@ -1821,6 +1858,7 @@
               Kosongkan keduanya agar ikut jam buka toko. Isi untuk karyawan dengan
               jam sendiri, misalnya 09.00&ndash;17.00 &mdash; terlambat dihitung dari jam masuk ini.
             </div>
+            <div id="karPayrollFields"></div>
             <label class="kelola-cek">
               <input type="checkbox" id="chkKarIkutPos" checked />
               <span>Ikut jadi pilihan pencukur di kasir dan halaman booking.
@@ -2366,10 +2404,22 @@
     </section>
   </div>
 
+  <datalist id="payrollBankNames"><option value="Mandiri"></option><option value="SeaBank"></option><option value="BCA"></option><option value="BRI"></option><option value="BNI"></option><option value="BSI"></option><option value="Jago"></option><option value="CIMB Niaga"></option><option value="Lainnya"></option></datalist>
+  <dialog class="payroll-dialog" id="cashDecisionDialog" aria-labelledby="cashDecisionTitle">
+    <form id="cashDecisionForm"><h3 id="cashDecisionTitle"></h3><p id="cashDecisionDetail"></p>
+      <p class="payroll-note" id="cashDecisionHelp"></p><p class="payroll-note" id="cashDecisionBank"></p>
+      <div class="payroll-form"><label class="wide"><span id="cashDecisionNoteLabel"></span><textarea id="cashDecisionNote" maxlength="500" rows="3"></textarea></label></div>
+      <div id="cashDecisionMessage" class="payroll-message" role="status"></div>
+      <div class="payroll-actions"><button class="btn-hdr" type="submit" id="cashDecisionSubmit">Simpan</button><button class="btn-hdr" type="button" id="cashDecisionCancel">Batal</button></div>
+    </form>
+  </dialog>
+
   <!-- Library di-host sendiri, bukan CDN: dashboard harus tetap terbuka
        walau jaringan luar terganggu. -->
   <script src="vendor/supabase.js"></script>
   <script src="sb-app.js"></script>
+  <script src="payroll.js?v=1"></script>
+  <script src="payroll-owner.js?v=1"></script>
 
   <script>
     /* =========================================================================
@@ -2603,6 +2653,7 @@
       await muatArsipFoto();
       await loadCuti();
       await muatCatatanRapi();
+      await PayrollUI.loadCash(true);
     }
 
     /* -------------------------------------------------------------------------
@@ -5145,7 +5196,7 @@
         // Bulan depan belum punya catatan apa pun; membiarkannya dipilih
         // hanya menghasilkan tabel kosong yang terlihat seperti kerusakan.
         el.max = kini;
-        el.addEventListener('change', function () {
+        el.onchange = function () {
           if (!el.value) { el.value = bulanAbsensi; return; }
           bulanAbsensi = el.value;
           // Bulan lain berarti daftar lain: halaman 9 September tidak ada
@@ -5154,8 +5205,9 @@
           halamanTabel.absen = 1;
           document.querySelectorAll('.inp-bulan').forEach(function (lain) { lain.value = bulanAbsensi; });
           tulisJudulBulan();
+          PayrollUI.setMonth(bulanAbsensi);
           muatSemuaAbsensi();
-        });
+        };
       });
       tulisJudulBulan();
     }
@@ -5176,12 +5228,14 @@
        ========================================================================= */
     const KAL_LABEL = {
       hadir: 'Hadir', terlambat: 'Terlambat', mangkir: 'Tidak masuk',
-      tutup: 'Toko tutup', belum: 'Belum lewat'
+      tutup: 'Toko tutup', off: 'Libur rutin', belum: 'Belum lewat'
     };
 
     async function loadKalender() {
       const grid = document.getElementById('kalGrid');
-      const res = await sb.rpc('attendance_calendar', { p_bulan: bulanKeTanggal(bulanAbsensi) });
+      const requestedMonth = bulanAbsensi;
+      const res = await sb.rpc('attendance_calendar', { p_bulan: bulanKeTanggal(requestedMonth) });
+      if (requestedMonth !== bulanAbsensi) return;
       document.getElementById('kalSub').textContent =
         namaBulan(bulanAbsensi) + ' — siapa hadir, izin, dan tidak masuk pada tiap tanggal';
 
@@ -5214,7 +5268,7 @@
       // Baris kepala: tanggal
       potong.push('<div></div>');
       hari.forEach(function (t) {
-        potong.push('<div class="kal-kepala">' + Number(t.slice(8, 10)) + '</div>');
+        potong.push('<div class="kal-kepala"><span>' + Payroll.weekday(t) + '</span><strong>' + Number(t.slice(8, 10)) + '</strong></div>');
       });
 
       orang.forEach(function (o) {
@@ -5228,6 +5282,7 @@
           const isi = st === 'hadir' ? '·'
                     : st === 'terlambat' ? '!'
                     : st === 'mangkir' ? '×'
+                    : st === 'off' ? '–'
                     : (st === 'Izin' || st === 'Libur') ? 'i' : '';
           potong.push('<div class="kal-hari ' + escapeHtml(st) + '" title="'
             + escapeHtml(judul) + '">' + isi + '</div>');
@@ -6437,6 +6492,7 @@
       document.getElementById('chkKarAktif').checked   = kar ? (kar.is_active !== false) : true;
       document.getElementById('pesanKaryawan').textContent = '';
       document.getElementById('pesanKaryawan').className = 'kelola-pesan';
+      document.getElementById('karPayrollFields').innerHTML = PayrollUI.fields(kar || {}, true);
       document.getElementById('formKaryawan').hidden = false;
       document.getElementById('inpKarNama').focus();
     }
@@ -6497,6 +6553,7 @@
                   ? '<span class="kelola-tag">' + String(c.jam_masuk).slice(0, 5).replace(':', '.')
                     + '&ndash;' + String(c.jam_pulang).slice(0, 5).replace(':', '.') + '</span>'
                   : '')
+            + '<span class="kelola-tag">' + escapeHtml(Payroll.workingDaysLabel(c.working_days)) + '</span>'
             +   (c.is_active ? '' : '<span class="kelola-tag mati">Nonaktif</span>')
             + '</div></div>'
             + '<div class="kelola-aksi">'
@@ -6516,6 +6573,7 @@
             +   '</div>'
             + '</div>'
             + '<div class="kelola-pesan" data-foto-pesan="' + c.capster_id + '"></div>'
+            + PayrollUI.fields(c)
             + '<div class="kelola-label">Nomor WhatsApp</div>'
             + '<div class="kelola-baris">'
             + '<input type="text" inputmode="tel" placeholder="081297754581" value="'
@@ -6579,7 +6637,11 @@
             + '</div>';
         }
 
-        gc.innerHTML = htmlStaf;
+        // Polling tidak boleh menghapus angka yang sedang diketik owner.
+        const sedangMengisi = gc.contains(document.activeElement)
+          && document.activeElement.matches('input, select, textarea');
+        if (!sedangMengisi) gc.innerHTML = htmlStaf;
+        PayrollUI.setEmployees(daftarKaryawan);
       }
 
       if (kasir.error) {
@@ -6739,6 +6801,11 @@
       }
     });
 
+    document.addEventListener('payroll:changed', async function () {
+      await muatKelolaAkun();
+      await Promise.all([loadAbsensi(), loadKalender(), PayrollUI.loadCash()]);
+    });
+
     document.getElementById('btnTambahKaryawan').addEventListener('click', function () {
       bukaFormKaryawan(null);
     });
@@ -6774,6 +6841,7 @@
       const label = btn.textContent;
       btn.textContent = 'Menyimpan…';
       try {
+        const payrollPatch = PayrollUI.readFields(document.querySelector('#karPayrollFields [data-payroll-id]'));
         const { error } = await sb.rpc('owner_upsert_karyawan', {
           p_id:       karyawanDiubah,
           p_nama:     nama,
@@ -6782,11 +6850,13 @@
           p_ikut_pos: document.getElementById('chkKarIkutPos').checked,
           p_aktif:    document.getElementById('chkKarAktif').checked,
           p_jam_masuk:  jamMasuk  || null,
-          p_jam_pulang: jamPulang || null
+          p_jam_pulang: jamPulang || null,
+          p_payroll: payrollPatch
         });
         if (error) throw error;
         tutupFormKaryawan();
         await muatKelolaAkun();
+        await Promise.all([loadAbsensi(), loadKalender()]);
       } catch (err) {
         kelolaPesan(msg, 'Gagal menyimpan: ' + (err.message || err), false);
       } finally {
