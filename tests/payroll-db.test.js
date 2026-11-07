@@ -1,0 +1,106 @@
+/* PGLITE_MODULE dapat menunjuk instalasi @electric-sql/pglite di luar repo.
+ * Menjalankan SQL asli dalam PostgreSQL WASM, termasuk RLS/role dan RPC. */
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const {PGlite}=require(process.env.PGLITE_MODULE || '@electric-sql/pglite');
+const root=path.resolve(__dirname,'..');
+const owner='00000000-0000-4000-8000-000000000001', user='00000000-0000-4000-8000-000000000002', other='00000000-0000-4000-8000-000000000003';
+const employee='00000000-0000-4000-8000-000000000012';
+async function run() {
+  const db=new PGlite();
+  const q=(sql,args=[])=>db.query(sql,args);
+  const one=async(sql,args=[])=>Object.values((await q(sql,args)).rows[0])[0];
+  const as=async(id,role='authenticated')=>{ await db.exec('RESET ROLE'); await q("SELECT set_config('request.jwt.claim.sub',$1,false)",[id]); await db.exec('SET ROLE '+role); };
+  await db.exec(fs.readFileSync(path.join(__dirname,'fixtures/payroll-base.sql'),'utf8'));
+  for (const file of ['supabase_migration_23_kalender_mangkir.sql','supabase_migration_62_jadwal_penggajian.sql','supabase_migration_63_kasbon_slip_gaji.sql']) await db.exec(fs.readFileSync(path.join(root,file),'utf8'));
+  await q("SELECT set_config('test.today','2026-11-07',false)");
+  await q("INSERT INTO auth.users(id,email) VALUES ($1,'owner@test.invalid'),($2,'employee@test.invalid'),($3,'other@test.invalid')",[owner,user,other]);
+  await q("INSERT INTO profiles VALUES ($1,'owner'),($2,'capster'),($3,'capster')",[owner,user,other]);
+  await q("INSERT INTO capsters(id,name,auth_user_id,jabatan) VALUES ($1,'Karyawan Uji',$2,'Editor')",[employee,user]);
+  await as(owner);
+  const save=patch=>q('SELECT owner_set_employee_payroll($1,$2::jsonb)',[employee,JSON.stringify(patch)]);
+  await save({working_days:[1,2,3,4,5],base_salary:3000000,bank_name:'bank mandiri',bank_account_number:'00123456789',bank_account_holder:'Nama Uji'});
+  let staff=(await q('SELECT * FROM owner_staff_list()')).rows[0];
+  assert.equal(staff.bank_account_number,'00123456789'); assert.equal(staff.bank_name,'Mandiri');
+  await assert.rejects(()=>save({working_days:[]}),/hari kerja/);
+  await assert.rejects(()=>save({working_days:[1,1]}),/hari kerja/);
+  await assert.rejects(()=>save({base_salary:-1}),/Gaji/);
+  await assert.rejects(()=>save({base_salary:1.5}),/Gaji/);
+  await assert.rejects(()=>save({bank_name:'BCA'}),/sekaligus/);
+  const calendar=(await q("SELECT tanggal::TEXT,status FROM attendance_calendar('2026-11-01') WHERE tanggal <= '2026-11-07'")).rows;
+  assert.equal(calendar.find(r=>r.tanggal==='2026-11-01').status,'off');
+  assert.equal(calendar.find(r=>r.tanggal==='2026-11-07').status,'off');
+  assert.equal(calendar.find(r=>r.tanggal==='2026-11-02').status,'mangkir');
+  assert.equal(await one("SELECT tidak_masuk FROM attendance_report('2026-11-01')"),5);
+  // Atomic editor: jika data bank salah, perubahan nama juga dibatalkan.
+  await assert.rejects(()=>q("SELECT * FROM owner_upsert_karyawan($1,'Nama salah',NULL,'Editor',false,true,NULL,NULL,$2::jsonb)",[employee,JSON.stringify({bank_name:'BCA'})]),/sekaligus/);
+  assert.equal((await q('SELECT * FROM owner_staff_list()')).rows[0].name,'Karyawan Uji');
+  await as('', 'anon');
+  await assert.rejects(()=>q('SELECT my_cash_advances()'),/permission denied/);
+  await as(user);
+  await assert.rejects(()=>save({base_salary:9000000}),/Hanya owner/);
+  await assert.rejects(()=>q("SELECT owner_payroll_data($1,'2026-11-01')",[employee]),/Hanya owner/);
+  assert.equal((await q('SELECT * FROM employee_payroll')).rows.length,0);
+  await assert.rejects(()=>q("UPDATE employee_payroll SET base_salary=9000000"),/permission denied/);
+  await assert.rejects(()=>q("SELECT cash_advance_summary($1,'2026-11-01')",[employee]),/permission denied/);
+  let state=await one('SELECT my_cash_advances()');
+  assert.equal(state.summary.sisa_limit_kasbon_tersedia,0);
+  await db.exec('RESET ROLE');
+  await q("INSERT INTO attendances(capster_id,business_date,status,check_in_time,check_out_time) SELECT $1,d::DATE,CASE WHEN extract(day FROM d)=3 THEN 'terlambat'::attend_status ELSE 'hadir'::attend_status END,d+interval '2 hours',d+interval '10 hours' FROM generate_series('2026-11-02'::TIMESTAMP,'2026-11-06',interval '1 day') d",[employee]);
+  // Kehadiran bulan lalu/masa depan tidak menambah kuota bulan berjalan.
+  await q("INSERT INTO attendances(capster_id,business_date) VALUES ($1,'2026-10-31'),($1,'2026-11-30')",[employee]);
+  await as(user);
+  state=await one('SELECT my_cash_advances()');
+  assert.equal(state.summary.total_hari_kerja_wajib,21);
+  assert.equal(state.summary.jumlah_hari_masuk,5);
+  assert.equal(state.summary.limit_kasbon_30_persen,214285);
+  const key='00000000-0000-4000-8000-000000000101';
+  const request=(amount,k=key)=>one('SELECT request_cash_advance($1,$2,$3)',[amount,'Keperluan uji',k]);
+  await assert.rejects(()=>request(0),/lebih dari nol/);
+  await assert.rejects(()=>request(214286),/limit/);
+  const id=await request(100000);
+  assert.equal(await request(100000),id);
+  await assert.rejects(()=>request(100001),/isi berbeda/);
+  state=await one('SELECT my_cash_advances()'); assert.equal(state.summary.sisa_limit_kasbon_tersedia,114285);
+  await assert.rejects(()=>one("SELECT decide_cash_advance($1,true,'')",[id]),/Hanya owner/);
+  await as(other); assert.equal((await q('SELECT * FROM cash_advances')).rows.length,0);
+  await assert.rejects(()=>one('SELECT my_cash_advances()'),/karyawan aktif/);
+  await as(owner);
+  await q("SELECT decide_cash_advance($1,true,'OK')",[id]);
+  let slip=await one("SELECT owner_payroll_data($1,'2026-11-01')",[employee]);
+  assert.equal(slip.kasbon_dicairkan,0);
+  assert.equal(slip.attendance.hadir,5); assert.equal(slip.attendance.terlambat,1); assert.equal(slip.attendance.menit_kerja,2400);
+  await q("SELECT disburse_cash_advance($1,'Bukti uji')",[id]);
+  await q("SELECT disburse_cash_advance($1,'Bukti uji')",[id]);
+  // Fungsi pencairan memakai now() asli; atur tanggal fixture untuk uji batas bulan secara deterministik.
+  await db.exec('RESET ROLE');
+  await q("UPDATE cash_advances SET disbursed_at='2026-11-07T10:00:00+07:00' WHERE id=$1",[id]);
+  await q("INSERT INTO leave_requests(capster_id,tanggal_mulai,tanggal_selesai,status) VALUES ($1,'2026-10-31','2026-11-02','disetujui'),($1,'2026-11-02','2026-11-02','disetujui')",[employee]);
+  const tx=await one("INSERT INTO transactions(business_date) VALUES ('2026-11-03') RETURNING id");
+  await q("INSERT INTO transaction_items(transaction_id,capster_id,service_name,qty) VALUES ($1,$2,'Haircut',2),($1,$2,'Hairwash',1)",[tx,employee]);
+  await as(owner);
+  slip=await one("SELECT owner_payroll_data($1,'2026-11-01')",[employee]);
+  assert.equal(slip.kasbon_dicairkan,100000); assert.equal(slip.izin_disetujui,2); assert.equal(slip.haircut,2); assert.equal(slip.hairwash,1);
+  assert.equal((await one("SELECT owner_payroll_data($1,'2026-10-01')",[employee])).kasbon_dicairkan,0);
+  await as(user);
+  const rejected=await request(50000,'00000000-0000-4000-8000-000000000102');
+  await as(owner); await q("SELECT decide_cash_advance($1,false,'Ditolak')",[rejected]);
+  await as(user); state=await one('SELECT my_cash_advances()'); assert.equal(state.summary.total_kasbon_pending,0);
+  // Dua pengajuan berdekatan: hanya satu yang muat di kuota; transaksi SQL mengunci baris karyawan.
+  const results=await Promise.allSettled([request(100000,'00000000-0000-4000-8000-000000000103'),request(100000,'00000000-0000-4000-8000-000000000104')]);
+  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+  await q("SELECT set_config('test.today','2026-12-01',false)");
+  state=await one('SELECT my_cash_advances()');
+  assert.equal(state.summary.period,'2026-12'); assert.equal(state.summary.jumlah_hari_masuk,0);
+  assert.equal(state.summary.sisa_limit_kasbon_tersedia,0); assert.deepEqual(state.requests,[]);
+  // Pengajuan bulan lalu boleh diputuskan kemudian, tetap memakai kuota asal.
+  await as(owner);
+  const oldPending=results.find(r=>r.status==='fulfilled').value;
+  await q("SELECT decide_cash_advance($1,true,'Disetujui setelah pergantian bulan')",[oldPending]);
+  await as(user); state=await one('SELECT my_cash_advances()');
+  assert.equal(state.summary.total_kasbon_disetujui,0); assert.equal(state.summary.sisa_limit_kasbon_tersedia,0);
+  await db.close();
+  console.log('payroll-db: migrasi, RLS, libur, prorata, idempotensi, keputusan, pencairan, slip, dan reset bulan lolos');
+}
+run().catch(error=>{ console.error(error.message, error.where || '', error.position || '', error.stack?.split('\n').slice(0,3).join('\n')); process.exitCode=1; });
