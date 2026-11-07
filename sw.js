@@ -16,7 +16,8 @@
    tidak pernah disimpan — bahkan tidak dijadikan cadangan saat luring.
    ============================================================================= */
 
-const VERSI = 'underrated-v5';
+// v6: logo dan ikon dikompres ulang; versi baru membuang salinan lama.
+const VERSI = 'underrated-v6';
 const KERANGKA = [
   '/kartu',
   '/kartu.html',

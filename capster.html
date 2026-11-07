@@ -563,9 +563,39 @@
       });
     }
 
+    /* Foto dari kamera ponsel bisa 3 MB per berkas, dan selfie absen menumpuk
+       dua kali sehari per karyawan di Storage Supabase. Dikecilkan ke JPEG
+       sebelum diunggah. Bila gagal dibuka (misalnya HEIC di peramban yang
+       tidak mengenalnya), berkas asli tetap dikirim supaya absen tidak gagal. */
+    async function kecilkanFoto(file, sisi, mutu) {
+      const alamat = URL.createObjectURL(file);
+      try {
+        const img = new Image();
+        await new Promise(function (ok, gagal) {
+          img.onload = ok; img.onerror = gagal; img.src = alamat;
+        });
+        const skala = Math.min(1, sisi / Math.max(img.naturalWidth, img.naturalHeight));
+        const kanvas = document.createElement('canvas');
+        kanvas.width = Math.round(img.naturalWidth * skala);
+        kanvas.height = Math.round(img.naturalHeight * skala);
+        const ctx = kanvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, kanvas.width, kanvas.height);
+        ctx.drawImage(img, 0, 0, kanvas.width, kanvas.height);
+        const hasil = await new Promise(function (ok) { kanvas.toBlob(ok, 'image/jpeg', mutu); });
+        return hasil && hasil.size < file.size ? hasil : file;
+      } catch (e) {
+        return file;
+      } finally {
+        URL.revokeObjectURL(alamat);
+      }
+    }
+
     /** Unggah selfie ke bucket privat. Jalur diawali id capster — kebijakan
         Storage menolak unggahan ke folder milik orang lain. */
-    async function unggahSelfie(file, aksi) {
+    async function unggahSelfie(asli, aksi) {
+      // Wajah tetap jelas untuk bukti hadir pada sisi terpanjang 1080 piksel.
+      const file = await kecilkanFoto(asli, 1080, 0.8);
       const ext = (file.type === 'image/png') ? 'png'
                 : (file.type === 'image/webp') ? 'webp' : 'jpg';
       /* Nama berkas harus berbeda tiap percobaan. Sebelumnya ia sepenuhnya
@@ -701,7 +731,10 @@
     /* Lampiran ditaruh di folder yang sama dengan selfie absensi: kebijakan
        Storage hanya memeriksa segmen pertama jalur, yaitu id capster, sehingga
        subfolder izin/ tidak memerlukan bucket maupun kebijakan baru. */
-    async function unggahLampiran(file) {
+    async function unggahLampiran(asli) {
+      // Lampiran biasanya surat atau foto dokumen: dibiarkan lebih besar agar
+      // tulisannya tetap terbaca.
+      const file = await kecilkanFoto(asli, 1600, 0.85);
       const ext = (file.type === 'image/png') ? 'png'
                 : (file.type === 'image/webp') ? 'webp' : 'jpg';
       const acak = Math.random().toString(36).slice(2, 8);
@@ -982,8 +1015,8 @@
         $('avatar').replaceChildren(fotoSaya);
       } else if (FOTO_KAPSTER[capKey]) {
         $('avatar').innerHTML = '<picture>'
-          + '<source srcset="' + FOTO_KAPSTER[capKey] + '.webp?v=8" type="image/webp" />'
-          + '<img src="' + FOTO_KAPSTER[capKey] + '.png?v=8" alt="' + (me.name || '') + '" />'
+          + '<source srcset="' + FOTO_KAPSTER[capKey] + '.webp?v=9" type="image/webp" />'
+          + '<img src="' + FOTO_KAPSTER[capKey] + '.png?v=9" alt="' + (me.name || '') + '" />'
           + '</picture>';
       } else {
         $('avatar').textContent = me.name.charAt(0).toUpperCase();

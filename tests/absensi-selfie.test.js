@@ -25,18 +25,26 @@ assert.match(sumber, /upsert: false/);
 
 // Dua panggilan berturut-turut untuk aksi dan tanggal yang sama wajib
 // menghasilkan nama berbeda.
-const buatJalur = new Function('meCapster', 'sbJakartaToday', 'file', 'aksi',
+// Fotonya dikecilkan lebih dulu; di sini pengecilnya diganti tiruan yang
+// mengembalikan JPEG, seperti hasil kanvas di peramban.
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+const buatJalur = new AsyncFunction('meCapster', 'sbJakartaToday', 'asli', 'aksi', 'kecilkanFoto',
   sumber.slice(sumber.indexOf('{') + 1, sumber.lastIndexOf('const res')) +
   '; return path;');
-const arg = [{ id: 'abc' }, () => '2026-09-01', { type: 'image/jpeg' }, 'masuk'];
-const jalur = new Set();
-for (let i = 0; i < 200; i += 1) jalur.add(buatJalur(...arg));
-assert.ok(jalur.size > 190,
-  'nama berkas harus praktis selalu berbeda, dapat ' + jalur.size + ' dari 200');
+const kecilkanTiruan = async () => ({ type: 'image/jpeg' });
 
-// Bentuknya tetap: folder per capster, lalu tanggal dan aksinya terbaca.
-const contoh = [...jalur][0];
-assert.match(contoh, /^abc\/2026-09-01-/, 'jalur: ' + contoh);
-assert.match(contoh, /\.jpg$/);
+(async () => {
+  const arg = [{ id: 'abc' }, () => '2026-09-01', { type: 'image/heic' }, 'masuk', kecilkanTiruan];
+  const jalur = new Set();
+  for (let i = 0; i < 200; i += 1) jalur.add(await buatJalur(...arg));
+  assert.ok(jalur.size > 190,
+    'nama berkas harus praktis selalu berbeda, dapat ' + jalur.size + ' dari 200');
 
-console.log('Absensi selfie tests: OK');
+  // Bentuknya tetap: folder per capster, lalu tanggal dan aksinya terbaca.
+  // Akhirannya mengikuti hasil pengecilan, bukan berkas asli dari kamera.
+  const contoh = [...jalur][0];
+  assert.match(contoh, /^abc\/2026-09-01-/, 'jalur: ' + contoh);
+  assert.match(contoh, /\.jpg$/);
+
+  console.log('Absensi selfie tests: OK');
+})().catch((e) => { console.error(e); process.exit(1); });
