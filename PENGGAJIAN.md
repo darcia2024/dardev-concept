@@ -1,6 +1,6 @@
 # Jadwal, kasbon, dan slip gaji
 
-Pembaruan dibuat dari commit `3b2a8fc` pada cabang `codex/karyawan-kasbon-slip-gaji`.
+Pembaruan dibuat pada cabang `codex/karyawan-kasbon-slip-gaji`, lalu digabung dengan pembaruan `main` terbaru `e2b8e03` (kompresi foto dan selfie absensi) tanpa konflik. Pull request: https://github.com/darcia2024/dardev-concept/pull/1.
 Migrasi 62 dan 63 sudah dipasang ke Supabase produksi `grzjfnqljjzjkvmgtohe` (Barber-Underrated, organisasi HDMI) pada 7 November 2026 melalui akun `hilmyh09`. Frontend belum diterbitkan ke Vercel pada domain lama.
 
 ## Perilaku
@@ -30,7 +30,7 @@ Jika frontend perlu dipulihkan, rollback deployment frontend saja; jangan mengha
 
 ## Pengujian
 
-- 36 suite JavaScript lulus, termasuk tes jadwal/tahun kabisat, pembulatan 30%, bank, terbilang, validasi nominal/tanggal, dan escaping cetakan.
+- 37 suite JavaScript dan 1 suite database PGlite lulus setelah penggabungan pembaruan foto, termasuk tes jadwal/tahun kabisat, pembulatan 30%, bank, terbilang, validasi nominal/tanggal, escaping cetakan, serta kompresi gambar/selfie.
 - `tests/payroll-db.test.js` menjalankan migrasi/RPC nyata dalam PostgreSQL WASM (PGlite) terisolasi: RLS, penolakan akses lintas pengguna, libur/alpha, atomic save, kuota, idempotensi, keputusan, pencairan, statistik slip, dan reset bulanan. Ini bukan pengujian database produksi atau uji beban multi-koneksi.
 - Alur browser memakai HTML/JS aplikasi dan RPC SQL di fixture lokal: pengajuan → persetujuan → pencairan → potongan slip, penyimpanan kartu/form Ubah, Mandiri tanpa biaya, dan pergantian bulan. PDF dari tombol cetak Chrome diverifikasi satu halaman A4, lengkap sampai tanda tangan/footer.
 - Verifikasi Supabase produksi setelah pemasangan memakai transaksi hanya-baca: fungsi daftar karyawan, kalender/rekap, daftar kasbon, slip seluruh karyawan, serta ringkasan kasbon karyawan berhasil dipanggil. Pembatasan akses owner/karyawan, RLS kedua tabel, larangan menulis langsung, dan helper internal diperiksa. Hash data lama karyawan tetap sama; jumlah saat pemeriksaan tetap 9 karyawan, 239 catatan absensi, dan 204 transaksi. Tidak dibuat pengajuan, persetujuan, atau pencairan kasbon sungguhan. Gaji/rekening awal tetap kosong dan harus diisi owner.
@@ -50,6 +50,7 @@ Server pratinjau hanya mengikat `127.0.0.1:8765`. Data uji disimpan di memori da
 - GitHub menolak `push --dry-run`: akun `hilmyh09` belum memiliki akses menulis ke `darcia2024/dardev-concept` (403).
 - Fork publik `hilmyh09/dardev-concept` sudah terverifikasi berasal dari repositori tersebut dan memiliki dasar kode yang sama. Cabang fitur dapat ditinjau di fork; membuat fork saja tidak mengubah deployment produksi.
 - Koneksi Vercel hanya menampilkan proyek `dardev-concept-barber` di tim `hafizhhilmy30-1389s-projects`, bukan target produksi di atas.
+- Pull request #1 sudah tersedia di repo darcia. Pemeriksaan Vercel pada PR meminta anggota tim **darcia2024's projects** (`darcia2024s-projects`) mengotorisasi deployment dari fork. Tidak ada konflik dengan `main` pada pemeriksaan terakhir.
 - Akses Supabase sudah berhasil melalui undangan organisasi HDMI; migrasi 62 dan 63 telah terpasang serta diverifikasi.
 
 Yang masih diperlukan: tim menerima perubahan dari fork atau memberi akses menulis repo asal kepada `hilmyh09`, serta akses deploy bagi `hafizh.hilmy30@gmail.com` ke proyek/tim Vercel yang memiliki `dardev-concept.vercel.app`. Database sudah siap. Tidak perlu mengirim kata sandi atau service-role key melalui chat.
