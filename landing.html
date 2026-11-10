@@ -26,7 +26,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="preload" as="image" href="assets/logo.png" fetchpriority="high" />
+  <link rel="preload" as="image" href="media/hero-barbershop-poster-v1.jpg" fetchpriority="high" />
   <link rel="stylesheet" href="theme.css" />
+  <script src="hero-video.js?v=1" defer></script>
   <noscript><style>.muncul { opacity: 1 !important; transform: none !important; }</style></noscript>
 
   <!-- ══ META PIXEL ════════════════════════════════════════════════════════
@@ -161,49 +163,42 @@
     .nav .pil { min-height: 44px; padding: 10px 18px; font-size: 14px; }
 
     /* ── Hero ──────────────────────────────────────────────────────────
-       Merah dan hitam berhenti sebelum pusat hero. Bidang putih di tengah
-       menjaga wordmark, judul, dan ajakan tetap menjadi fokus utama. */
+       Poster tetap terlihat saat video belum siap atau tidak dapat diputar.
+       Lapisan gelap menjaga kontras teks bahkan pada frame paling terang. */
     .hero-panggung {
       position: relative; overflow: hidden;
       display: grid; place-items: center;
-      min-height: clamp(420px, 64vh, 580px);
-      padding: clamp(48px, 7vw, 84px) 0;
-      background: #FFFFFF;
+      min-height: clamp(500px, 78vh, 800px);
+      min-height: clamp(500px, 78svh, 800px);
+      padding: clamp(64px, 7vw, 96px) 0;
+      background: #17191C url('media/hero-barbershop-poster-v1.jpg') center / cover no-repeat;
+      color: #FFFFFF;
+    }
+    .hero-video {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; object-position: center; pointer-events: none;
     }
     .hero-kabut {
-      position: absolute; inset: -1px; pointer-events: none;
-      background:
-        radial-gradient(ellipse 70% 115% at -9% 8%,
-          rgba(var(--hero-red-rgb), .46) 0%,
-          rgba(var(--hero-red-rgb), .29) 33%,
-          rgba(var(--hero-red-rgb), .10) 57%,
-          rgba(var(--hero-red-rgb), 0) 74%),
-        radial-gradient(ellipse 68% 120% at 109% 10%,
-          rgba(var(--hero-ink-rgb), .58) 0%,
-          rgba(var(--hero-ink-rgb), .34) 35%,
-          rgba(var(--hero-ink-rgb), .13) 57%,
-          rgba(var(--hero-ink-rgb), 0) 74%);
+      position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(180deg, rgba(0,0,0,.54), rgba(0,0,0,.59) 55%, rgba(0,0,0,.67));
     }
     .hero-isi { position: relative; z-index: 1; text-align: center; }
-    /* Logo dijaga tetap kecil. Di rujukan klien, ia berdiri sebagai penanda
-       merek di atas judul, bukan sebagai judul itu sendiri. */
-    .hero-logo { width: min(52vw, 236px); height: auto; margin: 0 auto 30px; display: block; }
+    .hero .muncul { opacity: 1; transform: none; }
     .hero h1 {
       margin: 0 auto 16px; max-width: 24ch;
       font-size: clamp(30px, 5.2vw, 54px); font-weight: var(--w-semi);
       line-height: 1.08; letter-spacing: -0.015em; text-wrap: balance;
+      color: #FFFFFF; text-shadow: 0 2px 20px rgba(0,0,0,.2);
     }
     .hero h1 span { display: block; }
-    /* Bukan var(--text-mid). Di atas kabut merah termuda pun #565C66 hanya
-       mencapai 4,1 banding 1, di bawah ambang 4,5 yang dipakai seluruh produk
-       ini, dan di titik kabut terpekat ia turun ke 3,4. Nilai ini menahan 4,9
-       bahkan di titik tergelap pita, jadi ia tetap aman ke berapa pun teksnya
-       membungkus di lebar layar lain. */
-    .hero p { margin: 0 auto 28px; max-width: 52ch; font-size: 16.5px; color: #40454E; }
+    .hero p { margin: 0 auto 28px; max-width: 52ch; font-size: 16.5px; color: #FFFFFF; }
     .hero-aksi {
       display: flex; align-items: center; justify-content: center;
       gap: 10px; flex-wrap: wrap;
     }
+    .hero .pil-garis { background: rgba(0,0,0,.2); color: #FFFFFF; border-color: rgba(255,255,255,.7); }
+    .hero .pil-garis:hover { background: #FFFFFF; color: #16181C; border-color: #FFFFFF; }
+    .hero a:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 4px; }
 
     /* ── Bagian ────────────────────────────────────────────────────────── */
     .bagian { padding: 56px 0; border-top: 1px solid var(--border-soft); }
@@ -563,17 +558,6 @@
           rgba(var(--hero-ink-rgb), .18) 100%);
       }
       .nav-kanan a:not(.pil) { display: none; }
-      .hero-kabut {
-        background:
-          radial-gradient(ellipse 92% 95% at -35% 0%,
-            rgba(var(--hero-red-rgb), .36) 0%,
-            rgba(var(--hero-red-rgb), .18) 42%,
-            rgba(var(--hero-red-rgb), 0) 76%),
-          radial-gradient(ellipse 90% 100% at 135% 4%,
-            rgba(var(--hero-ink-rgb), .48) 0%,
-            rgba(var(--hero-ink-rgb), .22) 42%,
-            rgba(var(--hero-ink-rgb), 0) 76%);
-      }
       .medan-dua { grid-template-columns: 1fr; }
       .hero-aksi { gap: 8px; }
       .hero-aksi .pil { min-width: 138px; }
@@ -617,10 +601,12 @@
 
   <header class="hero">
     <div class="hero-panggung">
+      <video class="hero-video" id="heroVideo" muted loop playsinline preload="none"
+             poster="media/hero-barbershop-poster-v1.jpg" aria-hidden="true" tabindex="-1"
+             disablepictureinpicture disableremoteplayback
+             data-src="media/hero-barbershop-v1.mp4" data-mobile-src="media/hero-barbershop-mobile-v1.mp4"></video>
       <span class="hero-kabut" aria-hidden="true"></span>
       <div class="bungkus hero-isi">
-        <img class="hero-logo muncul" src="assets/logo.png" width="880" height="184"
-             alt="Underrated Barbershop" fetchpriority="high" />
         <h1 class="muncul"><span>Welcome to</span> <span>Underrated Barbershop</span></h1>
         <p class="muncul">Pilih layanan, tanggal, dan jam. Kami pastikan lewat WhatsApp.</p>
         <div class="hero-aksi muncul">
