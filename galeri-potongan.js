@@ -4,7 +4,6 @@
   // Urutan di sini mengikuti urutan tampil dari kiri ke kanan.
   const fotoGaleri = [
     ['media/galeri/9874.webp', 'Tampak samping rambut disisir ke belakang dengan tengkuk panjang'],
-    ['media/galeri/9864.webp', 'Rambut belah samping dengan poni tipis'],
     ['media/galeri/9852.webp', 'Tampak samping potongan bergelombang dengan bagian depan terangkat'],
     ['media/galeri/9848.webp', 'Poni belah tengah bertekstur dengan sisi tipis'],
     ['media/galeri/9845.webp', 'Potongan belah tengah dengan rambut disisir rapi'],
@@ -18,8 +17,6 @@
     ['media/galeri/9735.webp', 'Rambut dibelah dan diangkat ke belakang dengan sisi rapi'],
     ['media/galeri/9729.webp', 'Poni panjang bergelombang membingkai kedua sisi wajah'],
     ['media/galeri/9716.webp', 'Belahan samping tegas dengan rambut tersisir licin'],
-    ['media/galeri/9709.webp', 'Tampak samping rambut bergelombang dengan gradasi di pelipis'],
-    ['media/galeri/9704.webp', 'Rambut depan terangkat dengan gradasi tipis di atas telinga'],
     ['media/galeri/0193.webp', 'Poni pendek bertekstur dengan gradasi di sekeliling telinga'],
   ];
 
