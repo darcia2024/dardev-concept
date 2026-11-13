@@ -29,6 +29,7 @@
   <link rel="preload" as="image" href="media/hero-barbershop-poster-v1.jpg" fetchpriority="high" />
   <link rel="stylesheet" href="theme.css" />
   <script src="hero-video.js?v=1" defer></script>
+  <script src="galeri-potongan.js?v=1" defer></script>
   <noscript><style>.muncul { opacity: 1 !important; transform: none !important; }</style></noscript>
 
   <!-- ══ META PIXEL ════════════════════════════════════════════════════════
@@ -199,6 +200,44 @@
     .hero .pil-garis { background: rgba(0,0,0,.2); color: #FFFFFF; border-color: rgba(255,255,255,.7); }
     .hero .pil-garis:hover { background: #FFFFFF; color: #16181C; border-color: #FFFFFF; }
     .hero a:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 4px; }
+
+    /* ── Galeri hasil potongan ───────────────────────────────────────── */
+    .galeri {
+      --ukuran-foto: 280px;
+      --jarak-foto: 16px;
+      width: 100%; overflow: hidden; padding-block: 24px;
+    }
+    .galeri:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+    .galeri-lintasan {
+      display: flex; width: max-content; min-height: var(--ukuran-foto);
+      animation: geser-galeri 38s linear infinite;
+    }
+    .galeri-deret {
+      display: flex; flex: none; gap: var(--jarak-foto);
+      /* Jarak setelah foto terakhir juga termasuk dalam separuh lintasan. */
+      padding-inline-end: var(--jarak-foto);
+    }
+    .galeri-deret img {
+      display: block; flex: none; width: var(--ukuran-foto); height: auto;
+      aspect-ratio: 1 / 1; object-fit: cover;
+      background: #eaeaea; border-radius: var(--r-md);
+    }
+    @keyframes geser-galeri {
+      from { transform: translate3d(0, 0, 0); }
+      to { transform: translate3d(-50%, 0, 0); }
+    }
+    @media (hover: hover) {
+      .galeri:hover .galeri-lintasan { animation-play-state: paused; }
+    }
+    .galeri:focus-visible .galeri-lintasan { animation-play-state: paused; }
+    @media (max-width: 760px) {
+      .galeri { --ukuran-foto: 200px; --jarak-foto: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .galeri { overflow-x: auto; }
+      .galeri-lintasan { animation: none; }
+      .galeri-deret[aria-hidden="true"] { display: none; }
+    }
 
     /* ── Bagian ────────────────────────────────────────────────────────── */
     .bagian { padding: 56px 0; border-top: 1px solid var(--border-soft); }
@@ -531,10 +570,7 @@
     }
     .kaki a:hover { color: var(--text); }
 
-    /* ── Gerak ─────────────────────────────────────────────────────────
-       Hanya masuknya bagian saat digulir. Tidak ada pembajakan gulir dan tidak
-       ada animasi berulang: halaman ini dibuka orang yang mencari alamat dan
-       ingin memesan, bukan untuk ditonton. */
+    /* ── Transisi bagian saat digulir ────────────────────────────────── */
     .muncul { opacity: 0; transform: translateY(12px); }
     .muncul.tampak {
       opacity: 1; transform: none;
@@ -617,6 +653,10 @@
       </div>
     </div>
   </header>
+
+  <section class="galeri" id="galeri" aria-label="Galeri hasil potongan rambut" tabindex="0">
+    <div class="galeri-lintasan" id="lintasanGaleri"></div>
+  </section>
 
   <section class="bagian" id="layanan">
     <div class="bungkus">
