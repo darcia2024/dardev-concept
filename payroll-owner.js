@@ -67,7 +67,7 @@
   }
   function resetAdjustments() {
     $('payrollAdditionalLabel').value='';
-    ['payrollAdditional','payrollTip','payrollBonus','payrollOther'].forEach(id=>$(id).value='0');
+    ['payrollAdditional','payrollTip','payrollBonus','payrollProrataDeduction','payrollOther'].forEach(id=>$(id).value='0');
   }
   function setMonth(value) {
     P.monthLabel(value);
@@ -146,6 +146,7 @@
   function readSlipInputs() {
     return {paymentDate:$('payrollPayDate').value, additionalLabel:$('payrollAdditionalLabel').value.trim(),
       additional:P.parseMoney($('payrollAdditional').value),tip:P.parseMoney($('payrollTip').value),
+      prorataDeduction:P.parseMoney($('payrollProrataDeduction').value),
       bonus:P.parseMoney($('payrollBonus').value),other:P.parseMoney($('payrollOther').value)};
   }
   $('payrollGenerate').addEventListener('click', async function() {

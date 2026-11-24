@@ -29,6 +29,19 @@ const data={period:'2026-09',employee:{name:'Cena',jabatan:'Kapster',base_salary
 const input={paymentDate:'2026-09-25',additionalLabel:'Gaji prorata Agustus mulai 17 Agu 2026',additional:500000,tip:0,bonus:0,other:0};
 assert.equal(P.totals(data,input).net,3197500);
 assert.equal(P.totals({...data,employee:{...data.employee,bank_name:'Mandiri'}},input).net,3200000);
+const prorataInput={...input,prorataDeduction:250000,other:50000};
+assert.equal(P.totals(data,prorataInput).income,3500000);
+assert.equal(P.totals(data,prorataInput).deductions,602500);
+assert.equal(P.totals(data,prorataInput).net,2897500);
+assert.equal(P.totals(data,{...input,prorataDeduction:0}).net,P.totals(data,input).net);
+const prorataHtml=P.slip(data,prorataInput);
+assert.match(prorataHtml,/<td>Potongan prorata <\/td><td>250\.000<\/td>/);
+assert.match(prorataHtml,/Rp 2\.897\.500/);
+assert.match(prorataHtml,/Dua juta delapan ratus sembilan puluh tujuh ribu lima ratus rupiah/);
+for (const prorataDeduction of [-1,0.5,NaN,Infinity,1000000000001]) {
+  assert.throws(()=>P.slip(data,{...input,prorataDeduction}),/Nominal/);
+}
+assert.throws(()=>P.slip(data,{...input,prorataDeduction:3200000}),/potongan/);
 const html=P.slip(data,input);
 assert.match(html,/UR\/SG\/2026\/09\/CENA/);
 assert.match(html,/204j 56m/);

@@ -76,8 +76,9 @@
   function totals(data, input) {
     const salary=money(data.employee.base_salary), additional=money(input.additional||0), tip=money(input.tip||0), bonus=money(input.bonus||0);
     const cash=money(data.kasbon_dicairkan||0), fee=bankFee(data.employee.bank_name), other=money(input.other||0);
-    const income=salary+additional+tip+bonus, deductions=cash+fee+other;
-    return {salary,additional,tip,bonus,cash,fee,other,income,deductions,net:income-deductions};
+    const prorataDeduction=money(input.prorataDeduction??0);
+    const income=salary+additional+tip+bonus, deductions=cash+fee+prorataDeduction+other;
+    return {salary,additional,tip,bonus,cash,fee,prorataDeduction,other,income,deductions,net:income-deductions};
   }
   const number = n => Number(n).toLocaleString('id-ID');
   const rupiah = n => 'Rp '+number(n);
@@ -96,7 +97,7 @@
       <section class="slip-info">${info('Tanggal bayar',date)}${info('Bank',c.bank_name)}${info('No. rekening',c.bank_account_number)}${info('Atas nama',c.bank_account_holder)}${info('Izin disetujui',data.izin_disetujui+' hari')}${info('Terlambat',a.terlambat+' kali')}</section>
       <section class="slip-stats">${[[a.hadir,'Hari hadir'],[data.haircut,'Haircut'],[data.hairwash,'Hairwash'],[Math.floor(a.menit_kerja/60)+'j '+a.menit_kerja%60+'m','Jam kerja']].map(([n,l])=>'<div><strong>'+e(n)+'</strong><span>'+l+'</span></div>').join('')}</section>
       <table class="slip-table"><thead><tr><th>Pendapatan</th><th>Rp</th></tr></thead><tbody>${row('Gaji pokok',t.salary,'flat '+MONTHS[m-1])}${t.additional?row(input.additionalLabel||'Pendapatan tambahan / prorata',t.additional):''}${row('Tip pelanggan',t.tip)}${row('Bonus / insentif',t.bonus)}</tbody><tfoot><tr><th>Total pendapatan</th><th>${number(t.income)}</th></tr></tfoot></table>
-      <table class="slip-table"><thead><tr><th>Potongan</th><th>Rp</th></tr></thead><tbody>${row('Kasbon',t.cash)}${row('Biaya admin bank',t.fee)}${row('Potongan lain',t.other)}</tbody><tfoot><tr><th>Total potongan</th><th>${number(t.deductions)}</th></tr></tfoot></table>
+      <table class="slip-table"><thead><tr><th>Potongan</th><th>Rp</th></tr></thead><tbody>${row('Kasbon',t.cash)}${row('Biaya admin bank',t.fee)}${row('Potongan prorata',t.prorataDeduction)}${row('Potongan lain',t.other)}</tbody><tfoot><tr><th>Total potongan</th><th>${number(t.deductions)}</th></tr></tfoot></table>
       <section class="slip-net"><div><span>Gaji bersih diterima</span><em>${e(terbilang(t.net))}</em></div><strong>${rupiah(t.net)}</strong></section>
       <section class="slip-signatures"><div><p>Diserahkan oleh</p><div class="slip-sign-space"></div><strong>Owner</strong><small>Underrated Barbershop</small></div><div><p>Diterima oleh</p><div class="slip-sign-space"></div><strong>${e(c.bank_account_holder)}</strong></div></section>
       <footer class="slip-footer"><span>Rahasia. Hanya untuk ${c.jabatan.toLowerCase()==='kapster'?'kapster':'karyawan'} yang bersangkutan.</span><span>Underrated Barbershop</span></footer>
