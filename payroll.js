@@ -87,7 +87,6 @@
     if (!c.bank_account_number || !c.bank_account_holder) throw new Error('Lengkapi rekening bank karyawan sebelum membuat slip.');
     const payment=new Date(input.paymentDate+'T00:00:00Z');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(input.paymentDate||'') || Number.isNaN(payment.getTime()) || payment.toISOString().slice(0,10)!==input.paymentDate) throw new Error('Isi tanggal bayar yang valid.');
-    if (t.net<0) throw new Error('Total potongan melebihi pendapatan. Periksa nominal sebelum mencetak.');
     const date=new Date(input.paymentDate+'T00:00:00Z').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
     const row=(label,value,sub='')=>`<tr${value===0?' class="slip-zero"':''}><td>${e(label)} ${sub?'<small>'+e(sub)+'</small>':''}</td><td>${value?number(value):'–'}</td></tr>`;
     const info=(label,value)=>`<div><span>${e(label)}</span><strong>${e(value)}</strong></div>`;

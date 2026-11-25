@@ -41,7 +41,15 @@ assert.match(prorataHtml,/Dua juta delapan ratus sembilan puluh tujuh ribu lima 
 for (const prorataDeduction of [-1,0.5,NaN,Infinity,1000000000001]) {
   assert.throws(()=>P.slip(data,{...input,prorataDeduction}),/Nominal/);
 }
-assert.throws(()=>P.slip(data,{...input,prorataDeduction:3200000}),/potongan/);
+const negativeProrataInput={...input,prorataDeduction:3200000};
+assert.equal(P.totals(data,negativeProrataInput).net,-2500);
+const negativeProrataHtml=P.slip(data,negativeProrataInput);
+assert.match(negativeProrataHtml,/Rp -2\.500/);
+assert.match(negativeProrataHtml,/Minus dua ribu lima ratus rupiah/);
+assert.match(negativeProrataHtml,/<td>Potongan prorata <\/td><td>3\.200\.000<\/td>/);
+const zeroNetHtml=P.slip(data,{...input,prorataDeduction:3197500});
+assert.match(zeroNetHtml,/Rp 0<\/strong>/);
+assert.match(zeroNetHtml,/Nol rupiah/);
 const html=P.slip(data,input);
 assert.match(html,/UR\/SG\/2026\/09\/CENA/);
 assert.match(html,/204j 56m/);
@@ -50,6 +58,8 @@ assert.match(html,/Rp 3\.197\.500/);
 assert.ok(html.indexOf('Diserahkan oleh')<html.indexOf('Diterima oleh'));
 const malicious=P.slip({...data,employee:{...data.employee,name:'<img src=x onerror=alert(1)>'}}, {...input,additionalLabel:'<script>alert(1)</script>'});
 assert.doesNotMatch(malicious,/<script>|<img /);
-assert.throws(()=>P.slip(data,{...input,other:10000000}),/potongan/);
+const negativeOtherHtml=P.slip(data,{...input,other:10000000});
+assert.match(negativeOtherHtml,/Rp -6\.802\.500/);
+assert.match(negativeOtherHtml,/Minus enam juta delapan ratus dua ribu lima ratus rupiah/);
 assert.throws(()=>P.slip(data,{...input,paymentDate:'2026-02-30'}),/tanggal bayar/);
 console.log('payroll: hari, limit, bank, terbilang, nominal, dan cetakan lolos');
